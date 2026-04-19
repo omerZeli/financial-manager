@@ -26,3 +26,11 @@ A personal financial manager that lets the user record financial data through gu
 - Flows produce data; Data components consume it.
 - Every flow writes to the DB in a well-defined schema so any data component can reliably read it.
 - Keep the UI simple, clean, and accessible in Hebrew/RTL.
+- The currency in this project is ILS.
+
+## Database Migrations
+- All Supabase migrations must be saved as `.sql` files in the `supabase/migrations/` folder.
+- Each migration file should be named with a timestamp prefix followed by a descriptive snake_case name (e.g. `20260419120000_create_transactions_table.sql`).
+- Migrations are applied in chronological order and must be idempotent where possible.
+- Never modify an already-applied migration — create a new one instead.
+
