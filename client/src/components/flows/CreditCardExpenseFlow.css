@@ -1,0 +1,100 @@
+.flow-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px;
+  text-align: right;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.flow-card h3 {
+  margin: 0 0 20px;
+  font-size: 20px;
+  color: var(--text-h);
+}
+
+.flow-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.flow-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.flow-field label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-h);
+}
+
+.flow-field input {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 16px;
+  background: var(--bg);
+  color: var(--text-h);
+  direction: rtl;
+  transition: border-color 0.2s;
+}
+
+.flow-field input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.flow-submit {
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.2s;
+  margin-top: 8px;
+}
+
+.flow-submit:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.flow-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.flow-message {
+  text-align: center;
+  font-size: 14px;
+  padding: 8px;
+  border-radius: 6px;
+}
+
+.flow-message--success {
+  color: #166534;
+  background: #dcfce7;
+}
+
+.flow-message--error {
+  color: #991b1b;
+  background: #fee2e2;
+}
+
+@media (prefers-color-scheme: dark) {
+  .flow-message--success {
+    color: #86efac;
+    background: rgba(34, 197, 94, 0.1);
+  }
+
+  .flow-message--error {
+    color: #fca5a5;
+    background: rgba(239, 68, 68, 0.1);
+  }
+}

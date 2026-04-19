@@ -1,0 +1,50 @@
+.data-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px;
+  text-align: right;
+}
+
+.data-card h3 {
+  margin: 0 0 16px;
+  font-size: 20px;
+  color: var(--text-h);
+}
+
+.data-empty {
+  color: var(--text);
+  font-size: 14px;
+}
+
+.table-wrapper {
+  overflow-x: auto;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 15px;
+}
+
+.data-table th,
+.data-table td {
+  padding: 10px 12px;
+  text-align: right;
+  border-bottom: 1px solid var(--border);
+}
+
+.data-table th {
+  font-weight: 600;
+  color: var(--text-h);
+  font-size: 14px;
+  background: var(--code-bg);
+}
+
+.data-table tbody tr:hover {
+  background: var(--accent-bg);
+}
+
+.data-table td {
+  color: var(--text);
+}
