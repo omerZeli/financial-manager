@@ -9,7 +9,7 @@
 .flow-form {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 18px;
 }
 
 .flow-field {
@@ -19,42 +19,51 @@
 }
 
 .flow-field label {
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 13px;
+  font-weight: 600;
   color: var(--text-h);
 }
 
 .flow-field input {
-  padding: 10px 12px;
+  padding: 11px 14px;
   border: 1px solid var(--border);
-  border-radius: 8px;
-  font-size: 16px;
+  border-radius: var(--radius-sm);
+  font-size: 15px;
   background: var(--bg);
   color: var(--text-h);
   direction: rtl;
-  transition: border-color 0.2s;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .flow-field input:focus {
   outline: none;
   border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-bg);
+}
+
+.flow-field input::placeholder {
+  color: #94a3b8;
 }
 
 .flow-submit {
   padding: 12px;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: var(--accent);
   color: #fff;
-  font-size: 16px;
-  font-weight: 500;
+  font-size: 15px;
+  font-weight: 600;
   cursor: pointer;
-  transition: opacity 0.2s;
+  transition: background 0.2s ease, transform 0.1s ease;
   margin-top: 8px;
 }
 
 .flow-submit:hover:not(:disabled) {
-  opacity: 0.9;
+  background: var(--accent-hover);
+}
+
+.flow-submit:active:not(:disabled) {
+  transform: scale(0.98);
 }
 
 .flow-submit:disabled {
@@ -64,40 +73,26 @@
 
 .flow-message {
   text-align: center;
-  font-size: 14px;
-  padding: 8px;
-  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
 }
 
 .flow-message--success {
-  color: #166534;
-  background: #dcfce7;
+  color: var(--success);
+  background: var(--success-bg);
+  border: 1px solid rgba(5, 150, 105, 0.1);
 }
 
 .flow-message--error {
-  color: #991b1b;
-  background: #fee2e2;
-}
-
-@media (prefers-color-scheme: dark) {
-  .flow-message--success {
-    color: #86efac;
-    background: rgba(34, 197, 94, 0.1);
-  }
-
-  .flow-message--error {
-    color: #fca5a5;
-    background: rgba(239, 68, 68, 0.1);
-  }
+  color: var(--error);
+  background: var(--error-bg);
+  border: 1px solid rgba(220, 38, 38, 0.1);
 }
 
 .flow-field-error {
-  font-size: 13px;
-  color: #991b1b;
-}
-
-@media (prefers-color-scheme: dark) {
-  .flow-field-error {
-    color: #fca5a5;
-  }
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--error);
 }

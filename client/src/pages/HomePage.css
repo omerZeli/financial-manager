@@ -2,77 +2,119 @@
   display: flex;
   flex-direction: column;
   min-height: 100svh;
+  background: var(--bg);
 }
 
 .home-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 24px;
-  border-bottom: 1px solid var(--border);
-  gap: 16px;
+  padding: 16px 32px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border-light);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  backdrop-filter: blur(12px);
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.home-header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .home-greeting {
   font-size: 14px;
   color: var(--text);
+  font-weight: 500;
 }
 
 .home-nav {
   display: flex;
   gap: 4px;
+  background: var(--bg-subtle);
+  padding: 4px;
+  border-radius: 10px;
+  border: 1px solid var(--border-light);
 }
 
 .nav-tab {
   padding: 8px 20px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   text-decoration: none;
-  font-size: 15px;
+  font-size: 14px;
+  font-weight: 500;
   color: var(--text);
-  transition: background 0.15s, color 0.15s;
+  transition: all 0.2s ease;
 }
 
 .nav-tab:hover {
-  background: var(--accent-bg);
   color: var(--text-h);
+  background: var(--bg);
 }
 
 .nav-tab.active {
-  background: var(--accent-bg);
+  background: var(--bg);
   color: var(--accent);
-  font-weight: 500;
+  box-shadow: var(--shadow-sm);
+}
+
+.home-header-left {
+  display: flex;
+  align-items: center;
 }
 
 .logout-btn {
-  padding: 6px 16px;
+  padding: 8px 16px;
   border: 1px solid var(--border);
-  border-radius: 8px;
-  background: transparent;
+  border-radius: var(--radius-sm);
+  background: var(--bg);
   color: var(--text);
   cursor: pointer;
-  font-size: 14px;
-  transition: border-color 0.15s, color 0.15s;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s ease;
 }
 
 .logout-btn:hover {
-  border-color: var(--accent-border);
-  color: var(--text-h);
+  border-color: var(--error);
+  color: var(--error);
+  background: var(--error-bg);
 }
 
 .home-main {
   flex: 1;
-  padding: 32px 24px;
+  padding: 32px;
+  max-width: 900px;
+  width: 100%;
+  margin: 0 auto;
 }
 
 .page-content h2 {
   margin-bottom: 24px;
+  font-size: 24px;
 }
 
 .page-empty-state {
   color: var(--text);
-  font-size: 15px;
-  padding: 48px 0;
+  font-size: 14px;
+  padding: 64px 24px;
   text-align: center;
   border: 1px dashed var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
+  background: var(--bg-subtle);
+}
+
+@media (max-width: 768px) {
+  .home-header {
+    padding: 12px 16px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .home-main {
+    padding: 24px 16px;
+  }
 }

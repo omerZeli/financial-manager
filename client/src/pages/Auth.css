@@ -4,89 +4,102 @@
   justify-content: center;
   min-height: 100vh;
   padding: 20px;
+  background: var(--bg-subtle);
 }
 
 .auth-form {
   width: 100%;
-  max-width: 400px;
+  max-width: 420px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
   padding: 40px;
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   background: var(--bg);
   text-align: right;
+  box-shadow: var(--shadow-md);
 }
 
 .auth-form h1 {
-  margin: 0 0 16px;
-  font-size: 28px;
+  margin: 0 0 8px;
+  font-size: 26px;
   text-align: center;
+  letter-spacing: -0.03em;
 }
 
 .auth-form label {
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 13px;
+  font-weight: 600;
   color: var(--text-h);
+  margin-bottom: -8px;
 }
 
 .auth-form input {
-  padding: 10px 14px;
+  padding: 12px 14px;
   border: 1px solid var(--border);
-  border-radius: 8px;
-  font-size: 16px;
+  border-radius: var(--radius-sm);
+  font-size: 15px;
   background: var(--bg);
   color: var(--text-h);
   outline: none;
-  transition: border-color 0.2s;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .auth-form input:focus {
   border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-bg);
 }
 
 .auth-form button[type="submit"] {
   margin-top: 8px;
   padding: 12px;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: var(--accent);
   color: #fff;
-  font-size: 16px;
-  font-weight: 500;
+  font-size: 15px;
+  font-weight: 600;
   cursor: pointer;
-  transition: opacity 0.2s;
+  transition: background 0.2s ease, transform 0.1s ease;
 }
 
 .auth-form button[type="submit"]:hover {
-  opacity: 0.9;
+  background: var(--accent-hover);
+}
+
+.auth-form button[type="submit"]:active {
+  transform: scale(0.98);
 }
 
 .auth-form button[type="submit"]:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+  transform: none;
 }
 
 .auth-error {
-  padding: 10px 14px;
-  border-radius: 8px;
-  background: rgba(220, 38, 38, 0.1);
-  color: #dc2626;
-  font-size: 14px;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--error-bg);
+  color: var(--error);
+  font-size: 13px;
+  font-weight: 500;
   text-align: center;
+  border: 1px solid rgba(220, 38, 38, 0.1);
 }
 
 .auth-link {
   text-align: center;
   font-size: 14px;
-  margin-top: 8px;
+  margin-top: 4px;
+  color: var(--text);
 }
 
 .auth-link a {
   color: var(--accent);
   text-decoration: none;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .auth-link a:hover {
@@ -98,6 +111,7 @@
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  font-size: 18px;
+  font-size: 16px;
   color: var(--text);
+  background: var(--bg-subtle);
 }
