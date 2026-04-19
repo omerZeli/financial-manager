@@ -1,17 +1,9 @@
 .flow-card {
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 24px;
   text-align: right;
-  max-width: 480px;
-  margin: 0 auto;
 }
 
 .flow-card h3 {
-  margin: 0 0 20px;
-  font-size: 20px;
-  color: var(--text-h);
+  display: none;
 }
 
 .flow-form {

@@ -1,15 +1,9 @@
 .data-card {
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 24px;
   text-align: right;
 }
 
 .data-card h3 {
-  margin: 0 0 16px;
-  font-size: 20px;
-  color: var(--text-h);
+  display: none;
 }
 
 .data-empty {
