@@ -4,6 +4,8 @@ import { ProtectedRoute } from './components/ProtectedRoute'
 import { LoginPage } from './pages/LoginPage'
 import { RegisterPage } from './pages/RegisterPage'
 import { HomePage } from './pages/HomePage'
+import { FlowsPage } from './pages/FlowsPage'
+import { DataPage } from './pages/DataPage'
 
 function GuestRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -13,7 +15,7 @@ function GuestRoute({ children }: { children: React.ReactNode }) {
   }
 
   if (user) {
-    return <Navigate to="/" replace />
+    return <Navigate to="/flows" replace />
   }
 
   return <>{children}</>
@@ -31,7 +33,11 @@ function App() {
                 <HomePage />
               </ProtectedRoute>
             }
-          />
+          >
+            <Route index element={<Navigate to="/flows" replace />} />
+            <Route path="flows" element={<FlowsPage />} />
+            <Route path="data" element={<DataPage />} />
+          </Route>
           <Route
             path="/login"
             element={

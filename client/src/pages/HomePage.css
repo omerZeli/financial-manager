@@ -1,0 +1,78 @@
+.home-layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100svh;
+}
+
+.home-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border);
+  gap: 16px;
+}
+
+.home-greeting {
+  font-size: 14px;
+  color: var(--text);
+}
+
+.home-nav {
+  display: flex;
+  gap: 4px;
+}
+
+.nav-tab {
+  padding: 8px 20px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-size: 15px;
+  color: var(--text);
+  transition: background 0.15s, color 0.15s;
+}
+
+.nav-tab:hover {
+  background: var(--accent-bg);
+  color: var(--text-h);
+}
+
+.nav-tab.active {
+  background: var(--accent-bg);
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.logout-btn {
+  padding: 6px 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  font-size: 14px;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.logout-btn:hover {
+  border-color: var(--accent-border);
+  color: var(--text-h);
+}
+
+.home-main {
+  flex: 1;
+  padding: 32px 24px;
+}
+
+.page-content h2 {
+  margin-bottom: 24px;
+}
+
+.page-empty-state {
+  color: var(--text);
+  font-size: 15px;
+  padding: 48px 0;
+  text-align: center;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+}
