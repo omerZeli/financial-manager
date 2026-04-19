@@ -27,6 +27,7 @@ A personal financial manager that lets the user record financial data through gu
 - Every flow writes to the DB in a well-defined schema so any data component can reliably read it.
 - Keep the UI simple, clean, and accessible in Hebrew/RTL.
 - The currency in this project is ILS.
+- All dates displayed to the user must use the **DD/MM/YYYY** format. Date inputs should allow both manual text entry (DD/MM/YYYY) and a native date picker, and be stored in ISO format (YYYY-MM-DD) in the database. Use the shared `DateInput` component (`components/common/DateInput.tsx`) for all date fields.
 
 ## Database Migrations
 - All Supabase migrations must be saved as `.sql` files in the `supabase/migrations/` folder.

@@ -90,3 +90,14 @@
     background: rgba(239, 68, 68, 0.1);
   }
 }
+
+.flow-field-error {
+  font-size: 13px;
+  color: #991b1b;
+}
+
+@media (prefers-color-scheme: dark) {
+  .flow-field-error {
+    color: #fca5a5;
+  }
+}

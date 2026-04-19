@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../contexts/AuthContext'
+import { DateInput } from '../common/DateInput'
 import './CreditCardExpenseFlow.css'
 
 export function CreditCardExpenseFlow() {
@@ -8,9 +9,21 @@ export function CreditCardExpenseFlow() {
   const [title, setTitle] = useState('')
   const [category, setCategory] = useState('')
   const [expenseDate, setExpenseDate] = useState('')
+  const [expenseDateError, setExpenseDateError] = useState('')
   const [amount, setAmount] = useState('')
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+
+  const parseDateInput = (value: string): string | null => {
+    const match = value.match(/^(\d{2})\/(\d{2})\/(\d{4})$/)
+    if (!match) return null
+    const [, day, month, year] = match
+    const d = parseInt(day, 10)
+    const m = parseInt(month, 10)
+    const y = parseInt(year, 10)
+    if (m < 1 || m > 12 || d < 1 || d > 31) return null
+    return `${y}-${month}-${day}`
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -18,12 +31,20 @@ export function CreditCardExpenseFlow() {
 
     setLoading(true)
     setMessage(null)
+    setExpenseDateError('')
+
+    const isoDate = parseDateInput(expenseDate)
+    if (!isoDate) {
+      setExpenseDateError('יש להזין תאריך בפורמט DD/MM/YYYY')
+      setLoading(false)
+      return
+    }
 
     const { error } = await supabase.from('credit_card_expenses').insert({
       user_id: user.id,
       title,
       category,
-      expense_date: expenseDate,
+      expense_date: isoDate,
       amount: parseFloat(amount),
     })
 
@@ -67,13 +88,16 @@ export function CreditCardExpenseFlow() {
           />
         </div>
         <div className="flow-field">
-          <label htmlFor="expense-date">תאריך</label>
-          <input
+          <label htmlFor="expense-date">תאריך (DD/MM/YYYY)</label>
+          <DateInput
             id="expense-date"
-            type="date"
             value={expenseDate}
-            onChange={(e) => setExpenseDate(e.target.value)}
+            onChange={(val) => {
+              setExpenseDate(val)
+              setExpenseDateError('')
+            }}
             required
+            error={expenseDateError}
           />
         </div>
         <div className="flow-field">

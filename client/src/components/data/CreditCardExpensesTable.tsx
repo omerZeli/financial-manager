@@ -56,7 +56,7 @@ export function CreditCardExpensesTable() {
                 <tr key={expense.id}>
                   <td>{expense.title}</td>
                   <td>{expense.category}</td>
-                  <td>{new Date(expense.expense_date).toLocaleDateString('he-IL')}</td>
+                  <td>{new Date(expense.expense_date).toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric' })}</td>
                   <td>₪{expense.amount.toLocaleString('he-IL', { minimumFractionDigits: 2 })}</td>
                 </tr>
               ))}

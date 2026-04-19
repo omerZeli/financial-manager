@@ -1,0 +1,57 @@
+.date-input-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.date-input-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+}
+
+.date-input-text {
+  flex: 1;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 16px;
+  background: var(--bg);
+  color: var(--text-h);
+  direction: ltr;
+  text-align: right;
+  transition: border-color 0.2s;
+}
+
+.date-input-text:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.date-input-picker-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text-h);
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.date-input-picker-btn:hover {
+  border-color: var(--accent);
+  background: var(--surface, var(--bg));
+}
+
+.date-input-hidden {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
