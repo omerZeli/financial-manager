@@ -49,3 +49,4 @@ When adding a new action type, you must define its open/close rule and apply it 
 - Each migration file should be named with a timestamp prefix followed by a descriptive snake_case name (e.g. `20260419120000_create_transactions_table.sql`).
 - Migrations are applied in chronological order and must be idempotent where possible.
 - Never modify an already-applied migration — create a new one instead.
+- After creating a migration file, always apply it to the remote Supabase project using the `apply_migration` tool.

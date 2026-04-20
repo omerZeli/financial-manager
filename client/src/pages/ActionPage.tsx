@@ -1,11 +1,13 @@
 import { useNavigate, useParams } from 'react-router-dom'
 import { CreditCardExpenseAction } from '../components/actions/CreditCardExpenseAction'
 import { PaybackAction } from '../components/actions/PaybackAction'
+import { OutgoingPaybackAction } from '../components/actions/OutgoingPaybackAction'
 import './ActionPage.css'
 
 const actionComponents: Record<string, React.FC> = {
   'credit-card-expenses': CreditCardExpenseAction,
   'paybacks': PaybackAction,
+  'outgoing-paybacks': OutgoingPaybackAction,
 }
 
 export function ActionPage() {

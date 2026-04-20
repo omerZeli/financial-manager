@@ -44,6 +44,11 @@ export function TrackingEditPage() {
   const [paybackMethod, setPaybackMethod] = useState('')
   const [isPaid, setIsPaid] = useState(false)
 
+  // Outgoing payback fields
+  const [creditorName, setCreditorName] = useState('')
+  const [outgoingAmount, setOutgoingAmount] = useState('')
+  const [outgoingMethod, setOutgoingMethod] = useState('')
+
   useEffect(() => {
     fetchData()
   }, [logId])
@@ -93,6 +98,18 @@ export function TrackingEditPage() {
         setPaybackAmount(String(data.amount))
         setPaybackMethod(data.payback_method)
         setIsPaid(data.is_paid)
+      }
+    } else if (log.action_type === 'outgoing_payback' && log.reference_id) {
+      const { data } = await supabase
+        .from('outgoing_paybacks')
+        .select('*')
+        .eq('id', log.reference_id)
+        .single()
+
+      if (data) {
+        setCreditorName(data.creditor_name)
+        setOutgoingAmount(String(data.amount))
+        setOutgoingMethod(data.payback_method)
       }
     }
 
@@ -170,6 +187,33 @@ export function TrackingEditPage() {
       await supabase
         .from('action_logs')
         .update({ status: newStatus, summary: newSummary })
+        .eq('id', actionLog.id)
+
+      setSaving(false)
+      navigate('/tracking')
+      return
+    } else if (actionLog.action_type === 'outgoing_payback') {
+      const numAmount = parseFloat(outgoingAmount)
+      const { error } = await supabase
+        .from('outgoing_paybacks')
+        .update({
+          creditor_name: creditorName,
+          amount: numAmount,
+          payback_method: outgoingMethod,
+        })
+        .eq('id', actionLog.reference_id)
+
+      if (error) {
+        setMessage({ type: 'error', text: 'שגיאה בשמירה' })
+        setSaving(false)
+        return
+      }
+
+      // Outgoing paybacks are always closed
+      const newSummary = `${creditorName} – ₪${numAmount.toLocaleString('he-IL', { minimumFractionDigits: 2 })}`
+      await supabase
+        .from('action_logs')
+        .update({ status: 'closed', summary: newSummary })
         .eq('id', actionLog.id)
 
       setSaving(false)
@@ -311,6 +355,44 @@ export function TrackingEditPage() {
                   />
                   <span className="toggle-slider" onClick={() => setIsPaid(!isPaid)} />
                 </div>
+              </div>
+            </div>
+          )}
+
+          {actionLog.action_type === 'outgoing_payback' && (
+            <div className="action-form">
+              <div className="action-field">
+                <label htmlFor="edit-creditor">למי אני מחזיר</label>
+                <input
+                  id="edit-creditor"
+                  type="text"
+                  value={creditorName}
+                  onChange={(e) => setCreditorName(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="action-field">
+                <label htmlFor="edit-outgoing-amount">סכום (₪)</label>
+                <input
+                  id="edit-outgoing-amount"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={outgoingAmount}
+                  onChange={(e) => setOutgoingAmount(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="action-field">
+                <label htmlFor="edit-outgoing-method">אמצעי החזר</label>
+                <CustomSelect
+                  id="edit-outgoing-method"
+                  value={outgoingMethod}
+                  onChange={setOutgoingMethod}
+                  placeholder="בחר אמצעי החזר"
+                  required
+                  options={PAYBACK_METHODS.map((m) => ({ value: m, label: m }))}
+                />
               </div>
             </div>
           )}
