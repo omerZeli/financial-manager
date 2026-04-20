@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../contexts/AuthContext'
 import { CustomSelect } from '../common/CustomSelect'
@@ -13,11 +13,19 @@ const PAYBACK_METHODS = [
   'אחר',
 ]
 
+interface PaybackLocationState {
+  triggeredBy?: string
+  prefillAmount?: string
+}
+
 export function PaybackAction() {
   const { user } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
+  const locationState = (location.state as PaybackLocationState) || {}
+
   const [debtorName, setDebtorName] = useState('')
-  const [amount, setAmount] = useState('')
+  const [amount, setAmount] = useState(locationState.prefillAmount || '')
   const [paybackMethod, setPaybackMethod] = useState('')
   const [isPaid, setIsPaid] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -49,6 +57,7 @@ export function PaybackAction() {
         status: isPaid ? 'closed' : 'open',
         reference_id: data?.id,
         summary: `${debtorName} – ₪${parseFloat(amount).toLocaleString('he-IL', { minimumFractionDigits: 2 })}`,
+        ...(locationState.triggeredBy ? { triggered_by: locationState.triggeredBy } : {}),
       })
       navigate('/actions')
     }

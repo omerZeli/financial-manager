@@ -37,6 +37,22 @@ Each action type defines its own logic for when an action_log entry is `open` or
 
 When adding a new action type, you must define its open/close rule and apply it in both the action's submit handler and the tracking edit page's save handler.
 
+## Chained Actions (פעולות משורשרות)
+Some actions can automatically trigger the creation of another action based on specific user input. This is called a "chained action."
+
+### How It Works
+- Specific conditions in specific fields of specific actions will automatically open the next action's form for the user to fill in, after the parent action is submitted.
+- The child action_log has a `triggered_by` column referencing the parent action_log's ID.
+- Context (e.g. amount) is passed to the child action form via React Router state to pre-fill relevant fields.
+- In the tracking page, parent and child actions appear as separate entries with independent open/close status.
+- Each action's open/close status is evaluated independently based on its own rules.
+
+### Implementation Notes
+- The `action_logs` table has a `triggered_by` UUID column (nullable FK to `action_logs.id`).
+- When navigating to a chained action form, pass `triggeredBy` (parent log ID) and any pre-fill values via React Router `location.state`.
+- The child action's component reads `location.state` to pre-fill fields and attach `triggered_by` on its own action_log insert.
+- Chained actions are triggered both on initial submission and on edits from the tracking page (e.g. toggling `requires_payback` on during edit will open the payback form if no chained payback already exists).
+
 ## Key Principles
 - Actions produce data; Data components consume it.
 - Every action writes to the DB in a well-defined schema so any data component can reliably read it.

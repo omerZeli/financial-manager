@@ -37,6 +37,8 @@ export function TrackingEditPage() {
   const [expenseDate, setExpenseDate] = useState('')
   const [expenseDateError, setExpenseDateError] = useState('')
   const [amount, setAmount] = useState('')
+  const [requiresPayback, setRequiresPayback] = useState(false)
+  const [originalRequiresPayback, setOriginalRequiresPayback] = useState(false)
 
   // Payback fields
   const [debtorName, setDebtorName] = useState('')
@@ -80,6 +82,8 @@ export function TrackingEditPage() {
         setTitle(data.title)
         setCategory(data.category)
         setAmount(String(data.amount))
+        setRequiresPayback(data.requires_payback ?? false)
+        setOriginalRequiresPayback(data.requires_payback ?? false)
         // Convert ISO date to DD/MM/YYYY
         if (data.expense_date) {
           const [y, m, d] = data.expense_date.split('-')
@@ -144,7 +148,7 @@ export function TrackingEditPage() {
       const numAmount = parseFloat(amount)
       const { error } = await supabase
         .from('credit_card_expenses')
-        .update({ title, category, expense_date: isoDate, amount: numAmount })
+        .update({ title, category, expense_date: isoDate, amount: numAmount, requires_payback: requiresPayback })
         .eq('id', actionLog.reference_id)
 
       if (error) {
@@ -159,6 +163,26 @@ export function TrackingEditPage() {
         .from('action_logs')
         .update({ status: 'closed', summary: newSummary })
         .eq('id', actionLog.id)
+
+      // If requires_payback was toggled on, check if a chained payback already exists
+      if (requiresPayback && !originalRequiresPayback) {
+        const { data: existingChained } = await supabase
+          .from('action_logs')
+          .select('id')
+          .eq('triggered_by', actionLog.id)
+          .limit(1)
+
+        if (!existingChained || existingChained.length === 0) {
+          setSaving(false)
+          navigate('/actions/paybacks', {
+            state: {
+              triggeredBy: actionLog.id,
+              prefillAmount: String(numAmount),
+            },
+          })
+          return
+        }
+      }
 
       setSaving(false)
       navigate('/tracking')
@@ -303,6 +327,20 @@ export function TrackingEditPage() {
                   onChange={(e) => setAmount(e.target.value)}
                   required
                 />
+              </div>
+              <div className="action-field action-toggle">
+                <label htmlFor="edit-requires-payback">מישהו צריך להחזיר לי?</label>
+                <div className="toggle-switch">
+                  <input
+                    id="edit-requires-payback"
+                    type="checkbox"
+                    checked={requiresPayback}
+                    onChange={(e) => setRequiresPayback(e.target.checked)}
+                    role="switch"
+                    aria-checked={requiresPayback}
+                  />
+                  <span className="toggle-slider" onClick={() => setRequiresPayback(!requiresPayback)} />
+                </div>
               </div>
             </div>
           )}

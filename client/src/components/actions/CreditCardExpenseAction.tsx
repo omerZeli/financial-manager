@@ -13,6 +13,7 @@ export function CreditCardExpenseAction() {
   const [expenseDate, setExpenseDate] = useState('')
   const [expenseDateError, setExpenseDateError] = useState('')
   const [amount, setAmount] = useState('')
+  const [requiresPayback, setRequiresPayback] = useState(false)
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
@@ -48,21 +49,33 @@ export function CreditCardExpenseAction() {
       category,
       expense_date: isoDate,
       amount: parseFloat(amount),
+      requires_payback: requiresPayback,
     }).select('id').single()
 
     if (error) {
       setMessage({ type: 'error', text: 'שגיאה בשמירת ההוצאה' })
     } else {
       // Log the action as closed (credit card expense is always a done action)
-      await supabase.from('action_logs').insert({
+      const { data: logData } = await supabase.from('action_logs').insert({
         user_id: user.id,
         action_type: 'credit_card_expense',
         action_label: 'הוצאות כרטיס אשראי',
         status: 'closed',
         reference_id: data?.id,
         summary: `${title} – ₪${parseFloat(amount).toLocaleString('he-IL', { minimumFractionDigits: 2 })}`,
-      })
-      navigate('/actions')
+      }).select('id').single()
+
+      // If requires payback, navigate to payback form with pre-filled context
+      if (requiresPayback && logData) {
+        navigate('/actions/paybacks', {
+          state: {
+            triggeredBy: logData.id,
+            prefillAmount: amount,
+          },
+        })
+      } else {
+        navigate('/actions')
+      }
     }
 
     setLoading(false)
@@ -119,6 +132,20 @@ export function CreditCardExpenseAction() {
             required
             placeholder="0.00"
           />
+        </div>
+        <div className="action-field action-toggle">
+          <label htmlFor="requires-payback">מישהו צריך להחזיר לי?</label>
+          <div className="toggle-switch">
+            <input
+              id="requires-payback"
+              type="checkbox"
+              checked={requiresPayback}
+              onChange={(e) => setRequiresPayback(e.target.checked)}
+              role="switch"
+              aria-checked={requiresPayback}
+            />
+            <span className="toggle-slider" onClick={() => setRequiresPayback(!requiresPayback)} />
+          </div>
         </div>
         <button type="submit" className="action-submit" disabled={loading}>
           {loading ? 'שומר...' : 'שמור הוצאה'}
