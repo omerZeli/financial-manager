@@ -7,6 +7,7 @@ import { HomePage } from './pages/HomePage'
 import { ActionsPage } from './pages/ActionsPage'
 import { ActionPage } from './pages/ActionPage'
 import { DataPage } from './pages/DataPage'
+import { DataItemPage } from './pages/DataItemPage'
 import { TrackingPage } from './pages/TrackingPage'
 import { TrackingEditPage } from './pages/TrackingEditPage'
 
@@ -41,6 +42,7 @@ function App() {
             <Route path="actions" element={<ActionsPage />} />
             <Route path="actions/:actionId" element={<ActionPage />} />
             <Route path="data" element={<DataPage />} />
+            <Route path="data/:dataId" element={<DataItemPage />} />
             <Route path="tracking" element={<TrackingPage />} />
             <Route path="tracking/:logId" element={<TrackingEditPage />} />
           </Route>

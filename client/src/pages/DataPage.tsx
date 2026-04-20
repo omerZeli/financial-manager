@@ -1,6 +1,4 @@
-import { useState } from 'react'
-import { CreditCardExpensesTable } from '../components/data/CreditCardExpensesTable'
-import { PaybacksTable } from '../components/data/PaybacksTable'
+import { Link } from 'react-router-dom'
 import './DataPage.css'
 
 const dataItems = [
@@ -9,28 +7,15 @@ const dataItems = [
 ]
 
 export function DataPage() {
-  const [openItem, setOpenItem] = useState<string | null>(null)
-
   return (
     <div className="page-content">
       <h2>נתונים</h2>
       <div className="items-list">
         {dataItems.map((item) => (
-          <div key={item.id} className="item-block">
-            <button
-              className={`item-toggle ${openItem === item.id ? 'item-toggle--active' : ''}`}
-              onClick={() => setOpenItem(openItem === item.id ? null : item.id)}
-            >
-              {item.label}
-              <span className="item-toggle-icon">{openItem === item.id ? '−' : '+'}</span>
-            </button>
-            {openItem === item.id && (
-              <div className="item-content">
-                {item.id === 'credit-card-expenses' && <CreditCardExpensesTable />}
-                {item.id === 'paybacks' && <PaybacksTable />}
-              </div>
-            )}
-          </div>
+          <Link key={item.id} to={`/data/${item.id}`} className="item-block action-link">
+            <span className="action-link-label">{item.label}</span>
+            <span className="action-link-arrow">←</span>
+          </Link>
         ))}
       </div>
     </div>
