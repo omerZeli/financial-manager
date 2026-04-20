@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { CreditCardExpenseAction } from '../components/actions/CreditCardExpenseAction'
+import { PaybackAction } from '../components/actions/PaybackAction'
 import './ActionsPage.css'
 
 const actions = [
   { id: 'credit-card-expenses', label: 'הוצאות כרטיס אשראי' },
+  { id: 'paybacks', label: 'קבלת החזר' },
 ]
 
 export function ActionsPage() {
@@ -25,6 +27,7 @@ export function ActionsPage() {
             {openAction === action.id && (
               <div className="item-content">
                 {action.id === 'credit-card-expenses' && <CreditCardExpenseAction />}
+                {action.id === 'paybacks' && <PaybackAction />}
               </div>
             )}
           </div>

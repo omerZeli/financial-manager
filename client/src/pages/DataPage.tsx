@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { CreditCardExpensesTable } from '../components/data/CreditCardExpensesTable'
+import { PaybacksTable } from '../components/data/PaybacksTable'
 import './DataPage.css'
 
 const dataItems = [
   { id: 'credit-card-expenses', label: 'הוצאות כרטיס אשראי' },
+  { id: 'paybacks', label: 'קבלת החזר' },
 ]
 
 export function DataPage() {
@@ -25,6 +27,7 @@ export function DataPage() {
             {openItem === item.id && (
               <div className="item-content">
                 {item.id === 'credit-card-expenses' && <CreditCardExpensesTable />}
+                {item.id === 'paybacks' && <PaybacksTable />}
               </div>
             )}
           </div>
