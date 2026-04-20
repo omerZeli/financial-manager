@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { ProtectedRoute } from './components/ProtectedRoute'
@@ -26,6 +27,19 @@ function GuestRoute({ children }: { children: React.ReactNode }) {
 }
 
 function App() {
+  useEffect(() => {
+    const handleWheel = (e: WheelEvent) => {
+      if (
+        document.activeElement instanceof HTMLInputElement &&
+        document.activeElement.type === 'number'
+      ) {
+        document.activeElement.blur()
+      }
+    }
+    document.addEventListener('wheel', handleWheel, { passive: false })
+    return () => document.removeEventListener('wheel', handleWheel)
+  }, [])
+
   return (
     <BrowserRouter>
       <AuthProvider>

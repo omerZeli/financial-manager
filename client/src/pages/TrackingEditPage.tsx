@@ -139,11 +139,26 @@ export function TrackingEditPage() {
     // Delete the referenced record
     if (actionLog.reference_id) {
       if (actionLog.action_type === 'credit_card_expense') {
-        await supabase.from('credit_card_expenses').delete().eq('id', actionLog.reference_id)
+        const { error: refErr } = await supabase
+          .from('credit_card_expenses')
+          .delete()
+          .eq('id', actionLog.reference_id)
+          .select()
+        if (refErr) console.error('Failed to delete credit_card_expense:', refErr)
       } else if (actionLog.action_type === 'payback') {
-        await supabase.from('paybacks').delete().eq('id', actionLog.reference_id)
+        const { error: refErr } = await supabase
+          .from('paybacks')
+          .delete()
+          .eq('id', actionLog.reference_id)
+          .select()
+        if (refErr) console.error('Failed to delete payback:', refErr)
       } else if (actionLog.action_type === 'outgoing_payback') {
-        await supabase.from('outgoing_paybacks').delete().eq('id', actionLog.reference_id)
+        const { error: refErr } = await supabase
+          .from('outgoing_paybacks')
+          .delete()
+          .eq('id', actionLog.reference_id)
+          .select()
+        if (refErr) console.error('Failed to delete outgoing_payback:', refErr)
       }
     }
 
@@ -157,19 +172,19 @@ export function TrackingEditPage() {
       for (const chained of chainedLogs) {
         if (chained.reference_id) {
           if (chained.action_type === 'payback') {
-            await supabase.from('paybacks').delete().eq('id', chained.reference_id)
+            await supabase.from('paybacks').delete().eq('id', chained.reference_id).select()
           } else if (chained.action_type === 'outgoing_payback') {
-            await supabase.from('outgoing_paybacks').delete().eq('id', chained.reference_id)
+            await supabase.from('outgoing_paybacks').delete().eq('id', chained.reference_id).select()
           } else if (chained.action_type === 'credit_card_expense') {
-            await supabase.from('credit_card_expenses').delete().eq('id', chained.reference_id)
+            await supabase.from('credit_card_expenses').delete().eq('id', chained.reference_id).select()
           }
         }
-        await supabase.from('action_logs').delete().eq('id', chained.id)
+        await supabase.from('action_logs').delete().eq('id', chained.id).select()
       }
     }
 
     // Delete the action log itself
-    const { error } = await supabase.from('action_logs').delete().eq('id', actionLog.id)
+    const { error } = await supabase.from('action_logs').delete().eq('id', actionLog.id).select()
 
     if (error) {
       setMessage({ type: 'error', text: 'שגיאה במחיקה' })
