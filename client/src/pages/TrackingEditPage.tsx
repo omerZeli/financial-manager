@@ -22,6 +22,8 @@ export function TrackingEditPage() {
   const [actionLog, setActionLog] = useState<ActionLog | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
   const { options: paybackMethods, addOption: addPaybackMethod, removeOption: removePaybackMethod } =
@@ -125,6 +127,57 @@ export function TrackingEditPage() {
     const m = parseInt(month, 10)
     if (m < 1 || m > 12 || d < 1 || d > 31) return null
     return `${year}-${month}-${day}`
+  }
+
+  const handleDelete = async () => {
+    if (!actionLog) return
+
+    setDeleting(true)
+    setMessage(null)
+    setShowDeleteConfirm(false)
+
+    // Delete the referenced record
+    if (actionLog.reference_id) {
+      if (actionLog.action_type === 'credit_card_expense') {
+        await supabase.from('credit_card_expenses').delete().eq('id', actionLog.reference_id)
+      } else if (actionLog.action_type === 'payback') {
+        await supabase.from('paybacks').delete().eq('id', actionLog.reference_id)
+      } else if (actionLog.action_type === 'outgoing_payback') {
+        await supabase.from('outgoing_paybacks').delete().eq('id', actionLog.reference_id)
+      }
+    }
+
+    // Delete any chained action logs and their references
+    const { data: chainedLogs } = await supabase
+      .from('action_logs')
+      .select('id, action_type, reference_id')
+      .eq('triggered_by', actionLog.id)
+
+    if (chainedLogs) {
+      for (const chained of chainedLogs) {
+        if (chained.reference_id) {
+          if (chained.action_type === 'payback') {
+            await supabase.from('paybacks').delete().eq('id', chained.reference_id)
+          } else if (chained.action_type === 'outgoing_payback') {
+            await supabase.from('outgoing_paybacks').delete().eq('id', chained.reference_id)
+          } else if (chained.action_type === 'credit_card_expense') {
+            await supabase.from('credit_card_expenses').delete().eq('id', chained.reference_id)
+          }
+        }
+        await supabase.from('action_logs').delete().eq('id', chained.id)
+      }
+    }
+
+    // Delete the action log itself
+    const { error } = await supabase.from('action_logs').delete().eq('id', actionLog.id)
+
+    if (error) {
+      setMessage({ type: 'error', text: 'שגיאה במחיקה' })
+      setDeleting(false)
+      return
+    }
+
+    navigate('/tracking')
   }
 
   const handleSave = async () => {
@@ -269,6 +322,19 @@ export function TrackingEditPage() {
       <div className="action-page-card">
         <button className="action-page-close" onClick={() => navigate('/tracking')} aria-label="סגור">
           ✕
+        </button>
+        <button
+          className="tracking-delete-btn"
+          onClick={() => setShowDeleteConfirm(true)}
+          disabled={deleting}
+          aria-label="מחק"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="3 6 5 6 21 6" />
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+            <line x1="10" y1="11" x2="10" y2="17" />
+            <line x1="14" y1="11" x2="14" y2="17" />
+          </svg>
         </button>
 
         <div className="action-card">
@@ -454,6 +520,22 @@ export function TrackingEditPage() {
           )}
         </div>
       </div>
+
+      {showDeleteConfirm && (
+        <div className="delete-confirm-overlay" onClick={() => setShowDeleteConfirm(false)}>
+          <div className="delete-confirm-modal" onClick={(e) => e.stopPropagation()}>
+            <p className="delete-confirm-text">האם למחוק את הפעולה?</p>
+            <div className="delete-confirm-actions">
+              <button className="delete-confirm-cancel" onClick={() => setShowDeleteConfirm(false)}>
+                ביטול
+              </button>
+              <button className="delete-confirm-delete" onClick={handleDelete} disabled={deleting}>
+                {deleting ? 'מוחק...' : 'מחק'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
