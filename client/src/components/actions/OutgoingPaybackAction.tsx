@@ -3,19 +3,16 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../contexts/AuthContext'
 import { CustomSelect } from '../common/CustomSelect'
+import { useDropdownOptions } from '../../hooks/useDropdownOptions'
 import './OutgoingPaybackAction.css'
-
-const PAYBACK_METHODS = [
-  'העברה בנקאית',
-  'מזומן',
-  'פייבוקס',
-  'ביט',
-  'אחר',
-]
 
 export function OutgoingPaybackAction() {
   const { user } = useAuth()
   const navigate = useNavigate()
+
+  const { options: paybackMethods, addOption: addPaybackMethod, removeOption: removePaybackMethod } =
+    useDropdownOptions('payback_method')
+
   const [creditorName, setCreditorName] = useState('')
   const [amount, setAmount] = useState('')
   const [paybackMethod, setPaybackMethod] = useState('')
@@ -39,7 +36,6 @@ export function OutgoingPaybackAction() {
     if (error) {
       setMessage({ type: 'error', text: 'שגיאה בשמירת ההחזר' })
     } else {
-      // Outgoing paybacks are always closed (no follow-up needed)
       await supabase.from('action_logs').insert({
         user_id: user.id,
         action_type: 'outgoing_payback',
@@ -90,7 +86,9 @@ export function OutgoingPaybackAction() {
             onChange={setPaybackMethod}
             placeholder="בחר אמצעי החזר"
             required
-            options={PAYBACK_METHODS.map((m) => ({ value: m, label: m }))}
+            options={paybackMethods.map((m) => ({ value: m, label: m }))}
+            onAddOption={addPaybackMethod}
+            onRemoveOption={removePaybackMethod}
           />
         </div>
         <button type="submit" className="action-submit" disabled={loading}>

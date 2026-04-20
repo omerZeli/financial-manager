@@ -3,15 +3,8 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../contexts/AuthContext'
 import { CustomSelect } from '../common/CustomSelect'
+import { useDropdownOptions } from '../../hooks/useDropdownOptions'
 import './PaybackAction.css'
-
-const PAYBACK_METHODS = [
-  'העברה בנקאית',
-  'מזומן',
-  'פייבוקס',
-  'ביט',
-  'אחר',
-]
 
 interface PaybackLocationState {
   triggeredBy?: string
@@ -23,6 +16,9 @@ export function PaybackAction() {
   const navigate = useNavigate()
   const location = useLocation()
   const locationState = (location.state as PaybackLocationState) || {}
+
+  const { options: paybackMethods, addOption: addPaybackMethod, removeOption: removePaybackMethod } =
+    useDropdownOptions('payback_method')
 
   const [debtorName, setDebtorName] = useState('')
   const [amount, setAmount] = useState(locationState.prefillAmount || '')
@@ -49,7 +45,6 @@ export function PaybackAction() {
     if (error) {
       setMessage({ type: 'error', text: 'שגיאה בשמירת ההחזר' })
     } else {
-      // Log the action: open if not paid yet, closed if already paid
       await supabase.from('action_logs').insert({
         user_id: user.id,
         action_type: 'payback',
@@ -101,7 +96,9 @@ export function PaybackAction() {
             onChange={setPaybackMethod}
             placeholder="בחר אמצעי החזר"
             required
-            options={PAYBACK_METHODS.map((m) => ({ value: m, label: m }))}
+            options={paybackMethods.map((m) => ({ value: m, label: m }))}
+            onAddOption={addPaybackMethod}
+            onRemoveOption={removePaybackMethod}
           />
         </div>
         <div className="action-field action-toggle">

@@ -53,6 +53,13 @@ Some actions can automatically trigger the creation of another action based on s
 - The child action's component reads `location.state` to pre-fill fields and attach `triggered_by` on its own action_log insert.
 - Chained actions are triggered both on initial submission and on edits from the tracking page (e.g. toggling `requires_payback` on during edit will open the payback form if no chained payback already exists).
 
+## Custom Dropdown Options
+- All dropdowns in the project use **user-managed options** — there are no hardcoded/static option lists.
+- Options are stored per-user in the `user_dropdown_options` table, categorized by a `category` string (e.g. `'payback_method'`, `'expense_category'`).
+- The shared `CustomSelect` component (`components/common/CustomSelect.tsx`) supports adding and removing options inline, as well as searching/filtering.
+- Use the `useDropdownOptions` hook (`hooks/useDropdownOptions.ts`) to fetch, add, and remove options for a given category.
+- When adding a new dropdown field, create a new category string and wire it through the hook and `CustomSelect` with `onAddOption`/`onRemoveOption` props.
+
 ## Key Principles
 - Actions produce data; Data components consume it.
 - Every action writes to the DB in a well-defined schema so any data component can reliably read it.

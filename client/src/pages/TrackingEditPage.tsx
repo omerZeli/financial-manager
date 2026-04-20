@@ -3,15 +3,8 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { DateInput } from '../components/common/DateInput'
 import { CustomSelect } from '../components/common/CustomSelect'
+import { useDropdownOptions } from '../hooks/useDropdownOptions'
 import './TrackingEditPage.css'
-
-const PAYBACK_METHODS = [
-  'העברה בנקאית',
-  'מזומן',
-  'פייבוקס',
-  'ביט',
-  'אחר',
-]
 
 interface ActionLog {
   id: string
@@ -30,6 +23,11 @@ export function TrackingEditPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+
+  const { options: paybackMethods, addOption: addPaybackMethod, removeOption: removePaybackMethod } =
+    useDropdownOptions('payback_method')
+  const { options: categories, addOption: addCategory, removeOption: removeCategory } =
+    useDropdownOptions('expense_category')
 
   // Credit card expense fields
   const [title, setTitle] = useState('')
@@ -82,7 +80,6 @@ export function TrackingEditPage() {
         setCategory(data.category)
         setAmount(String(data.amount))
         setRequiresPayback(data.requires_payback ?? false)
-        // Convert ISO date to DD/MM/YYYY
         if (data.expense_date) {
           const [y, m, d] = data.expense_date.split('-')
           setExpenseDate(`${d}/${m}/${y}`)
@@ -155,14 +152,12 @@ export function TrackingEditPage() {
         return
       }
 
-      // Credit card expenses are always closed
       const newSummary = `${title} – ₪${numAmount.toLocaleString('he-IL', { minimumFractionDigits: 2 })}`
       await supabase
         .from('action_logs')
         .update({ status: 'closed', summary: newSummary })
         .eq('id', actionLog.id)
 
-      // If requires_payback is on, check if a chained payback already exists
       if (requiresPayback) {
         const { data: existingChained } = await supabase
           .from('action_logs')
@@ -203,7 +198,6 @@ export function TrackingEditPage() {
         return
       }
 
-      // Payback: closed if paid, open if not
       const newStatus = isPaid ? 'closed' : 'open'
       const newSummary = `${debtorName} – ₪${numAmount.toLocaleString('he-IL', { minimumFractionDigits: 2 })}`
       await supabase
@@ -231,7 +225,6 @@ export function TrackingEditPage() {
         return
       }
 
-      // Outgoing paybacks are always closed
       const newSummary = `${creditorName} – ₪${numAmount.toLocaleString('he-IL', { minimumFractionDigits: 2 })}`
       await supabase
         .from('action_logs')
@@ -293,12 +286,15 @@ export function TrackingEditPage() {
               </div>
               <div className="action-field">
                 <label htmlFor="edit-category">קטגוריה</label>
-                <input
+                <CustomSelect
                   id="edit-category"
-                  type="text"
                   value={category}
-                  onChange={(e) => setCategory(e.target.value)}
+                  onChange={setCategory}
+                  placeholder="בחר קטגוריה"
                   required
+                  options={categories.map((c) => ({ value: c, label: c }))}
+                  onAddOption={addCategory}
+                  onRemoveOption={removeCategory}
                 />
               </div>
               <div className="action-field">
@@ -375,7 +371,9 @@ export function TrackingEditPage() {
                   onChange={setPaybackMethod}
                   placeholder="בחר אמצעי החזר"
                   required
-                  options={PAYBACK_METHODS.map((m) => ({ value: m, label: m }))}
+                  options={paybackMethods.map((m) => ({ value: m, label: m }))}
+                  onAddOption={addPaybackMethod}
+                  onRemoveOption={removePaybackMethod}
                 />
               </div>
               <div className="action-field action-toggle">
@@ -427,7 +425,9 @@ export function TrackingEditPage() {
                   onChange={setOutgoingMethod}
                   placeholder="בחר אמצעי החזר"
                   required
-                  options={PAYBACK_METHODS.map((m) => ({ value: m, label: m }))}
+                  options={paybackMethods.map((m) => ({ value: m, label: m }))}
+                  onAddOption={addPaybackMethod}
+                  onRemoveOption={removePaybackMethod}
                 />
               </div>
             </div>

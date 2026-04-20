@@ -3,11 +3,17 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../contexts/AuthContext'
 import { DateInput } from '../common/DateInput'
+import { CustomSelect } from '../common/CustomSelect'
+import { useDropdownOptions } from '../../hooks/useDropdownOptions'
 import './CreditCardExpenseAction.css'
 
 export function CreditCardExpenseAction() {
   const { user } = useAuth()
   const navigate = useNavigate()
+
+  const { options: categories, addOption: addCategory, removeOption: removeCategory } =
+    useDropdownOptions('expense_category')
+
   const [title, setTitle] = useState('')
   const [category, setCategory] = useState('')
   const [expenseDate, setExpenseDate] = useState('')
@@ -23,9 +29,8 @@ export function CreditCardExpenseAction() {
     const [, day, month, year] = match
     const d = parseInt(day, 10)
     const m = parseInt(month, 10)
-    const y = parseInt(year, 10)
     if (m < 1 || m > 12 || d < 1 || d > 31) return null
-    return `${y}-${month}-${day}`
+    return `${year}-${month}-${day}`
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -55,7 +60,6 @@ export function CreditCardExpenseAction() {
     if (error) {
       setMessage({ type: 'error', text: 'שגיאה בשמירת ההוצאה' })
     } else {
-      // Log the action as closed (credit card expense is always a done action)
       const { data: logData } = await supabase.from('action_logs').insert({
         user_id: user.id,
         action_type: 'credit_card_expense',
@@ -65,7 +69,6 @@ export function CreditCardExpenseAction() {
         summary: `${title} – ₪${parseFloat(amount).toLocaleString('he-IL', { minimumFractionDigits: 2 })}`,
       }).select('id').single()
 
-      // If requires payback, navigate to payback form with pre-filled context
       if (requiresPayback && logData) {
         navigate('/actions/paybacks', {
           state: {
@@ -98,13 +101,15 @@ export function CreditCardExpenseAction() {
         </div>
         <div className="action-field">
           <label htmlFor="expense-category">קטגוריה</label>
-          <input
+          <CustomSelect
             id="expense-category"
-            type="text"
             value={category}
-            onChange={(e) => setCategory(e.target.value)}
+            onChange={setCategory}
+            placeholder="בחר קטגוריה"
             required
-            placeholder="לדוגמה: בילויים"
+            options={categories.map((c) => ({ value: c, label: c }))}
+            onAddOption={addCategory}
+            onRemoveOption={removeCategory}
           />
         </div>
         <div className="action-field">
