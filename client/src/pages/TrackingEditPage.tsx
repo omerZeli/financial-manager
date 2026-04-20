@@ -38,7 +38,6 @@ export function TrackingEditPage() {
   const [expenseDateError, setExpenseDateError] = useState('')
   const [amount, setAmount] = useState('')
   const [requiresPayback, setRequiresPayback] = useState(false)
-  const [originalRequiresPayback, setOriginalRequiresPayback] = useState(false)
 
   // Payback fields
   const [debtorName, setDebtorName] = useState('')
@@ -83,7 +82,6 @@ export function TrackingEditPage() {
         setCategory(data.category)
         setAmount(String(data.amount))
         setRequiresPayback(data.requires_payback ?? false)
-        setOriginalRequiresPayback(data.requires_payback ?? false)
         // Convert ISO date to DD/MM/YYYY
         if (data.expense_date) {
           const [y, m, d] = data.expense_date.split('-')
@@ -164,8 +162,8 @@ export function TrackingEditPage() {
         .update({ status: 'closed', summary: newSummary })
         .eq('id', actionLog.id)
 
-      // If requires_payback was toggled on, check if a chained payback already exists
-      if (requiresPayback && !originalRequiresPayback) {
+      // If requires_payback is on, check if a chained payback already exists
+      if (requiresPayback) {
         const { data: existingChained } = await supabase
           .from('action_logs')
           .select('id')

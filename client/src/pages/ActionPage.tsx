@@ -1,4 +1,4 @@
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { CreditCardExpenseAction } from '../components/actions/CreditCardExpenseAction'
 import { PaybackAction } from '../components/actions/PaybackAction'
 import { OutgoingPaybackAction } from '../components/actions/OutgoingPaybackAction'
@@ -13,6 +13,8 @@ const actionComponents: Record<string, React.FC> = {
 export function ActionPage() {
   const { actionId } = useParams<{ actionId: string }>()
   const navigate = useNavigate()
+  const location = useLocation()
+  const triggeredBy = (location.state as { triggeredBy?: string } | null)?.triggeredBy
 
   const ActionComponent = actionId ? actionComponents[actionId] : null
 
@@ -32,6 +34,15 @@ export function ActionPage() {
   return (
     <div className="action-page">
       <div className="action-page-card">
+        {triggeredBy && (
+          <button
+            className="action-page-back"
+            onClick={() => navigate(`/tracking/${triggeredBy}`)}
+            aria-label="חזרה לפעולה המקורית"
+          >
+            →
+          </button>
+        )}
         <button className="action-page-close" onClick={() => navigate('/actions')} aria-label="סגור">
           ✕
         </button>

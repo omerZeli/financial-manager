@@ -39,3 +39,29 @@
   color: var(--error);
   background: var(--error-bg);
 }
+
+.action-page-back {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 18px;
+  line-height: 1;
+  padding: 0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.action-page-back:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: var(--primary-bg, var(--bg));
+}
