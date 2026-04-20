@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../contexts/AuthContext'
 import { CustomSelect } from '../common/CustomSelect'
@@ -14,6 +15,7 @@ const PAYBACK_METHODS = [
 
 export function PaybackAction() {
   const { user } = useAuth()
+  const navigate = useNavigate()
   const [debtorName, setDebtorName] = useState('')
   const [amount, setAmount] = useState('')
   const [paybackMethod, setPaybackMethod] = useState('')
@@ -48,11 +50,7 @@ export function PaybackAction() {
         reference_id: data?.id,
         summary: `${debtorName} – ₪${parseFloat(amount).toLocaleString('he-IL', { minimumFractionDigits: 2 })}`,
       })
-      setMessage({ type: 'success', text: 'ההחזר נשמר בהצלחה' })
-      setDebtorName('')
-      setAmount('')
-      setPaybackMethod('')
-      setIsPaid(false)
+      navigate('/actions')
     }
 
     setLoading(false)

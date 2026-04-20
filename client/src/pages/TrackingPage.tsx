@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import './TrackingPage.css'
 
@@ -15,6 +16,7 @@ interface ActionLog {
 export function TrackingPage() {
   const [logs, setLogs] = useState<ActionLog[]>([])
   const [loading, setLoading] = useState(true)
+  const navigate = useNavigate()
 
   useEffect(() => {
     fetchLogs()
@@ -30,26 +32,6 @@ export function TrackingPage() {
       setLogs(data)
     }
     setLoading(false)
-  }
-
-  const handleClose = async (log: ActionLog) => {
-    const { error } = await supabase
-      .from('action_logs')
-      .update({ status: 'closed' })
-      .eq('id', log.id)
-
-    if (!error) {
-      // If it's a payback, also mark the payback record as paid
-      if (log.action_type === 'payback' && log.reference_id) {
-        await supabase
-          .from('paybacks')
-          .update({ is_paid: true })
-          .eq('id', log.reference_id)
-      }
-      setLogs((prev) =>
-        prev.map((l) => (l.id === log.id ? { ...l, status: 'closed' } : l))
-      )
-    }
   }
 
   const formatDate = (iso: string) => {
@@ -89,7 +71,11 @@ export function TrackingPage() {
               </h3>
               <div className="history-list">
                 {openLogs.map((log) => (
-                  <div key={log.id} className="history-item history-item--open">
+                  <div
+                    key={log.id}
+                    className="history-item history-item--open history-item--clickable"
+                    onClick={() => navigate(`/tracking/${log.id}`)}
+                  >
                     <div className="history-item-right">
                       <span className="history-item-label">{log.action_label}</span>
                       <span className="history-item-summary">{log.summary}</span>
@@ -98,12 +84,6 @@ export function TrackingPage() {
                       <span className="history-item-date">
                         {formatDate(log.created_at)} · {formatTime(log.created_at)}
                       </span>
-                      <button
-                        className="history-close-btn"
-                        onClick={() => handleClose(log)}
-                      >
-                        סגור
-                      </button>
                     </div>
                   </div>
                 ))}
@@ -119,7 +99,11 @@ export function TrackingPage() {
               </h3>
               <div className="history-list">
                 {closedLogs.map((log) => (
-                  <div key={log.id} className="history-item history-item--closed">
+                  <div
+                    key={log.id}
+                    className="history-item history-item--closed history-item--clickable"
+                    onClick={() => navigate(`/tracking/${log.id}`)}
+                  >
                     <div className="history-item-right">
                       <span className="history-item-label">{log.action_label}</span>
                       <span className="history-item-summary">{log.summary}</span>

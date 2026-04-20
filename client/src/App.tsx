@@ -8,6 +8,7 @@ import { ActionsPage } from './pages/ActionsPage'
 import { ActionPage } from './pages/ActionPage'
 import { DataPage } from './pages/DataPage'
 import { TrackingPage } from './pages/TrackingPage'
+import { TrackingEditPage } from './pages/TrackingEditPage'
 
 function GuestRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -41,6 +42,7 @@ function App() {
             <Route path="actions/:actionId" element={<ActionPage />} />
             <Route path="data" element={<DataPage />} />
             <Route path="tracking" element={<TrackingPage />} />
+            <Route path="tracking/:logId" element={<TrackingEditPage />} />
           </Route>
           <Route
             path="/login"

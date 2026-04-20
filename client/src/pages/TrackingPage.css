@@ -21,11 +21,11 @@
 }
 
 .history-dot--open {
-  background: var(--error);
+  background: var(--accent);
 }
 
 .history-dot--closed {
-  background: var(--success);
+  background: var(--accent);
 }
 
 .history-list {
@@ -50,11 +50,11 @@
 }
 
 .history-item--open {
-  border-right: 3px solid var(--error);
+  border-right: 3px solid var(--accent);
 }
 
 .history-item--closed {
-  border-right: 3px solid var(--success);
+  border-right: 3px solid var(--accent);
 }
 
 .history-item-right {
@@ -87,20 +87,11 @@
   white-space: nowrap;
 }
 
-.history-close-btn {
-  padding: 6px 14px;
-  border: 1px solid var(--success);
-  border-radius: var(--radius-sm);
-  background: var(--success-bg);
-  color: var(--success);
-  font-size: 13px;
-  font-weight: 600;
+.history-item--clickable {
   cursor: pointer;
-  transition: all 0.2s ease;
-  white-space: nowrap;
 }
 
-.history-close-btn:hover {
-  background: var(--success);
-  color: #fff;
+.history-item--clickable:hover {
+  border-color: var(--accent);
+  box-shadow: var(--shadow-sm);
 }

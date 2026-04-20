@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../contexts/AuthContext'
 import { DateInput } from '../common/DateInput'
@@ -6,6 +7,7 @@ import './CreditCardExpenseAction.css'
 
 export function CreditCardExpenseAction() {
   const { user } = useAuth()
+  const navigate = useNavigate()
   const [title, setTitle] = useState('')
   const [category, setCategory] = useState('')
   const [expenseDate, setExpenseDate] = useState('')
@@ -60,11 +62,7 @@ export function CreditCardExpenseAction() {
         reference_id: data?.id,
         summary: `${title} – ₪${parseFloat(amount).toLocaleString('he-IL', { minimumFractionDigits: 2 })}`,
       })
-      setMessage({ type: 'success', text: 'ההוצאה נשמרה בהצלחה' })
-      setTitle('')
-      setCategory('')
-      setExpenseDate('')
-      setAmount('')
+      navigate('/actions')
     }
 
     setLoading(false)

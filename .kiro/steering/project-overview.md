@@ -29,7 +29,13 @@ A personal financial manager that lets the user record financial data through gu
 - Displays all user actions from the `action_logs` table for tracking purposes.
 - Divided into two sections: **open** (פתוחות) and **closed** (סגורות).
 - Each section is sorted from newest to oldest.
-- Open actions can be closed by the user (e.g. marking a payback as received), which also updates the related record.
+- Clicking any action (open or closed) opens an edit form pre-filled with the original record data. The user can modify any field and save.
+- On save, the referenced record is updated, the action_log summary is refreshed, and the status is recalculated based on the action's own open/close rules.
+
+## Action Open/Close Rules
+Each action type defines its own logic for when an action_log entry is `open` or `closed`. This is evaluated on both initial creation and on every edit from the tracking page.
+
+When adding a new action type, you must define its open/close rule and apply it in both the action's submit handler and the tracking edit page's save handler.
 
 ## Key Principles
 - Actions produce data; Data components consume it.
