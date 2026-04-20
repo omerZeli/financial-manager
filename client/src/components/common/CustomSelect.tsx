@@ -22,14 +22,23 @@ export function CustomSelect({ id, value, onChange, options, placeholder, requir
     if (!triggerRef.current) return
     const rect = triggerRef.current.getBoundingClientRect()
     const viewportWidth = document.documentElement.clientWidth
+    const viewportHeight = window.innerHeight
+    const spaceBelow = viewportHeight - rect.bottom
+    const menuEstimatedHeight = Math.min(options.length * 46 + 12, 250)
+    const openUpward = spaceBelow < menuEstimatedHeight && rect.top > spaceBelow
+
     setMenuStyle({
       position: 'fixed',
-      top: rect.bottom + 6,
+      ...(openUpward
+        ? { bottom: viewportHeight - rect.top + 6 }
+        : { top: rect.bottom + 6 }),
       right: viewportWidth - rect.right,
       width: rect.width,
+      maxHeight: 250,
+      overflowY: 'auto',
       zIndex: 9999,
     })
-  }, [])
+  }, [options.length])
 
   useEffect(() => {
     if (!open) return
@@ -59,14 +68,22 @@ export function CustomSelect({ id, value, onChange, options, placeholder, requir
 
   const handleToggle = () => {
     if (!open && triggerRef.current) {
-      // Capture position before opening so the menu is placed correctly on first render
       const rect = triggerRef.current.getBoundingClientRect()
       const viewportWidth = document.documentElement.clientWidth
+      const viewportHeight = window.innerHeight
+      const spaceBelow = viewportHeight - rect.bottom
+      const menuEstimatedHeight = Math.min(options.length * 46 + 12, 250)
+      const openUpward = spaceBelow < menuEstimatedHeight && rect.top > spaceBelow
+
       setMenuStyle({
         position: 'fixed',
-        top: rect.bottom + 6,
+        ...(openUpward
+          ? { bottom: viewportHeight - rect.top + 6 }
+          : { top: rect.bottom + 6 }),
         right: viewportWidth - rect.right,
         width: rect.width,
+        maxHeight: 250,
+        overflowY: 'auto',
         zIndex: 9999,
       })
     }

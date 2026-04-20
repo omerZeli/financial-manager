@@ -86,14 +86,14 @@
 
 .home-main {
   flex: 1;
-  padding: 32px;
+  padding: 12px 32px 32px;
   max-width: 900px;
   width: 100%;
   margin: 0 auto;
 }
 
 .page-content h2 {
-  margin-bottom: 24px;
+  margin-bottom: 16px;
   font-size: 24px;
 }
 
@@ -115,6 +115,6 @@
   }
 
   .home-main {
-    padding: 24px 16px;
+    padding: 8px 16px 24px;
   }
 }
