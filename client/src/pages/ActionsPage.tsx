@@ -1,6 +1,4 @@
-import { useState } from 'react'
-import { CreditCardExpenseAction } from '../components/actions/CreditCardExpenseAction'
-import { PaybackAction } from '../components/actions/PaybackAction'
+import { Link } from 'react-router-dom'
 import './ActionsPage.css'
 
 const actions = [
@@ -9,28 +7,15 @@ const actions = [
 ]
 
 export function ActionsPage() {
-  const [openAction, setOpenAction] = useState<string | null>(null)
-
   return (
     <div className="page-content">
       <h2>פעולות</h2>
       <div className="items-list">
         {actions.map((action) => (
-          <div key={action.id} className="item-block">
-            <button
-              className={`item-toggle ${openAction === action.id ? 'item-toggle--active' : ''}`}
-              onClick={() => setOpenAction(openAction === action.id ? null : action.id)}
-            >
-              {action.label}
-              <span className="item-toggle-icon">{openAction === action.id ? '−' : '+'}</span>
-            </button>
-            {openAction === action.id && (
-              <div className="item-content">
-                {action.id === 'credit-card-expenses' && <CreditCardExpenseAction />}
-                {action.id === 'paybacks' && <PaybackAction />}
-              </div>
-            )}
-          </div>
+          <Link key={action.id} to={`/actions/${action.id}`} className="item-block action-link">
+            <span className="action-link-label">{action.label}</span>
+            <span className="action-link-arrow">←</span>
+          </Link>
         ))}
       </div>
     </div>

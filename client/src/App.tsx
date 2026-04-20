@@ -5,6 +5,7 @@ import { LoginPage } from './pages/LoginPage'
 import { RegisterPage } from './pages/RegisterPage'
 import { HomePage } from './pages/HomePage'
 import { ActionsPage } from './pages/ActionsPage'
+import { ActionPage } from './pages/ActionPage'
 import { DataPage } from './pages/DataPage'
 import { TrackingPage } from './pages/TrackingPage'
 
@@ -37,6 +38,7 @@ function App() {
           >
             <Route index element={<Navigate to="/actions" replace />} />
             <Route path="actions" element={<ActionsPage />} />
+            <Route path="actions/:actionId" element={<ActionPage />} />
             <Route path="data" element={<DataPage />} />
             <Route path="tracking" element={<TrackingPage />} />
           </Route>

@@ -3,7 +3,10 @@
 }
 
 .action-card h3 {
-  display: none;
+  font-size: 20px;
+  margin-bottom: 20px;
+  color: var(--text-h);
+  text-align: center;
 }
 
 .action-form {
