@@ -14,8 +14,8 @@ export function HomePage() {
           </span>
         </div>
         <nav className="home-nav">
-          <NavLink to="/flows" className="nav-tab">
-            תהליכים
+          <NavLink to="/actions" className="nav-tab">
+            פעולות
           </NavLink>
           <NavLink to="/data" className="nav-tab">
             נתונים

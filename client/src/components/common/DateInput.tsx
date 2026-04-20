@@ -85,7 +85,7 @@ export function DateInput({ id, value, onChange, required, error }: DateInputPro
           aria-hidden="true"
         />
       </div>
-      {error && <span className="flow-field-error">{error}</span>}
+      {error && <span className="action-field-error">{error}</span>}
     </div>
   )
 }

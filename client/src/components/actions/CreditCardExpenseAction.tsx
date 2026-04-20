@@ -2,9 +2,9 @@ import { useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../contexts/AuthContext'
 import { DateInput } from '../common/DateInput'
-import './CreditCardExpenseFlow.css'
+import './CreditCardExpenseAction.css'
 
-export function CreditCardExpenseFlow() {
+export function CreditCardExpenseAction() {
   const { user } = useAuth()
   const [title, setTitle] = useState('')
   const [category, setCategory] = useState('')
@@ -62,10 +62,10 @@ export function CreditCardExpenseFlow() {
   }
 
   return (
-    <div className="flow-card">
+    <div className="action-card">
       <h3>הוצאות כרטיס אשראי</h3>
-      <form onSubmit={handleSubmit} className="flow-form">
-        <div className="flow-field">
+      <form onSubmit={handleSubmit} className="action-form">
+        <div className="action-field">
           <label htmlFor="expense-title">שם ההוצאה</label>
           <input
             id="expense-title"
@@ -73,10 +73,10 @@ export function CreditCardExpenseFlow() {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             required
-            placeholder="לדוגמה: סופר"
+            placeholder="לדוגמה: כרטיסים לסרט"
           />
         </div>
-        <div className="flow-field">
+        <div className="action-field">
           <label htmlFor="expense-category">קטגוריה</label>
           <input
             id="expense-category"
@@ -84,10 +84,10 @@ export function CreditCardExpenseFlow() {
             value={category}
             onChange={(e) => setCategory(e.target.value)}
             required
-            placeholder="לדוגמה: מזון"
+            placeholder="לדוגמה: בילויים"
           />
         </div>
-        <div className="flow-field">
+        <div className="action-field">
           <label htmlFor="expense-date">תאריך (DD/MM/YYYY)</label>
           <DateInput
             id="expense-date"
@@ -100,7 +100,7 @@ export function CreditCardExpenseFlow() {
             error={expenseDateError}
           />
         </div>
-        <div className="flow-field">
+        <div className="action-field">
           <label htmlFor="expense-amount">סכום (₪)</label>
           <input
             id="expense-amount"
@@ -113,11 +113,11 @@ export function CreditCardExpenseFlow() {
             placeholder="0.00"
           />
         </div>
-        <button type="submit" className="flow-submit" disabled={loading}>
+        <button type="submit" className="action-submit" disabled={loading}>
           {loading ? 'שומר...' : 'שמור הוצאה'}
         </button>
         {message && (
-          <p className={`flow-message flow-message--${message.type}`}>{message.text}</p>
+          <p className={`action-message action-message--${message.type}`}>{message.text}</p>
         )}
       </form>
     </div>

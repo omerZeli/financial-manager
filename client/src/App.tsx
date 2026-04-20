@@ -4,7 +4,7 @@ import { ProtectedRoute } from './components/ProtectedRoute'
 import { LoginPage } from './pages/LoginPage'
 import { RegisterPage } from './pages/RegisterPage'
 import { HomePage } from './pages/HomePage'
-import { FlowsPage } from './pages/FlowsPage'
+import { ActionsPage } from './pages/ActionsPage'
 import { DataPage } from './pages/DataPage'
 
 function GuestRoute({ children }: { children: React.ReactNode }) {
@@ -15,7 +15,7 @@ function GuestRoute({ children }: { children: React.ReactNode }) {
   }
 
   if (user) {
-    return <Navigate to="/flows" replace />
+    return <Navigate to="/actions" replace />
   }
 
   return <>{children}</>
@@ -34,8 +34,8 @@ function App() {
               </ProtectedRoute>
             }
           >
-            <Route index element={<Navigate to="/flows" replace />} />
-            <Route path="flows" element={<FlowsPage />} />
+            <Route index element={<Navigate to="/actions" replace />} />
+            <Route path="actions" element={<ActionsPage />} />
             <Route path="data" element={<DataPage />} />
           </Route>
           <Route

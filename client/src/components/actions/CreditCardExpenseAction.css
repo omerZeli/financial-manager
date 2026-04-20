@@ -1,30 +1,30 @@
-.flow-card {
+.action-card {
   text-align: right;
 }
 
-.flow-card h3 {
+.action-card h3 {
   display: none;
 }
 
-.flow-form {
+.action-form {
   display: flex;
   flex-direction: column;
   gap: 18px;
 }
 
-.flow-field {
+.action-field {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-.flow-field label {
+.action-field label {
   font-size: 13px;
   font-weight: 600;
   color: var(--text-h);
 }
 
-.flow-field input {
+.action-field input {
   padding: 11px 14px;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -35,17 +35,17 @@
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.flow-field input:focus {
+.action-field input:focus {
   outline: none;
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-bg);
 }
 
-.flow-field input::placeholder {
+.action-field input::placeholder {
   color: #94a3b8;
 }
 
-.flow-submit {
+.action-submit {
   padding: 12px;
   border: none;
   border-radius: var(--radius-sm);
@@ -58,20 +58,20 @@
   margin-top: 8px;
 }
 
-.flow-submit:hover:not(:disabled) {
+.action-submit:hover:not(:disabled) {
   background: var(--accent-hover);
 }
 
-.flow-submit:active:not(:disabled) {
+.action-submit:active:not(:disabled) {
   transform: scale(0.98);
 }
 
-.flow-submit:disabled {
+.action-submit:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
 
-.flow-message {
+.action-message {
   text-align: center;
   font-size: 13px;
   font-weight: 500;
@@ -79,19 +79,19 @@
   border-radius: var(--radius-sm);
 }
 
-.flow-message--success {
+.action-message--success {
   color: var(--success);
   background: var(--success-bg);
   border: 1px solid rgba(5, 150, 105, 0.1);
 }
 
-.flow-message--error {
+.action-message--error {
   color: var(--error);
   background: var(--error-bg);
   border: 1px solid rgba(220, 38, 38, 0.1);
 }
 
-.flow-field-error {
+.action-field-error {
   font-size: 12px;
   font-weight: 500;
   color: var(--error);
