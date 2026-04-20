@@ -11,16 +11,25 @@ inclusion: always
 ## Purpose
 A personal financial manager that lets the user record financial data through guided actions and view that data through various display components.
 
-## Architecture – Two Main Pages
+## Architecture – Three Main Pages
 
 ### 1. Actions Page (פעולות)
 - Displays a list of available actions.
 - Each action is a small form with predefined fields that the user fills in manually.
 - On submission, the form data is saved to the supabase database in a consistent, structured format.
+- Every action submission also creates an entry in the `action_logs` table with a **status** of either `open` or `closed`:
+  - **closed**: The action is complete and requires no follow-up (e.g. recording a credit card expense).
+  - **open**: The action requires follow-up (e.g. a payback that hasn't been received yet).
 
 ### 2. Data Page (נתונים)
 - Displays a list of available supabase data components.
 - Each data component visualizes the user's stored data in a specific, consistent way (tables, charts, summaries, etc.).
+
+### 3. Tracking Page (מעקב)
+- Displays all user actions from the `action_logs` table for tracking purposes.
+- Divided into two sections: **open** (פתוחות) and **closed** (סגורות).
+- Each section is sorted from newest to oldest.
+- Open actions can be closed by the user (e.g. marking a payback as received), which also updates the related record.
 
 ## Key Principles
 - Actions produce data; Data components consume it.

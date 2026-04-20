@@ -40,17 +40,26 @@ export function CreditCardExpenseAction() {
       return
     }
 
-    const { error } = await supabase.from('credit_card_expenses').insert({
+    const { data, error } = await supabase.from('credit_card_expenses').insert({
       user_id: user.id,
       title,
       category,
       expense_date: isoDate,
       amount: parseFloat(amount),
-    })
+    }).select('id').single()
 
     if (error) {
       setMessage({ type: 'error', text: 'שגיאה בשמירת ההוצאה' })
     } else {
+      // Log the action as closed (credit card expense is always a done action)
+      await supabase.from('action_logs').insert({
+        user_id: user.id,
+        action_type: 'credit_card_expense',
+        action_label: 'הוצאות כרטיס אשראי',
+        status: 'closed',
+        reference_id: data?.id,
+        summary: `${title} – ₪${parseFloat(amount).toLocaleString('he-IL', { minimumFractionDigits: 2 })}`,
+      })
       setMessage({ type: 'success', text: 'ההוצאה נשמרה בהצלחה' })
       setTitle('')
       setCategory('')

@@ -28,17 +28,26 @@ export function PaybackAction() {
     setLoading(true)
     setMessage(null)
 
-    const { error } = await supabase.from('paybacks').insert({
+    const { data, error } = await supabase.from('paybacks').insert({
       user_id: user.id,
       debtor_name: debtorName,
       amount: parseFloat(amount),
       payback_method: paybackMethod,
       is_paid: isPaid,
-    })
+    }).select('id').single()
 
     if (error) {
       setMessage({ type: 'error', text: 'שגיאה בשמירת ההחזר' })
     } else {
+      // Log the action: open if not paid yet, closed if already paid
+      await supabase.from('action_logs').insert({
+        user_id: user.id,
+        action_type: 'payback',
+        action_label: 'קבלת החזר',
+        status: isPaid ? 'closed' : 'open',
+        reference_id: data?.id,
+        summary: `${debtorName} – ₪${parseFloat(amount).toLocaleString('he-IL', { minimumFractionDigits: 2 })}`,
+      })
       setMessage({ type: 'success', text: 'ההחזר נשמר בהצלחה' })
       setDebtorName('')
       setAmount('')

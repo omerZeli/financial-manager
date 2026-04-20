@@ -20,6 +20,9 @@ export function HomePage() {
           <NavLink to="/data" className="nav-tab">
             נתונים
           </NavLink>
+          <NavLink to="/tracking" className="nav-tab">
+            מעקב
+          </NavLink>
         </nav>
         <div className="home-header-left">
           <button onClick={signOut} className="logout-btn">
