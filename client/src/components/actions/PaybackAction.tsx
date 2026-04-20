@@ -19,6 +19,8 @@ export function PaybackAction() {
 
   const { options: paybackMethods, addOption: addPaybackMethod, removeOption: removePaybackMethod } =
     useDropdownOptions('payback_method')
+  const { options: people, addOption: addPerson, removeOption: removePerson } =
+    useDropdownOptions('person_name')
 
   const [debtorName, setDebtorName] = useState('')
   const [amount, setAmount] = useState(locationState.prefillAmount || '')
@@ -66,13 +68,15 @@ export function PaybackAction() {
       <form onSubmit={handleSubmit} className="action-form">
         <div className="action-field">
           <label htmlFor="debtor-name">מי צריך להחזיר לי</label>
-          <input
+          <CustomSelect
             id="debtor-name"
-            type="text"
             value={debtorName}
-            onChange={(e) => setDebtorName(e.target.value)}
+            onChange={setDebtorName}
+            placeholder="בחר שם"
             required
-            placeholder="לדוגמה: יוסי"
+            options={people.map((p) => ({ value: p, label: p }))}
+            onAddOption={addPerson}
+            onRemoveOption={removePerson}
           />
         </div>
         <div className="action-field">

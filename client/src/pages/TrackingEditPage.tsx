@@ -28,6 +28,8 @@ export function TrackingEditPage() {
     useDropdownOptions('payback_method')
   const { options: categories, addOption: addCategory, removeOption: removeCategory } =
     useDropdownOptions('expense_category')
+  const { options: people, addOption: addPerson, removeOption: removePerson } =
+    useDropdownOptions('person_name')
 
   // Credit card expense fields
   const [title, setTitle] = useState('')
@@ -343,12 +345,15 @@ export function TrackingEditPage() {
             <div className="action-form">
               <div className="action-field">
                 <label htmlFor="edit-debtor">מי צריך להחזיר לי</label>
-                <input
+                <CustomSelect
                   id="edit-debtor"
-                  type="text"
                   value={debtorName}
-                  onChange={(e) => setDebtorName(e.target.value)}
+                  onChange={setDebtorName}
+                  placeholder="בחר שם"
                   required
+                  options={people.map((p) => ({ value: p, label: p }))}
+                  onAddOption={addPerson}
+                  onRemoveOption={removePerson}
                 />
               </div>
               <div className="action-field">
@@ -397,12 +402,15 @@ export function TrackingEditPage() {
             <div className="action-form">
               <div className="action-field">
                 <label htmlFor="edit-creditor">למי אני מחזיר</label>
-                <input
+                <CustomSelect
                   id="edit-creditor"
-                  type="text"
                   value={creditorName}
-                  onChange={(e) => setCreditorName(e.target.value)}
+                  onChange={setCreditorName}
+                  placeholder="בחר שם"
                   required
+                  options={people.map((p) => ({ value: p, label: p }))}
+                  onAddOption={addPerson}
+                  onRemoveOption={removePerson}
                 />
               </div>
               <div className="action-field">
