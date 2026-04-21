@@ -5,6 +5,7 @@ import { OutgoingPaybackAction } from '../components/actions/OutgoingPaybackActi
 import { InvestmentChannelAction } from '../components/actions/InvestmentChannelAction'
 import { InvestmentDepositAction } from '../components/actions/InvestmentDepositAction'
 import { UpdateInvestmentValueAction } from '../components/actions/UpdateInvestmentValueAction'
+import { FixedExpenseAction } from '../components/actions/FixedExpenseAction'
 import './ActionPage.css'
 
 const actionComponents: Record<string, React.FC> = {
@@ -14,6 +15,7 @@ const actionComponents: Record<string, React.FC> = {
   'investment-channels': InvestmentChannelAction,
   'investment-deposits': InvestmentDepositAction,
   'update-investment-value': UpdateInvestmentValueAction,
+  'fixed-expenses': FixedExpenseAction,
 }
 
 export function ActionPage() {

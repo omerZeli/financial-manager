@@ -74,6 +74,18 @@ export function TrackingEditPage() {
   const [valueChannelId, setValueChannelId] = useState('')
   const [currentValue, setCurrentValue] = useState('')
 
+  // Fixed expense fields
+  const [fixedName, setFixedName] = useState('')
+  const [fixedCategory, setFixedCategory] = useState('')
+  const [fixedStartDate, setFixedStartDate] = useState('')
+  const [fixedStartDateError, setFixedStartDateError] = useState('')
+  const [fixedFrequencyValue, setFixedFrequencyValue] = useState('')
+  const [fixedFrequencyUnit, setFixedFrequencyUnit] = useState('')
+  const [fixedAmount, setFixedAmount] = useState('')
+  const [fixedHasEndDate, setFixedHasEndDate] = useState(false)
+  const [fixedEndDate, setFixedEndDate] = useState('')
+  const [fixedEndDateError, setFixedEndDateError] = useState('')
+
   useEffect(() => {
     fetchData()
   }, [logId])
@@ -175,6 +187,29 @@ export function TrackingEditPage() {
         setValueChannelId(data.id)
         setCurrentValue(data.current_value != null ? String(data.current_value) : '')
       }
+    } else if (log.action_type === 'fixed_expense' && log.reference_id) {
+      const { data } = await supabase
+        .from('fixed_expenses')
+        .select('*')
+        .eq('id', log.reference_id)
+        .single()
+
+      if (data) {
+        setFixedName(data.name)
+        setFixedCategory(data.category)
+        setFixedAmount(String(data.amount))
+        setFixedFrequencyValue(String(data.frequency_value))
+        setFixedFrequencyUnit(data.frequency_unit)
+        setFixedHasEndDate(data.has_end_date)
+        if (data.start_date) {
+          const [y, m, d] = data.start_date.split('-')
+          setFixedStartDate(`${d}/${m}/${y}`)
+        }
+        if (data.end_date) {
+          const [y, m, d] = data.end_date.split('-')
+          setFixedEndDate(`${d}/${m}/${y}`)
+        }
+      }
     }
 
     setLoading(false)
@@ -236,6 +271,13 @@ export function TrackingEditPage() {
         if (refErr) console.error('Failed to delete investment_deposit:', refErr)
       } else if (actionLog.action_type === 'update_investment_value') {
         // No record to delete — this action updates an existing channel
+      } else if (actionLog.action_type === 'fixed_expense') {
+        const { error: refErr } = await supabase
+          .from('fixed_expenses')
+          .delete()
+          .eq('id', actionLog.reference_id)
+          .select()
+        if (refErr) console.error('Failed to delete fixed_expense:', refErr)
       }
     }
 
@@ -260,6 +302,8 @@ export function TrackingEditPage() {
             await supabase.from('investment_deposits').delete().eq('id', chained.reference_id).select()
           } else if (chained.action_type === 'update_investment_value') {
             // No record to delete — this action updates an existing channel
+          } else if (chained.action_type === 'fixed_expense') {
+            await supabase.from('fixed_expenses').delete().eq('id', chained.reference_id).select()
           }
         }
         await supabase.from('action_logs').delete().eq('id', chained.id).select()
@@ -466,6 +510,57 @@ export function TrackingEditPage() {
       const channel = channels.find((c) => c.id === actionLog.reference_id)
       const channelLabel = channel?.channel_name ?? ''
       const newSummary = `${channelLabel} – ₪${numValue.toLocaleString('he-IL', { maximumFractionDigits: 0 })}`
+      await supabase
+        .from('action_logs')
+        .update({ status: 'closed', summary: newSummary })
+        .eq('id', actionLog.id)
+
+      setSaving(false)
+      navigate('/tracking')
+      return
+    } else if (actionLog.action_type === 'fixed_expense') {
+      const isoStartDate = parseDateInput(fixedStartDate)
+      if (!isoStartDate) {
+        setFixedStartDateError('יש להזין תאריך בפורמט DD/MM/YYYY')
+        setSaving(false)
+        return
+      }
+
+      let isoEndDate: string | null = null
+      if (fixedHasEndDate) {
+        isoEndDate = parseDateInput(fixedEndDate)
+        if (!isoEndDate) {
+          setFixedEndDateError('יש להזין תאריך בפורמט DD/MM/YYYY')
+          setSaving(false)
+          return
+        }
+      }
+
+      const numAmount = parseFloat(fixedAmount)
+      const freqVal = parseInt(fixedFrequencyValue, 10)
+      const { error } = await supabase
+        .from('fixed_expenses')
+        .update({
+          name: fixedName,
+          category: fixedCategory,
+          start_date: isoStartDate,
+          frequency_value: freqVal,
+          frequency_unit: fixedFrequencyUnit,
+          has_end_date: fixedHasEndDate,
+          end_date: isoEndDate,
+          amount: numAmount,
+        })
+        .eq('id', actionLog.reference_id)
+
+      if (error) {
+        setMessage({ type: 'error', text: 'שגיאה בשמירה' })
+        setSaving(false)
+        return
+      }
+
+      const unitLabels: Record<string, string> = { days: 'ימים', weeks: 'שבועות', months: 'חודשים', years: 'שנים' }
+      const unitLabel = unitLabels[fixedFrequencyUnit] ?? fixedFrequencyUnit
+      const newSummary = `${fixedName} – ₪${numAmount.toLocaleString('he-IL', { maximumFractionDigits: 0 })} כל ${freqVal} ${unitLabel}`
       await supabase
         .from('action_logs')
         .update({ status: 'closed', summary: newSummary })
@@ -807,6 +902,119 @@ export function TrackingEditPage() {
                   required
                 />
               </div>
+            </div>
+          )}
+
+          {actionLog.action_type === 'fixed_expense' && (
+            <div className="action-form">
+              <div className="action-field">
+                <label htmlFor="edit-fixed-name">שם ההוצאה</label>
+                <input
+                  id="edit-fixed-name"
+                  type="text"
+                  value={fixedName}
+                  onChange={(e) => setFixedName(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="action-field">
+                <label htmlFor="edit-fixed-category">קטגוריה</label>
+                <CustomSelect
+                  id="edit-fixed-category"
+                  value={fixedCategory}
+                  onChange={setFixedCategory}
+                  placeholder="בחר קטגוריה"
+                  required
+                  options={categories.map((c) => ({ value: c, label: c }))}
+                  onAddOption={addCategory}
+                  onRemoveOption={removeCategory}
+                />
+              </div>
+              <div className="action-field">
+                <label htmlFor="edit-fixed-start-date">תאריך התחלה (DD/MM/YYYY)</label>
+                <DateInput
+                  id="edit-fixed-start-date"
+                  value={fixedStartDate}
+                  onChange={(val) => {
+                    setFixedStartDate(val)
+                    setFixedStartDateError('')
+                  }}
+                  required
+                  error={fixedStartDateError}
+                />
+              </div>
+              <div className="action-field">
+                <label htmlFor="edit-fixed-amount">סכום (₪)</label>
+                <input
+                  id="edit-fixed-amount"
+                  type="number"
+                  step="1"
+                  min="0"
+                  value={fixedAmount}
+                  onChange={(e) => setFixedAmount(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="action-field">
+                <label>תדירות</label>
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                  <span style={{ fontSize: '14px', color: 'var(--text-h)' }}>כל</span>
+                  <input
+                    id="edit-fixed-freq-value"
+                    type="number"
+                    step="1"
+                    min="1"
+                    value={fixedFrequencyValue}
+                    onChange={(e) => setFixedFrequencyValue(e.target.value)}
+                    required
+                    style={{ flex: '0 0 70px' }}
+                  />
+                  <div style={{ flex: 1 }}>
+                    <CustomSelect
+                      id="edit-fixed-freq-unit"
+                      value={fixedFrequencyUnit}
+                      onChange={setFixedFrequencyUnit}
+                      placeholder="בחר"
+                      required
+                      options={[
+                        { value: 'days', label: 'ימים' },
+                        { value: 'weeks', label: 'שבועות' },
+                        { value: 'months', label: 'חודשים' },
+                        { value: 'years', label: 'שנים' },
+                      ]}
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="action-field action-toggle">
+                <label htmlFor="edit-fixed-has-end-date">יש תאריך סיום?</label>
+                <div className="toggle-switch">
+                  <input
+                    id="edit-fixed-has-end-date"
+                    type="checkbox"
+                    checked={fixedHasEndDate}
+                    onChange={(e) => setFixedHasEndDate(e.target.checked)}
+                    role="switch"
+                    aria-checked={fixedHasEndDate}
+                  />
+                  <span className="toggle-slider" onClick={() => setFixedHasEndDate(!fixedHasEndDate)} />
+                </div>
+              </div>
+              {fixedHasEndDate && (
+                <div className="action-field">
+                  <label htmlFor="edit-fixed-end-date">תאריך סיום (DD/MM/YYYY)</label>
+                  <DateInput
+                    id="edit-fixed-end-date"
+                    value={fixedEndDate}
+                    onChange={(val) => {
+                      setFixedEndDate(val)
+                      setFixedEndDateError('')
+                    }}
+                    required
+                    error={fixedEndDateError}
+                  />
+                </div>
+              )}
             </div>
           )}
 

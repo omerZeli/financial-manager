@@ -8,6 +8,7 @@ const actions = [
   { id: 'investment-channels', label: 'יצירת אפיק השקעה' },
   { id: 'investment-deposits', label: 'הפקדה לאפיק השקעה' },
   { id: 'update-investment-value', label: 'עדכון שווי אפיק השקעה' },
+  { id: 'fixed-expenses', label: 'הוצאה קבועה' },
 ]
 
 export function ActionsPage() {
