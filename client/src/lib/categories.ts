@@ -28,7 +28,6 @@ export const actionCategoryMap: Record<string, CategoryId> = {
 export const dataCategoryMap: Record<string, CategoryId> = {
   'credit-card-expenses': 'regular',
   'paybacks': 'regular',
-  'outgoing-paybacks': 'regular',
   'insurances': 'special',
   'car-expenses': 'special',
   'investment-deposits': 'investment',

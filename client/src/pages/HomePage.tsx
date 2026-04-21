@@ -1,9 +1,12 @@
-import { NavLink, Outlet } from 'react-router-dom'
+import { NavLink, Outlet, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import './HomePage.css'
 
 export function HomePage() {
   const { user, signOut } = useAuth()
+  const [searchParams] = useSearchParams()
+  const catParam = searchParams.get('cat')
+  const catQuery = catParam ? `?cat=${catParam}` : ''
 
   return (
     <div className="home-layout">
@@ -14,13 +17,13 @@ export function HomePage() {
           </span>
         </div>
         <nav className="home-nav">
-          <NavLink to="/actions" className="nav-tab">
+          <NavLink to={`/actions${catQuery}`} className="nav-tab">
             פעולות
           </NavLink>
-          <NavLink to="/data" className="nav-tab">
+          <NavLink to={`/data${catQuery}`} className="nav-tab">
             נתונים
           </NavLink>
-          <NavLink to="/tracking" className="nav-tab">
+          <NavLink to={`/tracking${catQuery}`} className="nav-tab">
             מעקב
           </NavLink>
         </nav>
