@@ -286,7 +286,7 @@ export function TrackingEditPage() {
         return
       }
 
-      const newSummary = `${title} – ₪${numAmount.toLocaleString('he-IL', { minimumFractionDigits: 2 })}`
+      const newSummary = `${title} – ₪${numAmount.toLocaleString('he-IL', { maximumFractionDigits: 0 })}`
       await supabase
         .from('action_logs')
         .update({ status: 'closed', summary: newSummary })
@@ -333,7 +333,7 @@ export function TrackingEditPage() {
       }
 
       const newStatus = isPaid ? 'closed' : 'open'
-      const newSummary = `${debtorName} – ₪${numAmount.toLocaleString('he-IL', { minimumFractionDigits: 2 })}`
+      const newSummary = `${debtorName} – ₪${numAmount.toLocaleString('he-IL', { maximumFractionDigits: 0 })}`
       await supabase
         .from('action_logs')
         .update({ status: newStatus, summary: newSummary })
@@ -359,7 +359,7 @@ export function TrackingEditPage() {
         return
       }
 
-      const newSummary = `${creditorName} – ₪${numAmount.toLocaleString('he-IL', { minimumFractionDigits: 2 })}`
+      const newSummary = `${creditorName} – ₪${numAmount.toLocaleString('he-IL', { maximumFractionDigits: 0 })}`
       await supabase
         .from('action_logs')
         .update({ status: 'closed', summary: newSummary })
@@ -420,7 +420,7 @@ export function TrackingEditPage() {
 
       const channel = channels.find((c) => c.id === depositChannelId)
       const channelLabel = channel?.channel_name ?? ''
-      const newSummary = `${channelLabel} – ₪${numAmount.toLocaleString('he-IL', { minimumFractionDigits: 2 })} – ${depositorName}`
+      const newSummary = `${channelLabel} – ₪${numAmount.toLocaleString('he-IL', { maximumFractionDigits: 0 })} – ${depositorName}`
       await supabase
         .from('action_logs')
         .update({ status: 'closed', summary: newSummary })
@@ -523,7 +523,7 @@ export function TrackingEditPage() {
                 <input
                   id="edit-amount"
                   type="number"
-                  step="0.01"
+                  step="1"
                   min="0"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
@@ -567,7 +567,7 @@ export function TrackingEditPage() {
                 <input
                   id="edit-payback-amount"
                   type="number"
-                  step="0.01"
+                  step="1"
                   min="0"
                   value={paybackAmount}
                   onChange={(e) => setPaybackAmount(e.target.value)}
@@ -624,7 +624,7 @@ export function TrackingEditPage() {
                 <input
                   id="edit-outgoing-amount"
                   type="number"
-                  step="0.01"
+                  step="1"
                   min="0"
                   value={outgoingAmount}
                   onChange={(e) => setOutgoingAmount(e.target.value)}
@@ -716,7 +716,7 @@ export function TrackingEditPage() {
                 <input
                   id="edit-deposit-amount"
                   type="number"
-                  step="0.01"
+                  step="1"
                   min="0"
                   value={depositAmount}
                   onChange={(e) => setDepositAmount(e.target.value)}

@@ -66,7 +66,7 @@ export function CreditCardExpenseAction() {
         action_label: 'הוצאות כרטיס אשראי',
         status: 'closed',
         reference_id: data?.id,
-        summary: `${title} – ₪${parseFloat(amount).toLocaleString('he-IL', { minimumFractionDigits: 2 })}`,
+        summary: `${title} – ₪${parseFloat(amount).toLocaleString('he-IL', { maximumFractionDigits: 0 })}`,
       }).select('id').single()
 
       if (requiresPayback && logData) {
@@ -130,12 +130,12 @@ export function CreditCardExpenseAction() {
           <input
             id="expense-amount"
             type="number"
-            step="0.01"
+            step="1"
             min="0"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             required
-            placeholder="0.00"
+            placeholder="0"
           />
         </div>
         <div className="action-field action-toggle">

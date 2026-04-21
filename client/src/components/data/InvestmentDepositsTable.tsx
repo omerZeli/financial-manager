@@ -63,7 +63,7 @@ export function InvestmentDepositsTable() {
                   <td>{d.investment_channels?.financial_company}</td>
                   <td>{d.investment_channels?.investment_track}</td>
                   <td>{new Date(d.deposit_date).toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric' })}</td>
-                  <td>₪{d.amount.toLocaleString('he-IL', { minimumFractionDigits: 2 })}</td>
+                  <td>₪{d.amount.toLocaleString('he-IL', { maximumFractionDigits: 0 })}</td>
                   <td>{d.depositor_name}</td>
                 </tr>
               ))}

@@ -69,7 +69,7 @@ export function InvestmentDepositAction() {
         action_label: 'הפקדה לאפיק השקעה',
         status: 'closed',
         reference_id: data?.id,
-        summary: `${channelLabel} – ₪${parseFloat(amount).toLocaleString('he-IL', { minimumFractionDigits: 2 })} – ${depositorName}`,
+        summary: `${channelLabel} – ₪${parseFloat(amount).toLocaleString('he-IL', { maximumFractionDigits: 0 })} – ${depositorName}`,
       })
 
       navigate('/actions')
@@ -111,12 +111,12 @@ export function InvestmentDepositAction() {
           <input
             id="deposit-amount"
             type="number"
-            step="0.01"
+            step="1"
             min="0"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             required
-            placeholder="0.00"
+            placeholder="0"
           />
         </div>
         <div className="action-field">

@@ -63,7 +63,7 @@ export function InvestmentChannelAction() {
             value={channelName}
             onChange={(e) => setChannelName(e.target.value)}
             required
-            placeholder="לדוגמה: קרן פנסיה"
+            placeholder="לדוגמה: קופת גמל להשקעה"
           />
         </div>
         <div className="action-field">

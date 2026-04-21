@@ -55,7 +55,7 @@ export function PaybacksTable() {
               {paybacks.map((payback) => (
                 <tr key={payback.id}>
                   <td>{payback.debtor_name}</td>
-                  <td>₪{payback.amount.toLocaleString('he-IL', { minimumFractionDigits: 2 })}</td>
+                  <td>₪{payback.amount.toLocaleString('he-IL', { maximumFractionDigits: 0 })}</td>
                   <td>{payback.payback_method}</td>
                   <td>
                     <span className={`payback-status payback-status--${payback.is_paid ? 'paid' : 'unpaid'}`}>

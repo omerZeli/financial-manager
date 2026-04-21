@@ -53,7 +53,7 @@ export function OutgoingPaybacksTable() {
               {paybacks.map((payback) => (
                 <tr key={payback.id}>
                   <td>{payback.creditor_name}</td>
-                  <td>₪{payback.amount.toLocaleString('he-IL', { minimumFractionDigits: 2 })}</td>
+                  <td>₪{payback.amount.toLocaleString('he-IL', { maximumFractionDigits: 0 })}</td>
                   <td>{payback.payback_method}</td>
                 </tr>
               ))}

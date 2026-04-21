@@ -53,7 +53,7 @@ export function PaybackAction() {
         action_label: 'קבלת החזר',
         status: isPaid ? 'closed' : 'open',
         reference_id: data?.id,
-        summary: `${debtorName} – ₪${parseFloat(amount).toLocaleString('he-IL', { minimumFractionDigits: 2 })}`,
+        summary: `${debtorName} – ₪${parseFloat(amount).toLocaleString('he-IL', { maximumFractionDigits: 0 })}`,
         ...(locationState.triggeredBy ? { triggered_by: locationState.triggeredBy } : {}),
       })
       navigate('/actions')
@@ -84,12 +84,12 @@ export function PaybackAction() {
           <input
             id="payback-amount"
             type="number"
-            step="0.01"
+            step="1"
             min="0"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             required
-            placeholder="0.00"
+            placeholder="0"
           />
         </div>
         <div className="action-field">

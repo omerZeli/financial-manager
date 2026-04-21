@@ -44,7 +44,7 @@ export function OutgoingPaybackAction() {
         action_label: 'החזר למישהו אחר',
         status: 'closed',
         reference_id: data?.id,
-        summary: `${creditorName} – ₪${parseFloat(amount).toLocaleString('he-IL', { minimumFractionDigits: 2 })}`,
+        summary: `${creditorName} – ₪${parseFloat(amount).toLocaleString('he-IL', { maximumFractionDigits: 0 })}`,
       })
       navigate('/actions')
     }
@@ -74,12 +74,12 @@ export function OutgoingPaybackAction() {
           <input
             id="outgoing-payback-amount"
             type="number"
-            step="0.01"
+            step="1"
             min="0"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             required
-            placeholder="0.00"
+            placeholder="0"
           />
         </div>
         <div className="action-field">
