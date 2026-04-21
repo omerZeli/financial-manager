@@ -3,6 +3,7 @@ import { CreditCardExpenseAction } from '../components/actions/CreditCardExpense
 import { PaybackAction } from '../components/actions/PaybackAction'
 import { OutgoingPaybackAction } from '../components/actions/OutgoingPaybackAction'
 import { InvestmentChannelAction } from '../components/actions/InvestmentChannelAction'
+import { InvestmentDepositAction } from '../components/actions/InvestmentDepositAction'
 import './ActionPage.css'
 
 const actionComponents: Record<string, React.FC> = {
@@ -10,6 +11,7 @@ const actionComponents: Record<string, React.FC> = {
   'paybacks': PaybackAction,
   'outgoing-paybacks': OutgoingPaybackAction,
   'investment-channels': InvestmentChannelAction,
+  'investment-deposits': InvestmentDepositAction,
 }
 
 export function ActionPage() {

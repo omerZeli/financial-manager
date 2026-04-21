@@ -5,6 +5,7 @@ const dataItems = [
   { id: 'credit-card-expenses', label: 'הוצאות כרטיס אשראי' },
   { id: 'paybacks', label: 'קבלת החזר' },
   { id: 'outgoing-paybacks', label: 'החזר למישהו אחר' },
+  { id: 'investment-deposits', label: 'הפקדות לאפיקי השקעה' },
 ]
 
 export function DataPage() {

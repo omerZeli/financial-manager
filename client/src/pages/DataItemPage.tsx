@@ -2,12 +2,14 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { CreditCardExpensesTable } from '../components/data/CreditCardExpensesTable'
 import { PaybacksTable } from '../components/data/PaybacksTable'
 import { OutgoingPaybacksTable } from '../components/data/OutgoingPaybacksTable'
+import { InvestmentDepositsTable } from '../components/data/InvestmentDepositsTable'
 import './DataItemPage.css'
 
 const dataItems: Record<string, { label: string; component: React.FC }> = {
   'credit-card-expenses': { label: 'הוצאות כרטיס אשראי', component: CreditCardExpensesTable },
   'paybacks': { label: 'קבלת החזר', component: PaybacksTable },
   'outgoing-paybacks': { label: 'החזר למישהו אחר', component: OutgoingPaybacksTable },
+  'investment-deposits': { label: 'הפקדות לאפיקי השקעה', component: InvestmentDepositsTable },
 }
 
 export function DataItemPage() {

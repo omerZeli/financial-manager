@@ -6,6 +6,7 @@ const actions = [
   { id: 'paybacks', label: 'קבלת החזר' },
   { id: 'outgoing-paybacks', label: 'החזר למישהו אחר' },
   { id: 'investment-channels', label: 'יצירת אפיק השקעה' },
+  { id: 'investment-deposits', label: 'הפקדה לאפיק השקעה' },
 ]
 
 export function ActionsPage() {

@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { DateInput } from '../components/common/DateInput'
 import { CustomSelect } from '../components/common/CustomSelect'
 import { useDropdownOptions } from '../hooks/useDropdownOptions'
+import { useInvestmentChannels } from '../hooks/useInvestmentChannels'
 import './TrackingEditPage.css'
 
 interface ActionLog {
@@ -34,6 +35,9 @@ export function TrackingEditPage() {
     useDropdownOptions('person_name')
   const { options: companies, addOption: addCompany, removeOption: removeCompany } =
     useDropdownOptions('financial_company')
+  const { channels } = useInvestmentChannels()
+  const { options: depositors, addOption: addDepositor, removeOption: removeDepositor } =
+    useDropdownOptions('depositor_name')
 
   // Credit card expense fields
   const [title, setTitle] = useState('')
@@ -58,6 +62,13 @@ export function TrackingEditPage() {
   const [channelName, setChannelName] = useState('')
   const [financialCompany, setFinancialCompany] = useState('')
   const [investmentTrack, setInvestmentTrack] = useState('')
+
+  // Investment deposit fields
+  const [depositChannelId, setDepositChannelId] = useState('')
+  const [depositDate, setDepositDate] = useState('')
+  const [depositDateError, setDepositDateError] = useState('')
+  const [depositAmount, setDepositAmount] = useState('')
+  const [depositorName, setDepositorName] = useState('')
 
   useEffect(() => {
     fetchData()
@@ -133,6 +144,22 @@ export function TrackingEditPage() {
         setFinancialCompany(data.financial_company)
         setInvestmentTrack(data.investment_track)
       }
+    } else if (log.action_type === 'investment_deposit' && log.reference_id) {
+      const { data } = await supabase
+        .from('investment_deposits')
+        .select('*')
+        .eq('id', log.reference_id)
+        .single()
+
+      if (data) {
+        setDepositChannelId(data.investment_channel_id)
+        setDepositAmount(String(data.amount))
+        setDepositorName(data.depositor_name)
+        if (data.deposit_date) {
+          const [y, m, d] = data.deposit_date.split('-')
+          setDepositDate(`${d}/${m}/${y}`)
+        }
+      }
     }
 
     setLoading(false)
@@ -185,6 +212,13 @@ export function TrackingEditPage() {
           .eq('id', actionLog.reference_id)
           .select()
         if (refErr) console.error('Failed to delete investment_channel:', refErr)
+      } else if (actionLog.action_type === 'investment_deposit') {
+        const { error: refErr } = await supabase
+          .from('investment_deposits')
+          .delete()
+          .eq('id', actionLog.reference_id)
+          .select()
+        if (refErr) console.error('Failed to delete investment_deposit:', refErr)
       }
     }
 
@@ -205,6 +239,8 @@ export function TrackingEditPage() {
             await supabase.from('credit_card_expenses').delete().eq('id', chained.reference_id).select()
           } else if (chained.action_type === 'investment_channel') {
             await supabase.from('investment_channels').delete().eq('id', chained.reference_id).select()
+          } else if (chained.action_type === 'investment_deposit') {
+            await supabase.from('investment_deposits').delete().eq('id', chained.reference_id).select()
           }
         }
         await supabase.from('action_logs').delete().eq('id', chained.id).select()
@@ -349,6 +385,42 @@ export function TrackingEditPage() {
       }
 
       const newSummary = `${channelName} – ${financialCompany} – ${investmentTrack}`
+      await supabase
+        .from('action_logs')
+        .update({ status: 'closed', summary: newSummary })
+        .eq('id', actionLog.id)
+
+      setSaving(false)
+      navigate('/tracking')
+      return
+    } else if (actionLog.action_type === 'investment_deposit') {
+      const isoDate = parseDateInput(depositDate)
+      if (!isoDate) {
+        setDepositDateError('יש להזין תאריך בפורמט DD/MM/YYYY')
+        setSaving(false)
+        return
+      }
+
+      const numAmount = parseFloat(depositAmount)
+      const { error } = await supabase
+        .from('investment_deposits')
+        .update({
+          investment_channel_id: depositChannelId,
+          deposit_date: isoDate,
+          amount: numAmount,
+          depositor_name: depositorName,
+        })
+        .eq('id', actionLog.reference_id)
+
+      if (error) {
+        setMessage({ type: 'error', text: 'שגיאה בשמירה' })
+        setSaving(false)
+        return
+      }
+
+      const channel = channels.find((c) => c.id === depositChannelId)
+      const channelLabel = channel?.channel_name ?? ''
+      const newSummary = `${channelLabel} – ₪${numAmount.toLocaleString('he-IL', { minimumFractionDigits: 2 })} – ${depositorName}`
       await supabase
         .from('action_logs')
         .update({ status: 'closed', summary: newSummary })
@@ -608,6 +680,60 @@ export function TrackingEditPage() {
                   value={investmentTrack}
                   onChange={(e) => setInvestmentTrack(e.target.value)}
                   required
+                />
+              </div>
+            </div>
+          )}
+
+          {actionLog.action_type === 'investment_deposit' && (
+            <div className="action-form">
+              <div className="action-field">
+                <label htmlFor="edit-deposit-channel">אפיק השקעה</label>
+                <CustomSelect
+                  id="edit-deposit-channel"
+                  value={depositChannelId}
+                  onChange={setDepositChannelId}
+                  placeholder="בחר אפיק השקעה"
+                  required
+                  options={channels.map((c) => ({ value: c.id, label: `${c.channel_name} – ${c.financial_company}` }))}
+                />
+              </div>
+              <div className="action-field">
+                <label htmlFor="edit-deposit-date">תאריך (DD/MM/YYYY)</label>
+                <DateInput
+                  id="edit-deposit-date"
+                  value={depositDate}
+                  onChange={(val) => {
+                    setDepositDate(val)
+                    setDepositDateError('')
+                  }}
+                  required
+                  error={depositDateError}
+                />
+              </div>
+              <div className="action-field">
+                <label htmlFor="edit-deposit-amount">סכום (₪)</label>
+                <input
+                  id="edit-deposit-amount"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={depositAmount}
+                  onChange={(e) => setDepositAmount(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="action-field">
+                <label htmlFor="edit-depositor">מי הפקיד</label>
+                <CustomSelect
+                  id="edit-depositor"
+                  value={depositorName}
+                  onChange={setDepositorName}
+                  placeholder="בחר שם"
+                  required
+                  options={depositors.map((p) => ({ value: p, label: p }))}
+                  onAddOption={addDepositor}
+                  onRemoveOption={removeDepositor}
                 />
               </div>
             </div>
