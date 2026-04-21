@@ -32,6 +32,8 @@ export function TrackingEditPage() {
     useDropdownOptions('expense_category')
   const { options: people, addOption: addPerson, removeOption: removePerson } =
     useDropdownOptions('person_name')
+  const { options: companies, addOption: addCompany, removeOption: removeCompany } =
+    useDropdownOptions('financial_company')
 
   // Credit card expense fields
   const [title, setTitle] = useState('')
@@ -51,6 +53,11 @@ export function TrackingEditPage() {
   const [creditorName, setCreditorName] = useState('')
   const [outgoingAmount, setOutgoingAmount] = useState('')
   const [outgoingMethod, setOutgoingMethod] = useState('')
+
+  // Investment channel fields
+  const [channelName, setChannelName] = useState('')
+  const [financialCompany, setFinancialCompany] = useState('')
+  const [investmentTrack, setInvestmentTrack] = useState('')
 
   useEffect(() => {
     fetchData()
@@ -114,6 +121,18 @@ export function TrackingEditPage() {
         setOutgoingAmount(String(data.amount))
         setOutgoingMethod(data.payback_method)
       }
+    } else if (log.action_type === 'investment_channel' && log.reference_id) {
+      const { data } = await supabase
+        .from('investment_channels')
+        .select('*')
+        .eq('id', log.reference_id)
+        .single()
+
+      if (data) {
+        setChannelName(data.channel_name)
+        setFinancialCompany(data.financial_company)
+        setInvestmentTrack(data.investment_track)
+      }
     }
 
     setLoading(false)
@@ -159,6 +178,13 @@ export function TrackingEditPage() {
           .eq('id', actionLog.reference_id)
           .select()
         if (refErr) console.error('Failed to delete outgoing_payback:', refErr)
+      } else if (actionLog.action_type === 'investment_channel') {
+        const { error: refErr } = await supabase
+          .from('investment_channels')
+          .delete()
+          .eq('id', actionLog.reference_id)
+          .select()
+        if (refErr) console.error('Failed to delete investment_channel:', refErr)
       }
     }
 
@@ -177,6 +203,8 @@ export function TrackingEditPage() {
             await supabase.from('outgoing_paybacks').delete().eq('id', chained.reference_id).select()
           } else if (chained.action_type === 'credit_card_expense') {
             await supabase.from('credit_card_expenses').delete().eq('id', chained.reference_id).select()
+          } else if (chained.action_type === 'investment_channel') {
+            await supabase.from('investment_channels').delete().eq('id', chained.reference_id).select()
           }
         }
         await supabase.from('action_logs').delete().eq('id', chained.id).select()
@@ -296,6 +324,31 @@ export function TrackingEditPage() {
       }
 
       const newSummary = `${creditorName} – ₪${numAmount.toLocaleString('he-IL', { minimumFractionDigits: 2 })}`
+      await supabase
+        .from('action_logs')
+        .update({ status: 'closed', summary: newSummary })
+        .eq('id', actionLog.id)
+
+      setSaving(false)
+      navigate('/tracking')
+      return
+    } else if (actionLog.action_type === 'investment_channel') {
+      const { error } = await supabase
+        .from('investment_channels')
+        .update({
+          channel_name: channelName,
+          financial_company: financialCompany,
+          investment_track: investmentTrack,
+        })
+        .eq('id', actionLog.reference_id)
+
+      if (error) {
+        setMessage({ type: 'error', text: 'שגיאה בשמירה' })
+        setSaving(false)
+        return
+      }
+
+      const newSummary = `${channelName} – ${financialCompany} – ${investmentTrack}`
       await supabase
         .from('action_logs')
         .update({ status: 'closed', summary: newSummary })
@@ -517,6 +570,44 @@ export function TrackingEditPage() {
                   options={paybackMethods.map((m) => ({ value: m, label: m }))}
                   onAddOption={addPaybackMethod}
                   onRemoveOption={removePaybackMethod}
+                />
+              </div>
+            </div>
+          )}
+
+          {actionLog.action_type === 'investment_channel' && (
+            <div className="action-form">
+              <div className="action-field">
+                <label htmlFor="edit-channel-name">שם אפיק השקעה</label>
+                <input
+                  id="edit-channel-name"
+                  type="text"
+                  value={channelName}
+                  onChange={(e) => setChannelName(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="action-field">
+                <label htmlFor="edit-financial-company">חברה מנהלת</label>
+                <CustomSelect
+                  id="edit-financial-company"
+                  value={financialCompany}
+                  onChange={setFinancialCompany}
+                  placeholder="בחר חברה"
+                  required
+                  options={companies.map((c) => ({ value: c, label: c }))}
+                  onAddOption={addCompany}
+                  onRemoveOption={removeCompany}
+                />
+              </div>
+              <div className="action-field">
+                <label htmlFor="edit-investment-track">מסלול השקעה</label>
+                <input
+                  id="edit-investment-track"
+                  type="text"
+                  value={investmentTrack}
+                  onChange={(e) => setInvestmentTrack(e.target.value)}
+                  required
                 />
               </div>
             </div>

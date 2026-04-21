@@ -5,6 +5,7 @@ const actions = [
   { id: 'credit-card-expenses', label: 'הוצאות כרטיס אשראי' },
   { id: 'paybacks', label: 'קבלת החזר' },
   { id: 'outgoing-paybacks', label: 'החזר למישהו אחר' },
+  { id: 'investment-channels', label: 'יצירת אפיק השקעה' },
 ]
 
 export function ActionsPage() {
