@@ -46,7 +46,7 @@ export function UpdateInvestmentValueAction() {
         summary: `${channelLabel} – ₪${numValue.toLocaleString('he-IL', { maximumFractionDigits: 0 })}`,
       })
 
-      navigate('/actions')
+      navigate(-1)
     }
 
     setLoading(false)

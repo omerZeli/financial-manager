@@ -56,7 +56,7 @@ export function PaybackAction() {
         summary: `${debtorName} – ₪${parseFloat(amount).toLocaleString('he-IL', { maximumFractionDigits: 0 })}`,
         ...(locationState.triggeredBy ? { triggered_by: locationState.triggeredBy } : {}),
       })
-      navigate('/actions')
+      navigate(-1)
     }
 
     setLoading(false)

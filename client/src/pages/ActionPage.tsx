@@ -32,7 +32,7 @@ export function ActionPage() {
     return (
       <div className="action-page">
         <div className="action-page-card">
-          <button className="action-page-close" onClick={() => navigate('/actions')} aria-label="סגור">
+          <button className="action-page-close" onClick={() => navigate(-1)} aria-label="סגור">
             ✕
           </button>
           <p className="page-empty-state">פעולה לא נמצאה</p>
@@ -53,7 +53,7 @@ export function ActionPage() {
             →
           </button>
         )}
-        <button className="action-page-close" onClick={() => navigate('/actions')} aria-label="סגור">
+        <button className="action-page-close" onClick={() => navigate(-1)} aria-label="סגור">
           ✕
         </button>
         <ActionComponent />

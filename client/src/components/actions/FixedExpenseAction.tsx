@@ -94,7 +94,7 @@ export function FixedExpenseAction() {
         reference_id: data?.id,
         summary: `${name} – ₪${parseFloat(amount).toLocaleString('he-IL', { maximumFractionDigits: 0 })} כל ${frequencyValue} ${unitLabel}`,
       })
-      navigate('/actions')
+      navigate(-1)
     }
 
     setLoading(false)

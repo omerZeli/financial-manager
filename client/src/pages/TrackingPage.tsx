@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { CategoryTabs } from '../components/common/CategoryTabs'
+import { actionTypeCategoryMap, categories, type CategoryId } from '../lib/categories'
 import './TrackingPage.css'
 
 interface ActionLog {
@@ -16,7 +18,15 @@ interface ActionLog {
 export function TrackingPage() {
   const [logs, setLogs] = useState<ActionLog[]>([])
   const [loading, setLoading] = useState(true)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const paramCat = searchParams.get('cat')
+  const selectedCategory: CategoryId =
+    paramCat && categories.some((c) => c.id === paramCat) ? (paramCat as CategoryId) : 'regular'
   const navigate = useNavigate()
+
+  const setSelectedCategory = (id: CategoryId) => {
+    setSearchParams({ cat: id }, { replace: true })
+  }
 
   useEffect(() => {
     fetchLogs()
@@ -48,8 +58,11 @@ export function TrackingPage() {
     return d.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })
   }
 
-  const openLogs = logs.filter((l) => l.status === 'open')
-  const closedLogs = logs.filter((l) => l.status === 'closed')
+  const filteredLogs = logs.filter(
+    (l) => actionTypeCategoryMap[l.action_type] === selectedCategory
+  )
+  const openLogs = filteredLogs.filter((l) => l.status === 'open')
+  const closedLogs = filteredLogs.filter((l) => l.status === 'closed')
 
   if (loading) {
     return <div className="page-content"><p>טוען...</p></div>
@@ -58,8 +71,9 @@ export function TrackingPage() {
   return (
     <div className="page-content">
       <h2>מעקב</h2>
+      <CategoryTabs selected={selectedCategory} onChange={setSelectedCategory} />
 
-      {logs.length === 0 ? (
+      {filteredLogs.length === 0 ? (
         <p className="page-empty-state">אין פעולות עדיין</p>
       ) : (
         <div className="history-sections">

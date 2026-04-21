@@ -5,6 +5,7 @@ import { DateInput } from '../components/common/DateInput'
 import { CustomSelect } from '../components/common/CustomSelect'
 import { useDropdownOptions } from '../hooks/useDropdownOptions'
 import { useInvestmentChannels } from '../hooks/useInvestmentChannels'
+import { actionTypeCategoryMap } from '../lib/categories'
 import './TrackingEditPage.css'
 
 interface ActionLog {
@@ -101,6 +102,12 @@ export function TrackingEditPage() {
   const [insHasEndDate, setInsHasEndDate] = useState(false)
   const [insEndDate, setInsEndDate] = useState('')
   const [insEndDateError, setInsEndDateError] = useState('')
+
+  const getTrackingUrl = () => {
+    if (!actionLog) return '/tracking'
+    const cat = actionTypeCategoryMap[actionLog.action_type]
+    return cat ? `/tracking?cat=${cat}` : '/tracking'
+  }
 
   useEffect(() => {
     fetchData()
@@ -367,7 +374,7 @@ export function TrackingEditPage() {
       return
     }
 
-    navigate('/tracking')
+    navigate(getTrackingUrl())
   }
 
   const handleSave = async () => {
@@ -423,7 +430,7 @@ export function TrackingEditPage() {
       }
 
       setSaving(false)
-      navigate('/tracking')
+      navigate(getTrackingUrl())
       return
     } else if (actionLog.action_type === 'payback') {
       const numAmount = parseFloat(paybackAmount)
@@ -451,7 +458,7 @@ export function TrackingEditPage() {
         .eq('id', actionLog.id)
 
       setSaving(false)
-      navigate('/tracking')
+      navigate(getTrackingUrl())
       return
     } else if (actionLog.action_type === 'outgoing_payback') {
       const numAmount = parseFloat(outgoingAmount)
@@ -479,7 +486,7 @@ export function TrackingEditPage() {
         .eq('id', actionLog.id)
 
       setSaving(false)
-      navigate('/tracking')
+      navigate(getTrackingUrl())
       return
     } else if (actionLog.action_type === 'investment_channel') {
       const { error } = await supabase
@@ -504,7 +511,7 @@ export function TrackingEditPage() {
         .eq('id', actionLog.id)
 
       setSaving(false)
-      navigate('/tracking')
+      navigate(getTrackingUrl())
       return
     } else if (actionLog.action_type === 'investment_deposit') {
       const isoDate = parseDateInput(depositDate)
@@ -540,7 +547,7 @@ export function TrackingEditPage() {
         .eq('id', actionLog.id)
 
       setSaving(false)
-      navigate('/tracking')
+      navigate(getTrackingUrl())
       return
     } else if (actionLog.action_type === 'update_investment_value') {
       const numValue = parseFloat(currentValue)
@@ -566,7 +573,7 @@ export function TrackingEditPage() {
         .eq('id', actionLog.id)
 
       setSaving(false)
-      navigate('/tracking')
+      navigate(getTrackingUrl())
       return
     } else if (actionLog.action_type === 'fixed_expense') {
       const isoStartDate = parseDateInput(fixedStartDate)
@@ -617,7 +624,7 @@ export function TrackingEditPage() {
         .eq('id', actionLog.id)
 
       setSaving(false)
-      navigate('/tracking')
+      navigate(getTrackingUrl())
       return
     } else if (actionLog.action_type === 'insurance') {
       const isoFirstCharge = parseDateInput(insFirstCharge)
@@ -663,7 +670,7 @@ export function TrackingEditPage() {
         .eq('id', actionLog.id)
 
       setSaving(false)
-      navigate('/tracking')
+      navigate(getTrackingUrl())
       return
     }
 
@@ -684,7 +691,7 @@ export function TrackingEditPage() {
     return (
       <div className="action-page">
         <div className="action-page-card">
-          <button className="action-page-close" onClick={() => navigate('/tracking')} aria-label="סגור">
+          <button className="action-page-close" onClick={() => navigate(-1)} aria-label="סגור">
             ✕
           </button>
           <p className="page-empty-state">פעולה לא נמצאה</p>
@@ -696,7 +703,7 @@ export function TrackingEditPage() {
   return (
     <div className="action-page">
       <div className="action-page-card">
-        <button className="action-page-close" onClick={() => navigate('/tracking')} aria-label="סגור">
+        <button className="action-page-close" onClick={() => navigate(-1)} aria-label="סגור">
           ✕
         </button>
         <button

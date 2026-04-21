@@ -1,0 +1,34 @@
+.category-tabs {
+  display: flex;
+  gap: 4px;
+  background: var(--bg-subtle);
+  padding: 4px;
+  border-radius: 10px;
+  border: 1px solid var(--border-light);
+  margin-bottom: 20px;
+}
+
+.category-tab {
+  flex: 1;
+  padding: 8px 12px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.category-tab:hover {
+  color: var(--text-h);
+  background: var(--bg);
+}
+
+.category-tab--active {
+  background: var(--bg);
+  color: var(--accent);
+  box-shadow: var(--shadow-sm);
+}

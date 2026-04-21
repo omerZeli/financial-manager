@@ -52,7 +52,7 @@ export function OutgoingPaybackAction() {
         reference_id: data?.id,
         summary: `${creditorName} – ₪${parseFloat(amount).toLocaleString('he-IL', { maximumFractionDigits: 0 })}`,
       })
-      navigate('/actions')
+      navigate(-1)
     }
 
     setLoading(false)

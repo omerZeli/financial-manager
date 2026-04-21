@@ -1,4 +1,6 @@
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
+import { CategoryTabs } from '../components/common/CategoryTabs'
+import { actionCategoryMap, categories, type CategoryId } from '../lib/categories'
 import './ActionsPage.css'
 
 const actions = [
@@ -13,11 +15,23 @@ const actions = [
 ]
 
 export function ActionsPage() {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const paramCat = searchParams.get('cat')
+  const selectedCategory: CategoryId =
+    paramCat && categories.some((c) => c.id === paramCat) ? (paramCat as CategoryId) : 'regular'
+
+  const setSelectedCategory = (id: CategoryId) => {
+    setSearchParams({ cat: id }, { replace: true })
+  }
+
+  const filtered = actions.filter((a) => actionCategoryMap[a.id] === selectedCategory)
+
   return (
     <div className="page-content">
       <h2>פעולות</h2>
+      <CategoryTabs selected={selectedCategory} onChange={setSelectedCategory} />
       <div className="items-list">
-        {actions.map((action) => (
+        {filtered.map((action) => (
           <Link key={action.id} to={`/actions/${action.id}`} className="item-block action-link">
             <span className="action-link-label">{action.label}</span>
             <span className="action-link-arrow">←</span>

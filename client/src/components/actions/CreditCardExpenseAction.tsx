@@ -77,7 +77,7 @@ export function CreditCardExpenseAction() {
           },
         })
       } else {
-        navigate('/actions')
+        navigate(-1)
       }
     }
 

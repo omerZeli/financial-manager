@@ -26,7 +26,7 @@ export function DataItemPage() {
     return (
       <div className="data-item-page">
         <div className="data-item-page-card">
-          <button className="data-item-page-close" onClick={() => navigate('/data')} aria-label="סגור">
+          <button className="data-item-page-close" onClick={() => navigate(-1)} aria-label="סגור">
             ✕
           </button>
           <p className="page-empty-state">נתון לא נמצא</p>
@@ -40,7 +40,7 @@ export function DataItemPage() {
   return (
     <div className="data-item-page">
       <div className="data-item-page-card">
-        <button className="data-item-page-close" onClick={() => navigate('/data')} aria-label="סגור">
+        <button className="data-item-page-close" onClick={() => navigate(-1)} aria-label="סגור">
           ✕
         </button>
         <h2 className="data-item-page-title">{item.label}</h2>

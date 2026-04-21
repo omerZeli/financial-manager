@@ -45,7 +45,7 @@ export function InvestmentChannelAction() {
         summary: `${channelName} – ${financialCompany} – ${investmentTrack}`,
       })
 
-      navigate('/actions')
+      navigate(-1)
     }
 
     setLoading(false)

@@ -85,7 +85,7 @@ export function InsuranceAction() {
         reference_id: data?.id,
         summary: `${insuranceType} – ${insuranceCompany} – ₪${payment.toLocaleString('he-IL', { maximumFractionDigits: 0 })}/חודש`,
       })
-      navigate('/actions')
+      navigate(-1)
     }
 
     setLoading(false)

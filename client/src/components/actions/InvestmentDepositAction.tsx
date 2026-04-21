@@ -72,7 +72,7 @@ export function InvestmentDepositAction() {
         summary: `${channelLabel} – ₪${parseFloat(amount).toLocaleString('he-IL', { maximumFractionDigits: 0 })} – ${depositorName}`,
       })
 
-      navigate('/actions')
+      navigate(-1)
     }
 
     setLoading(false)
