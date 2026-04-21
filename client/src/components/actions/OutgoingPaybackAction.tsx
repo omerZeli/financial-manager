@@ -14,7 +14,11 @@ export function OutgoingPaybackAction() {
     useDropdownOptions('payback_method')
   const { options: people, addOption: addPerson, removeOption: removePerson } =
     useDropdownOptions('person_name')
+  const { options: categories, addOption: addCategory, removeOption: removeCategory } =
+    useDropdownOptions('expense_category')
 
+  const [reason, setReason] = useState('')
+  const [category, setCategory] = useState('')
   const [creditorName, setCreditorName] = useState('')
   const [amount, setAmount] = useState('')
   const [paybackMethod, setPaybackMethod] = useState('')
@@ -33,6 +37,8 @@ export function OutgoingPaybackAction() {
       creditor_name: creditorName,
       amount: parseFloat(amount),
       payback_method: paybackMethod,
+      reason,
+      category,
     }).select('id').single()
 
     if (error) {
@@ -56,6 +62,30 @@ export function OutgoingPaybackAction() {
     <div className="action-card">
       <h3>החזר למישהו אחר</h3>
       <form onSubmit={handleSubmit} className="action-form">
+        <div className="action-field">
+          <label htmlFor="outgoing-reason">סיבת ההחזר</label>
+          <input
+            id="outgoing-reason"
+            type="text"
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            required
+            placeholder="לדוגמה: ארוחת ערב"
+          />
+        </div>
+        <div className="action-field">
+          <label htmlFor="outgoing-category">קטגוריה</label>
+          <CustomSelect
+            id="outgoing-category"
+            value={category}
+            onChange={setCategory}
+            placeholder="בחר קטגוריה"
+            required
+            options={categories.map((c) => ({ value: c, label: c }))}
+            onAddOption={addCategory}
+            onRemoveOption={removeCategory}
+          />
+        </div>
         <div className="action-field">
           <label htmlFor="creditor-name">למי אני מחזיר</label>
           <CustomSelect

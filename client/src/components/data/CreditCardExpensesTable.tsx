@@ -135,7 +135,7 @@ export function CreditCardExpensesTable() {
   }, [])
 
   const fetchAll = async () => {
-    const [ccResult, fixedResult, insuranceResult] = await Promise.all([
+    const [ccResult, fixedResult, insuranceResult, outgoingResult] = await Promise.all([
       supabase
         .from('credit_card_expenses')
         .select('id, title, category, expense_date, amount'),
@@ -145,6 +145,9 @@ export function CreditCardExpensesTable() {
       supabase
         .from('insurances')
         .select('id, insurance_type, insurance_company, first_charge_date, monthly_payment, has_end_date, end_date'),
+      supabase
+        .from('outgoing_paybacks')
+        .select('id, creditor_name, reason, category, amount, payback_method, created_at'),
     ])
 
     const ccExpenses: Expense[] = (ccResult.data ?? []).map((e: any) => ({
@@ -152,7 +155,14 @@ export function CreditCardExpensesTable() {
     }))
     const inflatedFixed = inflateFixedExpenses(fixedResult.data ?? [])
     const inflatedInsurance = inflateInsurances(insuranceResult.data ?? [])
-    const all = [...ccExpenses, ...inflatedFixed, ...inflatedInsurance].sort(
+    const outgoingExpenses: Expense[] = (outgoingResult.data ?? []).map((p: any) => ({
+      id: `outgoing_${p.id}`,
+      title: p.reason || p.creditor_name,
+      category: p.category || 'החזר למישהו אחר',
+      expense_date: p.created_at.split('T')[0],
+      amount: p.amount,
+    }))
+    const all = [...ccExpenses, ...inflatedFixed, ...inflatedInsurance, ...outgoingExpenses].sort(
       (a, b) => new Date(b.expense_date).getTime() - new Date(a.expense_date).getTime()
     )
 

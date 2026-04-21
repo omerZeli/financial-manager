@@ -58,6 +58,8 @@ export function TrackingEditPage() {
   const [isPaid, setIsPaid] = useState(false)
 
   // Outgoing payback fields
+  const [outgoingReason, setOutgoingReason] = useState('')
+  const [outgoingCategory, setOutgoingCategory] = useState('')
   const [creditorName, setCreditorName] = useState('')
   const [outgoingAmount, setOutgoingAmount] = useState('')
   const [outgoingMethod, setOutgoingMethod] = useState('')
@@ -158,6 +160,8 @@ export function TrackingEditPage() {
         .single()
 
       if (data) {
+        setOutgoingReason(data.reason ?? '')
+        setOutgoingCategory(data.category ?? '')
         setCreditorName(data.creditor_name)
         setOutgoingAmount(String(data.amount))
         setOutgoingMethod(data.payback_method)
@@ -454,6 +458,8 @@ export function TrackingEditPage() {
       const { error } = await supabase
         .from('outgoing_paybacks')
         .update({
+          reason: outgoingReason,
+          category: outgoingCategory,
           creditor_name: creditorName,
           amount: numAmount,
           payback_method: outgoingMethod,
@@ -836,6 +842,29 @@ export function TrackingEditPage() {
 
           {actionLog.action_type === 'outgoing_payback' && (
             <div className="action-form">
+              <div className="action-field">
+                <label htmlFor="edit-outgoing-reason">סיבת ההחזר</label>
+                <input
+                  id="edit-outgoing-reason"
+                  type="text"
+                  value={outgoingReason}
+                  onChange={(e) => setOutgoingReason(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="action-field">
+                <label htmlFor="edit-outgoing-category">קטגוריה</label>
+                <CustomSelect
+                  id="edit-outgoing-category"
+                  value={outgoingCategory}
+                  onChange={setOutgoingCategory}
+                  placeholder="בחר קטגוריה"
+                  required
+                  options={categories.map((c) => ({ value: c, label: c }))}
+                  onAddOption={addCategory}
+                  onRemoveOption={removeCategory}
+                />
+              </div>
               <div className="action-field">
                 <label htmlFor="edit-creditor">למי אני מחזיר</label>
                 <CustomSelect
