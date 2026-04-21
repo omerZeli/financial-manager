@@ -2,13 +2,21 @@
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  padding-top: 5vh;
+  padding-top: 8vh;
+  position: fixed;
+  top: 60px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 50;
+  overflow-y: auto;
 }
 
 .data-item-page-card {
   position: relative;
-  max-width: 600px;
-  width: 100%;
+  max-width: none;
+  min-width: 700px;
+  width: auto;
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: var(--radius);

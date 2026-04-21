@@ -17,13 +17,14 @@
 }
 
 .table-wrapper {
-  overflow-x: auto;
+  overflow-x: visible;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);
 }
 
 .data-table {
-  width: 100%;
+  width: max-content;
+  min-width: 100%;
   border-collapse: collapse;
   font-size: 14px;
 }
@@ -60,4 +61,14 @@
 .data-table td {
   color: var(--text-h);
   font-weight: 450;
+}
+
+.data-table th,
+.data-table td {
+  white-space: nowrap;
+}
+
+.data-table td.return-cell {
+  direction: ltr;
+  text-align: left;
 }
