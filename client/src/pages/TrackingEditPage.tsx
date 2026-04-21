@@ -38,6 +38,10 @@ export function TrackingEditPage() {
   const { channels } = useInvestmentChannels()
   const { options: depositors, addOption: addDepositor, removeOption: removeDepositor } =
     useDropdownOptions('depositor_name')
+  const { options: insuranceTypes, addOption: addInsType, removeOption: removeInsType } =
+    useDropdownOptions('insurance_type')
+  const { options: insuranceCompanies, addOption: addInsCompany, removeOption: removeInsCompany } =
+    useDropdownOptions('insurance_company')
 
   // Credit card expense fields
   const [title, setTitle] = useState('')
@@ -85,6 +89,16 @@ export function TrackingEditPage() {
   const [fixedHasEndDate, setFixedHasEndDate] = useState(false)
   const [fixedEndDate, setFixedEndDate] = useState('')
   const [fixedEndDateError, setFixedEndDateError] = useState('')
+
+  // Insurance fields
+  const [insType, setInsType] = useState('')
+  const [insCompany, setInsCompany] = useState('')
+  const [insFirstCharge, setInsFirstCharge] = useState('')
+  const [insFirstChargeError, setInsFirstChargeError] = useState('')
+  const [insMonthlyPayment, setInsMonthlyPayment] = useState('')
+  const [insHasEndDate, setInsHasEndDate] = useState(false)
+  const [insEndDate, setInsEndDate] = useState('')
+  const [insEndDateError, setInsEndDateError] = useState('')
 
   useEffect(() => {
     fetchData()
@@ -210,6 +224,27 @@ export function TrackingEditPage() {
           setFixedEndDate(`${d}/${m}/${y}`)
         }
       }
+    } else if (log.action_type === 'insurance' && log.reference_id) {
+      const { data } = await supabase
+        .from('insurances')
+        .select('*')
+        .eq('id', log.reference_id)
+        .single()
+
+      if (data) {
+        setInsType(data.insurance_type)
+        setInsCompany(data.insurance_company)
+        setInsMonthlyPayment(String(data.monthly_payment))
+        setInsHasEndDate(data.has_end_date)
+        if (data.first_charge_date) {
+          const [y, m, d] = data.first_charge_date.split('-')
+          setInsFirstCharge(`${d}/${m}/${y}`)
+        }
+        if (data.end_date) {
+          const [y, m, d] = data.end_date.split('-')
+          setInsEndDate(`${d}/${m}/${y}`)
+        }
+      }
     }
 
     setLoading(false)
@@ -278,6 +313,13 @@ export function TrackingEditPage() {
           .eq('id', actionLog.reference_id)
           .select()
         if (refErr) console.error('Failed to delete fixed_expense:', refErr)
+      } else if (actionLog.action_type === 'insurance') {
+        const { error: refErr } = await supabase
+          .from('insurances')
+          .delete()
+          .eq('id', actionLog.reference_id)
+          .select()
+        if (refErr) console.error('Failed to delete insurance:', refErr)
       }
     }
 
@@ -304,6 +346,8 @@ export function TrackingEditPage() {
             // No record to delete — this action updates an existing channel
           } else if (chained.action_type === 'fixed_expense') {
             await supabase.from('fixed_expenses').delete().eq('id', chained.reference_id).select()
+          } else if (chained.action_type === 'insurance') {
+            await supabase.from('insurances').delete().eq('id', chained.reference_id).select()
           }
         }
         await supabase.from('action_logs').delete().eq('id', chained.id).select()
@@ -561,6 +605,52 @@ export function TrackingEditPage() {
       const unitLabels: Record<string, string> = { days: 'ימים', weeks: 'שבועות', months: 'חודשים', years: 'שנים' }
       const unitLabel = unitLabels[fixedFrequencyUnit] ?? fixedFrequencyUnit
       const newSummary = `${fixedName} – ₪${numAmount.toLocaleString('he-IL', { maximumFractionDigits: 0 })} כל ${freqVal} ${unitLabel}`
+      await supabase
+        .from('action_logs')
+        .update({ status: 'closed', summary: newSummary })
+        .eq('id', actionLog.id)
+
+      setSaving(false)
+      navigate('/tracking')
+      return
+    } else if (actionLog.action_type === 'insurance') {
+      const isoFirstCharge = parseDateInput(insFirstCharge)
+      if (!isoFirstCharge) {
+        setInsFirstChargeError('יש להזין תאריך בפורמט DD/MM/YYYY')
+        setSaving(false)
+        return
+      }
+
+      let isoEndDate: string | null = null
+      if (insHasEndDate) {
+        isoEndDate = parseDateInput(insEndDate)
+        if (!isoEndDate) {
+          setInsEndDateError('יש להזין תאריך בפורמט DD/MM/YYYY')
+          setSaving(false)
+          return
+        }
+      }
+
+      const payment = parseFloat(insMonthlyPayment)
+      const { error } = await supabase
+        .from('insurances')
+        .update({
+          insurance_type: insType,
+          insurance_company: insCompany,
+          first_charge_date: isoFirstCharge,
+          monthly_payment: payment,
+          has_end_date: insHasEndDate,
+          end_date: isoEndDate,
+        })
+        .eq('id', actionLog.reference_id)
+
+      if (error) {
+        setMessage({ type: 'error', text: 'שגיאה בשמירה' })
+        setSaving(false)
+        return
+      }
+
+      const newSummary = `${insType} – ${insCompany} – ₪${payment.toLocaleString('he-IL', { maximumFractionDigits: 0 })}/חודש`
       await supabase
         .from('action_logs')
         .update({ status: 'closed', summary: newSummary })
@@ -1012,6 +1102,91 @@ export function TrackingEditPage() {
                     }}
                     required
                     error={fixedEndDateError}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+
+          {actionLog.action_type === 'insurance' && (
+            <div className="action-form">
+              <div className="action-field">
+                <label htmlFor="edit-ins-type">סוג ביטוח</label>
+                <CustomSelect
+                  id="edit-ins-type"
+                  value={insType}
+                  onChange={setInsType}
+                  placeholder="בחר סוג ביטוח"
+                  required
+                  options={insuranceTypes.map((t) => ({ value: t, label: t }))}
+                  onAddOption={addInsType}
+                  onRemoveOption={removeInsType}
+                />
+              </div>
+              <div className="action-field">
+                <label htmlFor="edit-ins-company">חברת ביטוח</label>
+                <CustomSelect
+                  id="edit-ins-company"
+                  value={insCompany}
+                  onChange={setInsCompany}
+                  placeholder="בחר חברת ביטוח"
+                  required
+                  options={insuranceCompanies.map((c) => ({ value: c, label: c }))}
+                  onAddOption={addInsCompany}
+                  onRemoveOption={removeInsCompany}
+                />
+              </div>
+              <div className="action-field">
+                <label htmlFor="edit-ins-first-charge">חיוב ראשון (DD/MM/YYYY)</label>
+                <DateInput
+                  id="edit-ins-first-charge"
+                  value={insFirstCharge}
+                  onChange={(val) => {
+                    setInsFirstCharge(val)
+                    setInsFirstChargeError('')
+                  }}
+                  required
+                  error={insFirstChargeError}
+                />
+              </div>
+              <div className="action-field">
+                <label htmlFor="edit-ins-monthly">תשלום חודשי (₪)</label>
+                <input
+                  id="edit-ins-monthly"
+                  type="number"
+                  step="1"
+                  min="0"
+                  value={insMonthlyPayment}
+                  onChange={(e) => setInsMonthlyPayment(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="action-field action-toggle">
+                <label htmlFor="edit-ins-has-end-date">יש תאריך סיום?</label>
+                <div className="toggle-switch">
+                  <input
+                    id="edit-ins-has-end-date"
+                    type="checkbox"
+                    checked={insHasEndDate}
+                    onChange={(e) => setInsHasEndDate(e.target.checked)}
+                    role="switch"
+                    aria-checked={insHasEndDate}
+                  />
+                  <span className="toggle-slider" onClick={() => setInsHasEndDate(!insHasEndDate)} />
+                </div>
+              </div>
+              {insHasEndDate && (
+                <div className="action-field">
+                  <label htmlFor="edit-ins-end-date">תאריך סיום (DD/MM/YYYY)</label>
+                  <DateInput
+                    id="edit-ins-end-date"
+                    value={insEndDate}
+                    onChange={(val) => {
+                      setInsEndDate(val)
+                      setInsEndDateError('')
+                    }}
+                    required
+                    error={insEndDateError}
                   />
                 </div>
               )}

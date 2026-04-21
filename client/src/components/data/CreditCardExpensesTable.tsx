@@ -8,7 +8,6 @@ interface Expense {
   category: string
   expense_date: string
   amount: number
-  isFixed?: boolean
 }
 
 interface FixedExpense {
@@ -21,6 +20,16 @@ interface FixedExpense {
   has_end_date: boolean
   end_date: string | null
   amount: number
+}
+
+interface Insurance {
+  id: string
+  insurance_type: string
+  insurance_company: string
+  first_charge_date: string
+  monthly_payment: number
+  has_end_date: boolean
+  end_date: string | null
 }
 
 function parseLocalDate(iso: string): Date {
@@ -57,7 +66,6 @@ function inflateFixedExpenses(fixed: FixedExpense[]): Expense[] {
         category: fe.category,
         expense_date: formatLocalDate(current),
         amount: fe.amount,
-        isFixed: true,
       })
       idx++
       current = addFrequency(start, fe.frequency_value * idx, fe.frequency_unit)
@@ -86,6 +94,38 @@ function addFrequency(base: Date, amount: number, unit: string): Date {
   return d
 }
 
+function inflateInsurances(insurances: Insurance[]): Expense[] {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const result: Expense[] = []
+
+  for (const ins of insurances) {
+    const start = parseLocalDate(ins.first_charge_date)
+    const end = ins.has_end_date && ins.end_date
+      ? parseLocalDate(ins.end_date)
+      : null
+    const limit = end && end < today ? end : today
+
+    let current = new Date(start)
+    let idx = 0
+
+    while (current <= limit) {
+      result.push({
+        id: `ins_${ins.id}_${idx}`,
+        title: `${ins.insurance_type} – ${ins.insurance_company}`,
+        category: 'ביטוח',
+        expense_date: formatLocalDate(current),
+        amount: ins.monthly_payment,
+      })
+      idx++
+      current = new Date(start)
+      current.setMonth(current.getMonth() + idx)
+    }
+  }
+
+  return result
+}
+
 export function CreditCardExpensesTable() {
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [loading, setLoading] = useState(true)
@@ -95,21 +135,24 @@ export function CreditCardExpensesTable() {
   }, [])
 
   const fetchAll = async () => {
-    const [ccResult, fixedResult] = await Promise.all([
+    const [ccResult, fixedResult, insuranceResult] = await Promise.all([
       supabase
         .from('credit_card_expenses')
         .select('id, title, category, expense_date, amount'),
       supabase
         .from('fixed_expenses')
         .select('id, name, category, start_date, frequency_value, frequency_unit, has_end_date, end_date, amount'),
+      supabase
+        .from('insurances')
+        .select('id, insurance_type, insurance_company, first_charge_date, monthly_payment, has_end_date, end_date'),
     ])
 
     const ccExpenses: Expense[] = (ccResult.data ?? []).map((e: any) => ({
       ...e,
-      isFixed: false,
     }))
-    const inflated = inflateFixedExpenses(fixedResult.data ?? [])
-    const all = [...ccExpenses, ...inflated].sort(
+    const inflatedFixed = inflateFixedExpenses(fixedResult.data ?? [])
+    const inflatedInsurance = inflateInsurances(insuranceResult.data ?? [])
+    const all = [...ccExpenses, ...inflatedFixed, ...inflatedInsurance].sort(
       (a, b) => new Date(b.expense_date).getTime() - new Date(a.expense_date).getTime()
     )
 

@@ -4,6 +4,7 @@ import { PaybacksTable } from '../components/data/PaybacksTable'
 import { OutgoingPaybacksTable } from '../components/data/OutgoingPaybacksTable'
 import { InvestmentDepositsTable } from '../components/data/InvestmentDepositsTable'
 import { InvestmentChannelsTable } from '../components/data/InvestmentChannelsTable'
+import { InsurancesTable } from '../components/data/InsurancesTable'
 import './DataItemPage.css'
 
 const dataItems: Record<string, { label: string; component: React.FC }> = {
@@ -12,6 +13,7 @@ const dataItems: Record<string, { label: string; component: React.FC }> = {
   'outgoing-paybacks': { label: 'החזר למישהו אחר', component: OutgoingPaybacksTable },
   'investment-deposits': { label: 'הפקדות לאפיקי השקעה', component: InvestmentDepositsTable },
   'investment-channels': { label: 'אפיקי השקעה', component: InvestmentChannelsTable },
+  'insurances': { label: 'ביטוחים', component: InsurancesTable },
 }
 
 export function DataItemPage() {

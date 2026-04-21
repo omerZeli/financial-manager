@@ -9,6 +9,7 @@ const actions = [
   { id: 'investment-deposits', label: 'הפקדה לאפיק השקעה' },
   { id: 'update-investment-value', label: 'עדכון שווי אפיק השקעה' },
   { id: 'fixed-expenses', label: 'הוצאה קבועה' },
+  { id: 'insurance', label: 'ביטוח חיים ובריאות' },
 ]
 
 export function ActionsPage() {

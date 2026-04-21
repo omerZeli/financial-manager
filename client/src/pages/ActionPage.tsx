@@ -6,6 +6,7 @@ import { InvestmentChannelAction } from '../components/actions/InvestmentChannel
 import { InvestmentDepositAction } from '../components/actions/InvestmentDepositAction'
 import { UpdateInvestmentValueAction } from '../components/actions/UpdateInvestmentValueAction'
 import { FixedExpenseAction } from '../components/actions/FixedExpenseAction'
+import { InsuranceAction } from '../components/actions/InsuranceAction'
 import './ActionPage.css'
 
 const actionComponents: Record<string, React.FC> = {
@@ -16,6 +17,7 @@ const actionComponents: Record<string, React.FC> = {
   'investment-deposits': InvestmentDepositAction,
   'update-investment-value': UpdateInvestmentValueAction,
   'fixed-expenses': FixedExpenseAction,
+  'insurance': InsuranceAction,
 }
 
 export function ActionPage() {

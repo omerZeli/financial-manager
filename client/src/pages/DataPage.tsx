@@ -7,6 +7,7 @@ const dataItems = [
   { id: 'outgoing-paybacks', label: 'החזר למישהו אחר' },
   { id: 'investment-deposits', label: 'הפקדות לאפיקי השקעה' },
   { id: 'investment-channels', label: 'אפיקי השקעה' },
+  { id: 'insurances', label: 'ביטוחים' },
 ]
 
 export function DataPage() {
