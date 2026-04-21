@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../contexts/AuthContext'
 import { DateInput } from '../common/DateInput'
@@ -8,15 +8,22 @@ import { useDropdownOptions } from '../../hooks/useDropdownOptions'
 import { useInvestmentChannels } from '../../hooks/useInvestmentChannels'
 import './CreditCardExpenseAction.css'
 
+interface DepositLocationState {
+  triggeredBy?: string
+  prefillChannelId?: string
+}
+
 export function InvestmentDepositAction() {
   const { user } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
+  const locationState = (location.state as DepositLocationState) || {}
 
   const { channels } = useInvestmentChannels()
   const { options: depositors, addOption: addDepositor, removeOption: removeDepositor } =
     useDropdownOptions('depositor_name')
 
-  const [channelId, setChannelId] = useState('')
+  const [channelId, setChannelId] = useState(locationState.prefillChannelId || '')
   const [depositDate, setDepositDate] = useState('')
   const [depositDateError, setDepositDateError] = useState('')
   const [amount, setAmount] = useState('')
@@ -70,9 +77,14 @@ export function InvestmentDepositAction() {
         status: 'closed',
         reference_id: data?.id,
         summary: `${channelLabel} – ₪${parseFloat(amount).toLocaleString('he-IL', { maximumFractionDigits: 0 })} – ${depositorName}`,
+        ...(locationState.triggeredBy ? { triggered_by: locationState.triggeredBy } : {}),
       })
 
-      navigate(-1)
+      if (locationState.triggeredBy) {
+        navigate('/actions', { replace: true })
+      } else {
+        navigate(-1)
+      }
     }
 
     setLoading(false)

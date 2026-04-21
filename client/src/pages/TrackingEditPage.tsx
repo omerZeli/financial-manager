@@ -510,6 +510,24 @@ export function TrackingEditPage() {
         .update({ status: 'closed', summary: newSummary })
         .eq('id', actionLog.id)
 
+      // Chain to deposit action if no chained deposit already exists
+      const { data: existingChained } = await supabase
+        .from('action_logs')
+        .select('id')
+        .eq('triggered_by', actionLog.id)
+        .limit(1)
+
+      if (!existingChained || existingChained.length === 0) {
+        setSaving(false)
+        navigate('/actions/investment-deposits', {
+          state: {
+            triggeredBy: actionLog.id,
+            prefillChannelId: actionLog.reference_id,
+          },
+        })
+        return
+      }
+
       setSaving(false)
       navigate(getTrackingUrl())
       return

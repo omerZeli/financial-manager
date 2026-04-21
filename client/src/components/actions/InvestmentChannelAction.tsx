@@ -36,16 +36,25 @@ export function InvestmentChannelAction() {
     if (error) {
       setMessage({ type: 'error', text: 'שגיאה בשמירת אפיק ההשקעה' })
     } else {
-      await supabase.from('action_logs').insert({
+      const { data: logData } = await supabase.from('action_logs').insert({
         user_id: user.id,
         action_type: 'investment_channel',
         action_label: 'יצירת אפיק השקעה',
         status: 'closed',
         reference_id: data?.id,
         summary: `${channelName} – ${financialCompany} – ${investmentTrack}`,
-      })
+      }).select('id').single()
 
-      navigate(-1)
+      if (logData) {
+        navigate('/actions/investment-deposits', {
+          state: {
+            triggeredBy: logData.id,
+            prefillChannelId: data?.id,
+          },
+        })
+      } else {
+        navigate(-1)
+      }
     }
 
     setLoading(false)
