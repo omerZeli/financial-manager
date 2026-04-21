@@ -96,7 +96,7 @@ export function CreditCardExpenseAction() {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             required
-            placeholder="לדוגמה: כרטיסים לסרט"
+            placeholder="הכנס שם הוצאה"
           />
         </div>
         <div className="action-field">

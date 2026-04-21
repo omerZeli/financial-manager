@@ -70,7 +70,7 @@ export function OutgoingPaybackAction() {
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             required
-            placeholder="לדוגמה: ארוחת ערב"
+            placeholder="הכנס סיבת החזר"
           />
         </div>
         <div className="action-field">

@@ -241,7 +241,7 @@ export function CustomSelect({
                 value={newValue}
                 onChange={(e) => setNewValue(e.target.value)}
                 onKeyDown={handleAddKeyDown}
-                placeholder="הקלד אפשרות חדשה"
+                placeholder="הכנס אפשרות חדשה"
               />
               <button
                 type="button"

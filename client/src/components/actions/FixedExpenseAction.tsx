@@ -112,7 +112,7 @@ export function FixedExpenseAction() {
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
-            placeholder="לדוגמה: ביטוח דירה"
+            placeholder="הכנס שם הוצאה"
           />
         </div>
         <div className="action-field">

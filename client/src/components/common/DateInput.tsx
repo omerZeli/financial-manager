@@ -58,7 +58,7 @@ export function DateInput({ id, value, onChange, required, error }: DateInputPro
           value={value}
           onChange={handleTextChange}
           required={required}
-          placeholder="31/01/2026"
+          placeholder="הכנס תאריך"
           inputMode="numeric"
           maxLength={10}
         />

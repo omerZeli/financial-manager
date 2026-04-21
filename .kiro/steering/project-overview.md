@@ -66,6 +66,7 @@ Some actions can automatically trigger the creation of another action based on s
 - Keep the UI simple, clean, and accessible in Hebrew/RTL.
 - The currency in this project is ILS.
 - All dates displayed to the user must use the **DD/MM/YYYY** format. Date inputs should allow both manual text entry (DD/MM/YYYY) and a native date picker, and be stored in ISO format (YYYY-MM-DD) in the database. Use the shared `DateInput` component (`components/common/DateInput.tsx`) for all date fields.
+- All text input placeholders must use the format **"הכנס [שם השדה]"** (e.g. `"הכנס שם הוצאה"`, `"הכנס סיבת החזר"`). Do not include examples in placeholders (no "לדוגמה: ...").
 
 ## Database Migrations
 - All Supabase migrations must be saved as `.sql` files in the `supabase/migrations/` folder.

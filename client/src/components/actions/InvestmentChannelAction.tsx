@@ -63,7 +63,7 @@ export function InvestmentChannelAction() {
             value={channelName}
             onChange={(e) => setChannelName(e.target.value)}
             required
-            placeholder="לדוגמה: קופת גמל להשקעה"
+            placeholder="הכנס שם אפיק"
           />
         </div>
         <div className="action-field">
@@ -87,7 +87,7 @@ export function InvestmentChannelAction() {
             value={investmentTrack}
             onChange={(e) => setInvestmentTrack(e.target.value)}
             required
-            placeholder="לדוגמה: מניות"
+            placeholder="הכנס מסלול השקעה"
           />
         </div>
         <button type="submit" className="action-submit" disabled={loading}>
