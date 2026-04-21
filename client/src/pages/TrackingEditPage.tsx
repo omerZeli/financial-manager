@@ -70,6 +70,10 @@ export function TrackingEditPage() {
   const [depositAmount, setDepositAmount] = useState('')
   const [depositorName, setDepositorName] = useState('')
 
+  // Update investment value fields
+  const [valueChannelId, setValueChannelId] = useState('')
+  const [currentValue, setCurrentValue] = useState('')
+
   useEffect(() => {
     fetchData()
   }, [logId])
@@ -160,6 +164,17 @@ export function TrackingEditPage() {
           setDepositDate(`${d}/${m}/${y}`)
         }
       }
+    } else if (log.action_type === 'update_investment_value' && log.reference_id) {
+      const { data } = await supabase
+        .from('investment_channels')
+        .select('*')
+        .eq('id', log.reference_id)
+        .single()
+
+      if (data) {
+        setValueChannelId(data.id)
+        setCurrentValue(data.current_value != null ? String(data.current_value) : '')
+      }
     }
 
     setLoading(false)
@@ -219,6 +234,8 @@ export function TrackingEditPage() {
           .eq('id', actionLog.reference_id)
           .select()
         if (refErr) console.error('Failed to delete investment_deposit:', refErr)
+      } else if (actionLog.action_type === 'update_investment_value') {
+        // No record to delete — this action updates an existing channel
       }
     }
 
@@ -241,6 +258,8 @@ export function TrackingEditPage() {
             await supabase.from('investment_channels').delete().eq('id', chained.reference_id).select()
           } else if (chained.action_type === 'investment_deposit') {
             await supabase.from('investment_deposits').delete().eq('id', chained.reference_id).select()
+          } else if (chained.action_type === 'update_investment_value') {
+            // No record to delete — this action updates an existing channel
           }
         }
         await supabase.from('action_logs').delete().eq('id', chained.id).select()
@@ -421,6 +440,32 @@ export function TrackingEditPage() {
       const channel = channels.find((c) => c.id === depositChannelId)
       const channelLabel = channel?.channel_name ?? ''
       const newSummary = `${channelLabel} – ₪${numAmount.toLocaleString('he-IL', { maximumFractionDigits: 0 })} – ${depositorName}`
+      await supabase
+        .from('action_logs')
+        .update({ status: 'closed', summary: newSummary })
+        .eq('id', actionLog.id)
+
+      setSaving(false)
+      navigate('/tracking')
+      return
+    } else if (actionLog.action_type === 'update_investment_value') {
+      const numValue = parseFloat(currentValue)
+      const today = new Date().toISOString().split('T')[0]
+
+      const { error } = await supabase
+        .from('investment_channels')
+        .update({ current_value: numValue, value_updated_at: today })
+        .eq('id', actionLog.reference_id)
+
+      if (error) {
+        setMessage({ type: 'error', text: 'שגיאה בשמירה' })
+        setSaving(false)
+        return
+      }
+
+      const channel = channels.find((c) => c.id === actionLog.reference_id)
+      const channelLabel = channel?.channel_name ?? ''
+      const newSummary = `${channelLabel} – ₪${numValue.toLocaleString('he-IL', { maximumFractionDigits: 0 })}`
       await supabase
         .from('action_logs')
         .update({ status: 'closed', summary: newSummary })
@@ -734,6 +779,32 @@ export function TrackingEditPage() {
                   options={depositors.map((p) => ({ value: p, label: p }))}
                   onAddOption={addDepositor}
                   onRemoveOption={removeDepositor}
+                />
+              </div>
+            </div>
+          )}
+
+          {actionLog.action_type === 'update_investment_value' && (
+            <div className="action-form">
+              <div className="action-field">
+                <label htmlFor="edit-value-channel">אפיק השקעה</label>
+                <input
+                  id="edit-value-channel"
+                  type="text"
+                  value={channels.find((c) => c.id === valueChannelId)?.channel_name ?? ''}
+                  readOnly
+                />
+              </div>
+              <div className="action-field">
+                <label htmlFor="edit-current-value">שווי נוכחי (₪)</label>
+                <input
+                  id="edit-current-value"
+                  type="number"
+                  step="1"
+                  min="0"
+                  value={currentValue}
+                  onChange={(e) => setCurrentValue(e.target.value)}
+                  required
                 />
               </div>
             </div>

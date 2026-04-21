@@ -7,6 +7,8 @@ interface InvestmentChannel {
   channel_name: string
   financial_company: string
   investment_track: string
+  current_value: number | null
+  value_updated_at: string | null
 }
 
 export function useInvestmentChannels() {
@@ -18,7 +20,7 @@ export function useInvestmentChannels() {
     if (!user) return
     const { data } = await supabase
       .from('investment_channels')
-      .select('id, channel_name, financial_company, investment_track')
+      .select('id, channel_name, financial_company, investment_track, current_value, value_updated_at')
       .eq('user_id', user.id)
       .order('created_at', { ascending: true })
 
