@@ -5,15 +5,17 @@ import { OutgoingPaybacksTable } from '../components/data/OutgoingPaybacksTable'
 import { InvestmentDepositsTable } from '../components/data/InvestmentDepositsTable'
 import { InvestmentChannelsTable } from '../components/data/InvestmentChannelsTable'
 import { InsurancesTable } from '../components/data/InsurancesTable'
+import { CarExpensesTable } from '../components/data/CarExpensesTable'
 import './DataItemPage.css'
 
 const dataItems: Record<string, { label: string; component: React.FC }> = {
-  'credit-card-expenses': { label: 'הוצאות כרטיס אשראי', component: CreditCardExpensesTable },
+  'credit-card-expenses': { label: 'הוצאות', component: CreditCardExpensesTable },
   'paybacks': { label: 'קבלת החזר', component: PaybacksTable },
   'outgoing-paybacks': { label: 'החזר למישהו אחר', component: OutgoingPaybacksTable },
   'investment-deposits': { label: 'הפקדות לאפיקי השקעה', component: InvestmentDepositsTable },
   'investment-channels': { label: 'אפיקי השקעה', component: InvestmentChannelsTable },
   'insurances': { label: 'ביטוחים', component: InsurancesTable },
+  'car-expenses': { label: 'הוצאות רכב', component: CarExpensesTable },
 }
 
 export function DataItemPage() {

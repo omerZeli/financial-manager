@@ -43,6 +43,8 @@ export function TrackingEditPage() {
     useDropdownOptions('insurance_type')
   const { options: insuranceCompanies, addOption: addInsCompany, removeOption: removeInsCompany } =
     useDropdownOptions('insurance_company')
+  const { options: carCategories, addOption: addCarCategory, removeOption: removeCarCategory } =
+    useDropdownOptions('car_expense_category')
 
   // Credit card expense fields
   const [title, setTitle] = useState('')
@@ -102,6 +104,19 @@ export function TrackingEditPage() {
   const [insHasEndDate, setInsHasEndDate] = useState(false)
   const [insEndDate, setInsEndDate] = useState('')
   const [insEndDateError, setInsEndDateError] = useState('')
+
+  // Car expense fields
+  const [carName, setCarName] = useState('')
+  const [carCategory, setCarCategory] = useState('')
+  const [carAmount, setCarAmount] = useState('')
+  const [carIsFixed, setCarIsFixed] = useState(false)
+  const [carStartDate, setCarStartDate] = useState('')
+  const [carStartDateError, setCarStartDateError] = useState('')
+  const [carFrequencyValue, setCarFrequencyValue] = useState('')
+  const [carFrequencyUnit, setCarFrequencyUnit] = useState('')
+  const [carHasEndDate, setCarHasEndDate] = useState(false)
+  const [carEndDate, setCarEndDate] = useState('')
+  const [carEndDateError, setCarEndDateError] = useState('')
 
   const getTrackingUrl = () => {
     if (!actionLog) return '/tracking'
@@ -256,6 +271,30 @@ export function TrackingEditPage() {
           setInsEndDate(`${d}/${m}/${y}`)
         }
       }
+    } else if (log.action_type === 'car_expense' && log.reference_id) {
+      const { data } = await supabase
+        .from('car_expenses')
+        .select('*')
+        .eq('id', log.reference_id)
+        .single()
+
+      if (data) {
+        setCarName(data.name)
+        setCarCategory(data.category)
+        setCarAmount(String(data.amount))
+        setCarIsFixed(data.is_fixed)
+        setCarHasEndDate(data.has_end_date)
+        if (data.start_date) {
+          const [y, m, d] = data.start_date.split('-')
+          setCarStartDate(`${d}/${m}/${y}`)
+        }
+        if (data.frequency_value) setCarFrequencyValue(String(data.frequency_value))
+        if (data.frequency_unit) setCarFrequencyUnit(data.frequency_unit)
+        if (data.end_date) {
+          const [y, m, d] = data.end_date.split('-')
+          setCarEndDate(`${d}/${m}/${y}`)
+        }
+      }
     }
 
     setLoading(false)
@@ -331,6 +370,13 @@ export function TrackingEditPage() {
           .eq('id', actionLog.reference_id)
           .select()
         if (refErr) console.error('Failed to delete insurance:', refErr)
+      } else if (actionLog.action_type === 'car_expense') {
+        const { error: refErr } = await supabase
+          .from('car_expenses')
+          .delete()
+          .eq('id', actionLog.reference_id)
+          .select()
+        if (refErr) console.error('Failed to delete car_expense:', refErr)
       }
     }
 
@@ -359,6 +405,8 @@ export function TrackingEditPage() {
             await supabase.from('fixed_expenses').delete().eq('id', chained.reference_id).select()
           } else if (chained.action_type === 'insurance') {
             await supabase.from('insurances').delete().eq('id', chained.reference_id).select()
+          } else if (chained.action_type === 'car_expense') {
+            await supabase.from('car_expenses').delete().eq('id', chained.reference_id).select()
           }
         }
         await supabase.from('action_logs').delete().eq('id', chained.id).select()
@@ -682,6 +730,63 @@ export function TrackingEditPage() {
       }
 
       const newSummary = `${insType} – ${insCompany} – ₪${payment.toLocaleString('he-IL', { maximumFractionDigits: 0 })}/חודש`
+      await supabase
+        .from('action_logs')
+        .update({ status: 'closed', summary: newSummary })
+        .eq('id', actionLog.id)
+
+      setSaving(false)
+      navigate(getTrackingUrl())
+      return
+    } else if (actionLog.action_type === 'car_expense') {
+      let isoStartDate: string | null = null
+      let isoEndDate: string | null = null
+
+      if (carIsFixed) {
+        isoStartDate = parseDateInput(carStartDate)
+        if (!isoStartDate) {
+          setCarStartDateError('יש להזין תאריך בפורמט DD/MM/YYYY')
+          setSaving(false)
+          return
+        }
+        if (carHasEndDate) {
+          isoEndDate = parseDateInput(carEndDate)
+          if (!isoEndDate) {
+            setCarEndDateError('יש להזין תאריך בפורמט DD/MM/YYYY')
+            setSaving(false)
+            return
+          }
+        }
+      }
+
+      const numAmount = parseFloat(carAmount)
+      const { error } = await supabase
+        .from('car_expenses')
+        .update({
+          name: carName,
+          category: carCategory,
+          amount: numAmount,
+          is_fixed: carIsFixed,
+          start_date: isoStartDate,
+          frequency_value: carIsFixed ? parseInt(carFrequencyValue, 10) : null,
+          frequency_unit: carIsFixed ? carFrequencyUnit : null,
+          has_end_date: carIsFixed ? carHasEndDate : false,
+          end_date: isoEndDate,
+        })
+        .eq('id', actionLog.reference_id)
+
+      if (error) {
+        setMessage({ type: 'error', text: 'שגיאה בשמירה' })
+        setSaving(false)
+        return
+      }
+
+      const unitLabels: Record<string, string> = { days: 'ימים', weeks: 'שבועות', months: 'חודשים', years: 'שנים' }
+      let newSummary = `${carName} – ₪${numAmount.toLocaleString('he-IL', { maximumFractionDigits: 0 })}`
+      if (carIsFixed) {
+        const unitLabel = unitLabels[carFrequencyUnit] ?? carFrequencyUnit
+        newSummary += ` כל ${carFrequencyValue} ${unitLabel}`
+      }
       await supabase
         .from('action_logs')
         .update({ status: 'closed', summary: newSummary })
@@ -1243,6 +1348,137 @@ export function TrackingEditPage() {
                     error={insEndDateError}
                   />
                 </div>
+              )}
+            </div>
+          )}
+
+          {actionLog.action_type === 'car_expense' && (
+            <div className="action-form">
+              <div className="action-field">
+                <label htmlFor="edit-car-name">שם ההוצאה</label>
+                <input
+                  id="edit-car-name"
+                  type="text"
+                  value={carName}
+                  onChange={(e) => setCarName(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="action-field">
+                <label htmlFor="edit-car-category">קטגוריה</label>
+                <CustomSelect
+                  id="edit-car-category"
+                  value={carCategory}
+                  onChange={setCarCategory}
+                  placeholder="בחר קטגוריה"
+                  required
+                  options={carCategories.map((c) => ({ value: c, label: c }))}
+                  onAddOption={addCarCategory}
+                  onRemoveOption={removeCarCategory}
+                />
+              </div>
+              <div className="action-field">
+                <label htmlFor="edit-car-amount">סכום (₪)</label>
+                <input
+                  id="edit-car-amount"
+                  type="number"
+                  step="1"
+                  min="0"
+                  value={carAmount}
+                  onChange={(e) => setCarAmount(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="action-field action-toggle">
+                <label htmlFor="edit-car-is-fixed">הוצאה קבועה?</label>
+                <div className="toggle-switch">
+                  <input
+                    id="edit-car-is-fixed"
+                    type="checkbox"
+                    checked={carIsFixed}
+                    onChange={(e) => setCarIsFixed(e.target.checked)}
+                    role="switch"
+                    aria-checked={carIsFixed}
+                  />
+                  <span className="toggle-slider" onClick={() => setCarIsFixed(!carIsFixed)} />
+                </div>
+              </div>
+              {carIsFixed && (
+                <>
+                  <div className="action-field">
+                    <label htmlFor="edit-car-start-date">תאריך התחלה (DD/MM/YYYY)</label>
+                    <DateInput
+                      id="edit-car-start-date"
+                      value={carStartDate}
+                      onChange={(val) => {
+                        setCarStartDate(val)
+                        setCarStartDateError('')
+                      }}
+                      required
+                      error={carStartDateError}
+                    />
+                  </div>
+                  <div className="action-field">
+                    <label>תדירות</label>
+                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                      <span style={{ fontSize: '14px', color: 'var(--text-h)' }}>כל</span>
+                      <input
+                        id="edit-car-freq-value"
+                        type="number"
+                        step="1"
+                        min="1"
+                        value={carFrequencyValue}
+                        onChange={(e) => setCarFrequencyValue(e.target.value)}
+                        required
+                        style={{ flex: '0 0 70px' }}
+                      />
+                      <div style={{ flex: 1 }}>
+                        <CustomSelect
+                          id="edit-car-freq-unit"
+                          value={carFrequencyUnit}
+                          onChange={setCarFrequencyUnit}
+                          placeholder="בחר"
+                          required
+                          options={[
+                            { value: 'days', label: 'ימים' },
+                            { value: 'weeks', label: 'שבועות' },
+                            { value: 'months', label: 'חודשים' },
+                            { value: 'years', label: 'שנים' },
+                          ]}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="action-field action-toggle">
+                    <label htmlFor="edit-car-has-end-date">יש תאריך סיום?</label>
+                    <div className="toggle-switch">
+                      <input
+                        id="edit-car-has-end-date"
+                        type="checkbox"
+                        checked={carHasEndDate}
+                        onChange={(e) => setCarHasEndDate(e.target.checked)}
+                        role="switch"
+                        aria-checked={carHasEndDate}
+                      />
+                      <span className="toggle-slider" onClick={() => setCarHasEndDate(!carHasEndDate)} />
+                    </div>
+                  </div>
+                  {carHasEndDate && (
+                    <div className="action-field">
+                      <label htmlFor="edit-car-end-date">תאריך סיום (DD/MM/YYYY)</label>
+                      <DateInput
+                        id="edit-car-end-date"
+                        value={carEndDate}
+                        onChange={(val) => {
+                          setCarEndDate(val)
+                          setCarEndDateError('')
+                        }}
+                        required
+                        error={carEndDateError}
+                      />
+                    </div>
+                  )}
+                </>
               )}
             </div>
           )}

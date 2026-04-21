@@ -18,6 +18,7 @@ export const actionCategoryMap: Record<string, CategoryId> = {
   'outgoing-paybacks': 'regular',
   'fixed-expenses': 'regular',
   'insurance': 'special',
+  'car-expenses': 'special',
   'investment-channels': 'investment',
   'investment-deposits': 'investment',
   'update-investment-value': 'investment',
@@ -29,6 +30,7 @@ export const dataCategoryMap: Record<string, CategoryId> = {
   'paybacks': 'regular',
   'outgoing-paybacks': 'regular',
   'insurances': 'special',
+  'car-expenses': 'special',
   'investment-deposits': 'investment',
   'investment-channels': 'investment',
 }
@@ -40,6 +42,7 @@ export const actionTypeCategoryMap: Record<string, CategoryId> = {
   'outgoing_payback': 'regular',
   'fixed_expense': 'regular',
   'insurance': 'special',
+  'car_expense': 'special',
   'investment_channel': 'investment',
   'investment_deposit': 'investment',
   'update_investment_value': 'investment',

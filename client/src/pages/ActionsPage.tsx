@@ -4,7 +4,7 @@ import { actionCategoryMap, categories, type CategoryId } from '../lib/categorie
 import './ActionsPage.css'
 
 const actions = [
-  { id: 'credit-card-expenses', label: 'הוצאות כרטיס אשראי' },
+  { id: 'credit-card-expenses', label: 'הוצאות' },
   { id: 'paybacks', label: 'קבלת החזר' },
   { id: 'outgoing-paybacks', label: 'החזר למישהו אחר' },
   { id: 'investment-channels', label: 'יצירת אפיק השקעה' },
@@ -12,6 +12,7 @@ const actions = [
   { id: 'update-investment-value', label: 'עדכון שווי אפיק השקעה' },
   { id: 'fixed-expenses', label: 'הוצאה קבועה' },
   { id: 'insurance', label: 'ביטוח חיים ובריאות' },
+  { id: 'car-expenses', label: 'הוצאות רכב' },
 ]
 
 export function ActionsPage() {

@@ -63,7 +63,7 @@ export function CreditCardExpenseAction() {
       const { data: logData } = await supabase.from('action_logs').insert({
         user_id: user.id,
         action_type: 'credit_card_expense',
-        action_label: 'הוצאות כרטיס אשראי',
+        action_label: 'הוצאות',
         status: 'closed',
         reference_id: data?.id,
         summary: `${title} – ₪${parseFloat(amount).toLocaleString('he-IL', { maximumFractionDigits: 0 })}`,
@@ -86,7 +86,7 @@ export function CreditCardExpenseAction() {
 
   return (
     <div className="action-card">
-      <h3>הוצאות כרטיס אשראי</h3>
+      <h3>הוצאות</h3>
       <form onSubmit={handleSubmit} className="action-form">
         <div className="action-field">
           <label htmlFor="expense-title">שם ההוצאה</label>

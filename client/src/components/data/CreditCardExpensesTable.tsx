@@ -176,7 +176,7 @@ export function CreditCardExpensesTable() {
 
   return (
     <div className="data-card">
-      <h3>הוצאות כרטיס אשראי</h3>
+      <h3>הוצאות</h3>
       {expenses.length === 0 ? (
         <p className="data-empty">אין הוצאות עדיין</p>
       ) : (

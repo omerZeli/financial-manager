@@ -4,12 +4,13 @@ import { dataCategoryMap, categories, type CategoryId } from '../lib/categories'
 import './DataPage.css'
 
 const dataItems = [
-  { id: 'credit-card-expenses', label: 'הוצאות כרטיס אשראי' },
+  { id: 'credit-card-expenses', label: 'הוצאות' },
   { id: 'paybacks', label: 'קבלת החזר' },
   { id: 'outgoing-paybacks', label: 'החזר למישהו אחר' },
   { id: 'investment-deposits', label: 'הפקדות לאפיקי השקעה' },
   { id: 'investment-channels', label: 'אפיקי השקעה' },
   { id: 'insurances', label: 'ביטוחים' },
+  { id: 'car-expenses', label: 'הוצאות רכב' },
 ]
 
 export function DataPage() {
