@@ -1,0 +1,159 @@
+.create-expense-page {
+  padding: 2rem;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.create-expense-page h1 {
+  margin-bottom: 1.5rem;
+}
+
+.create-expense-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 2rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+}
+
+.create-expense-form .form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.create-expense-form .form-field label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.create-expense-form .form-field input {
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 15px;
+  background: var(--bg);
+  color: var(--text-h);
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.create-expense-form .form-field input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-bg);
+}
+
+.create-expense-form .form-buttons {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.create-expense-form .form-buttons button {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 44px;
+  margin: 0;
+  padding: 0 12px;
+  border: 2px solid var(--accent);
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+  white-space: nowrap;
+  box-sizing: border-box;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.create-expense-form .submit-btn {
+  background: var(--accent);
+  color: #fff;
+}
+
+.create-expense-form .submit-btn:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+.create-expense-form .add-another-btn {
+  background: transparent;
+  color: var(--accent);
+}
+
+.create-expense-form .add-another-btn:hover {
+  background: var(--accent-bg);
+}
+
+.create-expense-form .submit-btn:active,
+.create-expense-form .add-another-btn:active {
+  transform: scale(0.98);
+}
+
+.create-expense-form .submit-btn:disabled,
+.create-expense-form .add-another-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.expense-success {
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--success-bg, #e6f9ed);
+  color: var(--success, #1a7f37);
+  font-size: 14px;
+  text-align: center;
+}
+
+.date-picker-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.date-picker-wrapper:hover {
+  border-color: var(--accent);
+}
+
+.date-picker-display {
+  font-size: 15px;
+  color: var(--text-h);
+}
+
+.date-picker-display.placeholder {
+  color: var(--text);
+  opacity: 0.6;
+}
+
+.date-picker-icon {
+  color: var(--text);
+  flex-shrink: 0;
+}
+
+.date-picker-hidden {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+  border: none;
+  padding: 0;
+  margin: 0;
+}

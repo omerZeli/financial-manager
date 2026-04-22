@@ -24,6 +24,7 @@ A personal financial manager built with React + Supabase.
 - An `income_sources` table (`id`, `user_id`, `name`, `type`)
 - A `salaries` table (`id`, `user_id`, `income_source_id`, `month`, `gross`, `net`) with a unique constraint on `(income_source_id, month)`
 - A `credit_cards` table (`id`, `user_id`, `name`, `company`, `expense_limit`)
+- An `expenses` table (`id`, `user_id`, `credit_card_id`, `name`, `category`, `amount`, `date`)
 - A `user_dropdown_options` table (`id`, `user_id`, `category`, `label`) with a unique constraint on `(user_id, category, label)`
 
 ## Data Entry Flow
@@ -42,7 +43,9 @@ The "הזנת נתונים" (Data Entry) page serves as a hub that links to sub-
    - Lists all credit cards for the user, showing company and expense limit.
    - "הוספת כרטיס" button navigates to `/entry/credit-cards/new`.
    - "הבא" button at the bottom (placeholder for future flow step).
+   - Clicking a card navigates to the create expense page for that card.
    - **Create Credit Card** page (`/entry/credit-cards/new`): fields are card name (text), company (text), and expense limit (number). On submit, redirects back to the list.
+   - **Create Expense** page (`/entry/credit-cards/:cardId/expense`): fields are expense name (text), category (custom dropdown), amount (number), and date. Two buttons: "שמירה" saves and returns to credit cards list, "שמירה והוספת הוצאה" saves and clears the form for another expense.
 
 ### Adding New Steps
 - New steps in the flow should be added as links in `DataEntryPage.tsx` and as nested routes under `/entry/...` in `App.tsx`.
@@ -81,4 +84,4 @@ The "הזנת נתונים" (Data Entry) page serves as a hub that links to sub-
 - The shared `CustomSelect` component (`components/common/CustomSelect.tsx`) supports adding and removing options inline, as well as searching/filtering.
 - Use the `useDropdownOptions` hook (`hooks/useDropdownOptions.ts`) to fetch, add, and remove options for a given category.
 - When adding a new dropdown field, create a new category string and wire it through the hook and `CustomSelect` with `onAddOption`/`onRemoveOption` props.
-- Current categories: `credit_card_company`.
+- Current categories: `credit_card_company`, `expense_category`.

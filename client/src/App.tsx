@@ -14,6 +14,7 @@ import { CreateIncomeSourcePage } from './pages/CreateIncomeSourcePage'
 import { SalaryEntryPage } from './pages/SalaryEntryPage'
 import { CreditCardsPage } from './pages/CreditCardsPage'
 import { CreateCreditCardPage } from './pages/CreateCreditCardPage'
+import { CreateExpensePage } from './pages/CreateExpensePage'
 
 function GuestRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -52,6 +53,7 @@ function App() {
             <Route path="/entry/income-sources/:sourceId/salary" element={<SalaryEntryPage />} />
             <Route path="/entry/credit-cards" element={<CreditCardsPage />} />
             <Route path="/entry/credit-cards/new" element={<CreateCreditCardPage />} />
+            <Route path="/entry/credit-cards/:cardId/expense" element={<CreateExpensePage />} />
             <Route path="/history" element={<HistoryPage />} />
           </Route>
           <Route

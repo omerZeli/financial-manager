@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useCreditCards, type CreditCard } from '../contexts/CreditCardsContext'
 import { ConfirmModal } from '../components/common/ConfirmModal'
 import './CreditCards.css'
 
 export function CreditCardsPage() {
   const { cards, loading, error, deleteCard } = useCreditCards()
+  const navigate = useNavigate()
   const [deleteTarget, setDeleteTarget] = useState<CreditCard | null>(null)
   const [deleting, setDeleting] = useState(false)
 
@@ -46,7 +47,7 @@ export function CreditCardsPage() {
         <div className="cards-list">
           {cards.map((card) => (
             <div key={card.id} className="card-item">
-              <div className="card-info-wrapper">
+              <div className="card-info-wrapper" onClick={() => navigate(`/entry/credit-cards/${card.id}/expense`)} style={{ cursor: 'pointer' }}>
                 <div className="card-info">
                   <span className="card-name">{card.name}</span>
                   <span className="card-details">
