@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
+import { IncomeSourcesProvider } from './contexts/IncomeSourcesContext'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { AppLayout } from './components/common/AppLayout'
 import { LoginPage } from './pages/LoginPage'
@@ -32,7 +33,9 @@ function App() {
           <Route
             element={
               <ProtectedRoute>
-                <AppLayout />
+                <IncomeSourcesProvider>
+                  <AppLayout />
+                </IncomeSourcesProvider>
               </ProtectedRoute>
             }
           >

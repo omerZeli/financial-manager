@@ -2,10 +2,12 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
+import { useIncomeSources } from '../contexts/IncomeSourcesContext'
 import './CreateIncomeSource.css'
 
 export function CreateIncomeSourcePage() {
   const { user } = useAuth()
+  const { addSource } = useIncomeSources()
   const navigate = useNavigate()
   const [name, setName] = useState('')
   const [type, setType] = useState<'employed' | 'self_employed'>('employed')
@@ -19,14 +21,17 @@ export function CreateIncomeSourcePage() {
     setSubmitting(true)
     setError('')
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('income_sources')
       .insert({ user_id: user.id, name: name.trim(), type })
+      .select('id, name, type')
+      .single()
 
-    if (error) {
+    if (error || !data) {
       setError('שגיאה ביצירת מקור הכנסה')
       setSubmitting(false)
     } else {
+      addSource(data)
       navigate('/entry/income-sources')
     }
   }

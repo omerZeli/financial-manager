@@ -1,64 +1,21 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { supabase } from '../lib/supabase'
-import { useAuth } from '../contexts/AuthContext'
+import { useIncomeSources, type IncomeSource } from '../contexts/IncomeSourcesContext'
 import { ConfirmModal } from '../components/common/ConfirmModal'
 import './IncomeSources.css'
 
-interface IncomeSource {
-  id: string
-  name: string
-  type: 'employed' | 'self_employed'
-}
-
 export function IncomeSourcesPage() {
-  const { user } = useAuth()
-  const [sources, setSources] = useState<IncomeSource[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-
-  useEffect(() => {
-    if (!user) return
-
-    const fetchSources = async () => {
-      setLoading(true)
-      const { data, error } = await supabase
-        .from('income_sources')
-        .select('id, name, type')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: true })
-
-      if (error) {
-        setError('שגיאה בטעינת מקורות הכנסה')
-      } else {
-        setSources(data ?? [])
-      }
-      setLoading(false)
-    }
-
-    fetchSources()
-  }, [user])
+  const { sources, loading, error, deleteSource } = useIncomeSources()
+  const [deleteTarget, setDeleteTarget] = useState<IncomeSource | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   const typeLabel = (type: string) =>
     type === 'employed' ? 'שכיר' : 'עצמאי'
 
-  const [deleteTarget, setDeleteTarget] = useState<IncomeSource | null>(null)
-  const [deleting, setDeleting] = useState(false)
-
   const handleDelete = async () => {
     if (!deleteTarget) return
     setDeleting(true)
-
-    const { error } = await supabase
-      .from('income_sources')
-      .delete()
-      .eq('id', deleteTarget.id)
-
-    if (error) {
-      setError('שגיאה במחיקת מקור הכנסה')
-    } else {
-      setSources((prev) => prev.filter((s) => s.id !== deleteTarget.id))
-    }
+    await deleteSource(deleteTarget.id)
     setDeleting(false)
     setDeleteTarget(null)
   }

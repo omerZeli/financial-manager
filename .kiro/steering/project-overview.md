@@ -54,3 +54,10 @@ The "הזנת נתונים" (Data Entry) page serves as a hub that links to sub-
 - Migrations are applied in chronological order and must be idempotent where possible.
 - Never modify an already-applied migration — create a new one instead.
 - After creating a migration file, always apply it to the remote Supabase project using the `apply_migration` tool.
+
+## Data Caching Pattern
+- Each data entity that is listed/created/deleted across multiple pages must have its own **React Context** in `src/contexts/` (e.g. `IncomeSourcesContext`).
+- The context fetches data from Supabase **once** (tracked by a `fetched` flag) and caches it in state. Navigating between pages does not re-fetch.
+- The context exposes mutation helpers (`addSource`, `deleteSource`, etc.) that update both Supabase and the local cache, so pages stay in sync without extra requests.
+- The provider is placed inside the protected route layout in `App.tsx` so it lives for the entire authenticated session.
+- Pages should **never** fetch entity lists directly — always consume the context.
