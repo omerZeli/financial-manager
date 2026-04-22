@@ -1,8 +1,12 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { ProtectedRoute } from './components/ProtectedRoute'
+import { AppLayout } from './components/common/AppLayout'
 import { LoginPage } from './pages/LoginPage'
 import { RegisterPage } from './pages/RegisterPage'
+import { DashboardPage } from './pages/DashboardPage'
+import { DataEntryPage } from './pages/DataEntryPage'
+import { HistoryPage } from './pages/HistoryPage'
 
 function GuestRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -24,16 +28,16 @@ function App() {
       <AuthProvider>
         <Routes>
           <Route
-            path="/"
             element={
               <ProtectedRoute>
-                <div style={{ textAlign: 'center', padding: '2rem' }}>
-                  <h1>ברוכים הבאים</h1>
-                  <p>הפרויקט בבנייה מחדש</p>
-                </div>
+                <AppLayout />
               </ProtectedRoute>
             }
-          />
+          >
+            <Route path="/" element={<DashboardPage />} />
+            <Route path="/entry" element={<DataEntryPage />} />
+            <Route path="/history" element={<HistoryPage />} />
+          </Route>
           <Route
             path="/login"
             element={
