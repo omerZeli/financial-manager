@@ -1,16 +1,8 @@
-import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { LoginPage } from './pages/LoginPage'
 import { RegisterPage } from './pages/RegisterPage'
-import { HomePage } from './pages/HomePage'
-import { ActionsPage } from './pages/ActionsPage'
-import { ActionPage } from './pages/ActionPage'
-import { DataPage } from './pages/DataPage'
-import { DataItemPage } from './pages/DataItemPage'
-import { TrackingPage } from './pages/TrackingPage'
-import { TrackingEditPage } from './pages/TrackingEditPage'
 
 function GuestRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -20,26 +12,13 @@ function GuestRoute({ children }: { children: React.ReactNode }) {
   }
 
   if (user) {
-    return <Navigate to="/actions" replace />
+    return <Navigate to="/" replace />
   }
 
   return <>{children}</>
 }
 
 function App() {
-  useEffect(() => {
-    const handleWheel = (e: WheelEvent) => {
-      if (
-        document.activeElement instanceof HTMLInputElement &&
-        document.activeElement.type === 'number'
-      ) {
-        document.activeElement.blur()
-      }
-    }
-    document.addEventListener('wheel', handleWheel, { passive: false })
-    return () => document.removeEventListener('wheel', handleWheel)
-  }, [])
-
   return (
     <BrowserRouter>
       <AuthProvider>
@@ -48,18 +27,13 @@ function App() {
             path="/"
             element={
               <ProtectedRoute>
-                <HomePage />
+                <div style={{ textAlign: 'center', padding: '2rem' }}>
+                  <h1>ברוכים הבאים</h1>
+                  <p>הפרויקט בבנייה מחדש</p>
+                </div>
               </ProtectedRoute>
             }
-          >
-            <Route index element={<Navigate to="/actions" replace />} />
-            <Route path="actions" element={<ActionsPage />} />
-            <Route path="actions/:actionId" element={<ActionPage />} />
-            <Route path="data" element={<DataPage />} />
-            <Route path="data/:dataId" element={<DataItemPage />} />
-            <Route path="tracking" element={<TrackingPage />} />
-            <Route path="tracking/:logId" element={<TrackingEditPage />} />
-          </Route>
+          />
           <Route
             path="/login"
             element={
@@ -76,6 +50,7 @@ function App() {
               </GuestRoute>
             }
           />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>
