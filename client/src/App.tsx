@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { IncomeSourcesProvider } from './contexts/IncomeSourcesContext'
+import { CreditCardsProvider } from './contexts/CreditCardsContext'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { AppLayout } from './components/common/AppLayout'
 import { LoginPage } from './pages/LoginPage'
@@ -11,6 +12,8 @@ import { HistoryPage } from './pages/HistoryPage'
 import { IncomeSourcesPage } from './pages/IncomeSourcesPage'
 import { CreateIncomeSourcePage } from './pages/CreateIncomeSourcePage'
 import { SalaryEntryPage } from './pages/SalaryEntryPage'
+import { CreditCardsPage } from './pages/CreditCardsPage'
+import { CreateCreditCardPage } from './pages/CreateCreditCardPage'
 
 function GuestRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -35,7 +38,9 @@ function App() {
             element={
               <ProtectedRoute>
                 <IncomeSourcesProvider>
-                  <AppLayout />
+                  <CreditCardsProvider>
+                    <AppLayout />
+                  </CreditCardsProvider>
                 </IncomeSourcesProvider>
               </ProtectedRoute>
             }
@@ -45,6 +50,8 @@ function App() {
             <Route path="/entry/income-sources" element={<IncomeSourcesPage />} />
             <Route path="/entry/income-sources/new" element={<CreateIncomeSourcePage />} />
             <Route path="/entry/income-sources/:sourceId/salary" element={<SalaryEntryPage />} />
+            <Route path="/entry/credit-cards" element={<CreditCardsPage />} />
+            <Route path="/entry/credit-cards/new" element={<CreateCreditCardPage />} />
             <Route path="/history" element={<HistoryPage />} />
           </Route>
           <Route

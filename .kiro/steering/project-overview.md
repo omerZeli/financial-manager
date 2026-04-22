@@ -23,6 +23,8 @@ A personal financial manager built with React + Supabase.
 - Data entry flow with income sources management
 - An `income_sources` table (`id`, `user_id`, `name`, `type`)
 - A `salaries` table (`id`, `user_id`, `income_source_id`, `month`, `gross`, `net`) with a unique constraint on `(income_source_id, month)`
+- A `credit_cards` table (`id`, `user_id`, `name`, `company`, `expense_limit`)
+- A `user_dropdown_options` table (`id`, `user_id`, `category`, `label`) with a unique constraint on `(user_id, category, label)`
 
 ## Data Entry Flow
 The "הזנת נתונים" (Data Entry) page serves as a hub that links to sub-pages in a sequential flow. Each step is a clickable item leading to its own page.
@@ -35,6 +37,12 @@ The "הזנת נתונים" (Data Entry) page serves as a hub that links to sub-
    - "הבא" button at the bottom (placeholder for future flow step).
    - **Create Income Source** page (`/entry/income-sources/new`): fields are source name (text) and type (שכיר/עצמאי toggle). On submit, redirects back to the list.
    - **Salary Entry** page (`/entry/income-sources/:sourceId/salary`): fields are month (month picker), gross, and net. On submit, redirects back to the income sources list.
+
+2. **כרטיסי אשראי (Credit Cards)** — `/entry/credit-cards`
+   - Lists all credit cards for the user, showing company and expense limit.
+   - "הוספת כרטיס" button navigates to `/entry/credit-cards/new`.
+   - "הבא" button at the bottom (placeholder for future flow step).
+   - **Create Credit Card** page (`/entry/credit-cards/new`): fields are card name (text), company (text), and expense limit (number). On submit, redirects back to the list.
 
 ### Adding New Steps
 - New steps in the flow should be added as links in `DataEntryPage.tsx` and as nested routes under `/entry/...` in `App.tsx`.
@@ -66,3 +74,11 @@ The "הזנת נתונים" (Data Entry) page serves as a hub that links to sub-
 - The context exposes mutation helpers (`addSource`, `deleteSource`, etc.) that update both Supabase and the local cache, so pages stay in sync without extra requests.
 - The provider is placed inside the protected route layout in `App.tsx` so it lives for the entire authenticated session.
 - Pages should **never** fetch entity lists directly — always consume the context.
+
+## Custom Dropdown Options
+- All dropdowns in the project use **user-managed options** — there are no hardcoded/static option lists.
+- Options are stored per-user in the `user_dropdown_options` table, categorized by a `category` string (e.g. `'credit_card_company'`).
+- The shared `CustomSelect` component (`components/common/CustomSelect.tsx`) supports adding and removing options inline, as well as searching/filtering.
+- Use the `useDropdownOptions` hook (`hooks/useDropdownOptions.ts`) to fetch, add, and remove options for a given category.
+- When adding a new dropdown field, create a new category string and wire it through the hook and `CustomSelect` with `onAddOption`/`onRemoveOption` props.
+- Current categories: `credit_card_company`.

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useIncomeSources, type IncomeSource } from '../contexts/IncomeSourcesContext'
 import { ConfirmModal } from '../components/common/ConfirmModal'
 import './IncomeSources.css'
@@ -16,6 +16,7 @@ function formatMonth(dateStr: string): string {
 
 export function IncomeSourcesPage() {
   const { sources, loading, error, deleteSource } = useIncomeSources()
+  const navigate = useNavigate()
   const [deleteTarget, setDeleteTarget] = useState<IncomeSource | null>(null)
   const [deleting, setDeleting] = useState(false)
 
@@ -85,7 +86,7 @@ export function IncomeSourcesPage() {
       )}
 
       <div className="sources-footer">
-        <button className="next-btn">הבא</button>
+        <button className="next-btn" onClick={() => navigate('/entry/credit-cards')}>הבא</button>
       </div>
 
       {deleteTarget && (
