@@ -25,6 +25,7 @@ A personal financial manager built with React + Supabase.
 - A `salaries` table (`id`, `user_id`, `income_source_id`, `month`, `gross`, `net`) with a unique constraint on `(income_source_id, month)`
 - A `credit_cards` table (`id`, `user_id`, `name`, `company`, `expense_limit`)
 - An `expenses` table (`id`, `user_id`, `credit_card_id`, `name`, `category`, `amount`, `date`)
+- A `fixed_expenses` table (`id`, `user_id`, `credit_card_id`, `name`, `category`, `amount`, `start_date`, `frequency_value`, `frequency_period`, `end_date`)
 - A `user_dropdown_options` table (`id`, `user_id`, `category`, `label`) with a unique constraint on `(user_id, category, label)`
 
 ## Data Entry Flow
@@ -45,7 +46,9 @@ The "הזנת נתונים" (Data Entry) page serves as a hub that links to sub-
    - "הבא" button at the bottom (placeholder for future flow step).
    - Clicking a card navigates to the create expense page for that card.
    - **Create Credit Card** page (`/entry/credit-cards/new`): fields are card name (text), company (text), and expense limit (number). On submit, redirects back to the list.
-   - **Create Expense** page (`/entry/credit-cards/:cardId/expense`): fields are expense name (text), category (custom dropdown), amount (number), and date. Two buttons: "שמירה" saves and returns to credit cards list, "שמירה והוספת הוצאה" saves and clears the form for another expense.
+   - **Create Expense** page (`/entry/credit-cards/:cardId/expense`): fields are expense name (text), category (custom dropdown), amount (number), fixed expense toggle (כן/לא), and date fields. Two buttons: "שמירה" saves and returns to credit cards list, "שמירה והוספת הוצאה" saves and clears the form for another expense.
+     - When "הוצאה קבועה" is **לא** (default): shows a single date picker.
+     - When "הוצאה קבועה" is **כן**: shows start date, frequency (value + period dropdown: ימים/שבועות/חודשים/שנים), end date toggle, and optional end date picker.
 
 ### Adding New Steps
 - New steps in the flow should be added as links in `DataEntryPage.tsx` and as nested routes under `/entry/...` in `App.tsx`.
@@ -85,3 +88,10 @@ The "הזנת נתונים" (Data Entry) page serves as a hub that links to sub-
 - Use the `useDropdownOptions` hook (`hooks/useDropdownOptions.ts`) to fetch, add, and remove options for a given category.
 - When adding a new dropdown field, create a new category string and wire it through the hook and `CustomSelect` with `onAddOption`/`onRemoveOption` props.
 - Current categories: `credit_card_company`, `expense_category`.
+
+## Fixed Expenses Strategy
+- Fixed (recurring) expenses are stored **once** in the `fixed_expenses` table with: `start_date`, `frequency_value`, `frequency_period` (days/weeks/months/years), and an optional `end_date`.
+- They are **not** expanded into individual rows in the database.
+- When dashboards or reports need to display recurring expense data, the fixed expense should be **inflated at query/render time**: generate virtual occurrences from `start_date` forward, stepping by `frequency_value` × `frequency_period`, up to `min(end_date, current_date)`.
+- One-time expenses remain in the `expenses` table as before.
+- The create expense page uses a toggle ("הוצאה קבועה") to switch between one-time and fixed expense modes. The form fields change accordingly.
