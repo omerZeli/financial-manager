@@ -66,6 +66,18 @@
   border-color: var(--error);
 }
 
+.nav-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.nav-username {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-h);
+}
+
 .app-content {
   flex: 1;
   background: var(--bg-subtle);
