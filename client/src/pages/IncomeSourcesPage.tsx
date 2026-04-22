@@ -4,6 +4,16 @@ import { useIncomeSources, type IncomeSource } from '../contexts/IncomeSourcesCo
 import { ConfirmModal } from '../components/common/ConfirmModal'
 import './IncomeSources.css'
 
+const MONTH_NAMES = [
+  'ינואר', 'פברואר', 'מרץ', 'אפריל', 'מאי', 'יוני',
+  'יולי', 'אוגוסט', 'ספטמבר', 'אוקטובר', 'נובמבר', 'דצמבר',
+]
+
+function formatMonth(dateStr: string): string {
+  const [year, month] = dateStr.split('-')
+  return `${MONTH_NAMES[parseInt(month, 10) - 1]} ${year}`
+}
+
 export function IncomeSourcesPage() {
   const { sources, loading, error, deleteSource } = useIncomeSources()
   const [deleteTarget, setDeleteTarget] = useState<IncomeSource | null>(null)
@@ -49,13 +59,20 @@ export function IncomeSourcesPage() {
         <div className="sources-list">
           {sources.map((source) => (
             <div key={source.id} className="source-item">
-              <div className="source-info">
-                <span className="source-name">{source.name}</span>
-                <span className="source-type">{typeLabel(source.type)}</span>
-              </div>
+              <Link to={`/entry/income-sources/${source.id}/salary`} className="source-link">
+                <div className="source-info">
+                  <span className="source-name">{source.name}</span>
+                  <span className="source-type">
+                    {typeLabel(source.type)}
+                    {source.latest_salary_month && (
+                      <> · משכורת אחרונה: {formatMonth(source.latest_salary_month)}</>
+                    )}
+                  </span>
+                </div>
+              </Link>
               <button
                 className="delete-source-btn"
-                onClick={() => setDeleteTarget(source)}
+                onClick={(e) => { e.stopPropagation(); setDeleteTarget(source) }}
                 aria-label={`מחיקת ${source.name}`}
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -66,6 +83,10 @@ export function IncomeSourcesPage() {
           ))}
         </div>
       )}
+
+      <div className="sources-footer">
+        <button className="next-btn">הבא</button>
+      </div>
 
       {deleteTarget && (
         <ConfirmModal

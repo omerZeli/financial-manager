@@ -31,7 +31,7 @@ export function CreateIncomeSourcePage() {
       setError('שגיאה ביצירת מקור הכנסה')
       setSubmitting(false)
     } else {
-      addSource(data)
+      addSource({ ...data, latest_salary_month: null })
       navigate('/entry/income-sources')
     }
   }

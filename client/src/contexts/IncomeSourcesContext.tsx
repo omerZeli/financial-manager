@@ -6,6 +6,7 @@ export interface IncomeSource {
   id: string
   name: string
   type: 'employed' | 'self_employed'
+  latest_salary_month: string | null
 }
 
 interface IncomeSourcesContextType {
@@ -14,6 +15,7 @@ interface IncomeSourcesContextType {
   error: string
   addSource: (source: IncomeSource) => void
   deleteSource: (id: string) => Promise<boolean>
+  updateLatestMonth: (sourceId: string, month: string) => void
 }
 
 const IncomeSourcesContext = createContext<IncomeSourcesContextType | undefined>(undefined)
@@ -37,17 +39,44 @@ export function IncomeSourcesProvider({ children }: { children: ReactNode }) {
 
     const fetchSources = async () => {
       setLoading(true)
-      const { data, error } = await supabase
+
+      const { data: sourcesData, error: sourcesError } = await supabase
         .from('income_sources')
         .select('id, name, type')
         .eq('user_id', user.id)
         .order('created_at', { ascending: true })
 
-      if (error) {
+      if (sourcesError) {
         setError('שגיאה בטעינת מקורות הכנסה')
-      } else {
-        setSources(data ?? [])
+        setFetched(true)
+        setLoading(false)
+        return
       }
+
+      const items: IncomeSource[] = sourcesData ?? []
+
+      if (items.length > 0) {
+        // Fetch latest salary month per source in one query
+        const { data: latestData } = await supabase
+          .from('salaries')
+          .select('income_source_id, month')
+          .eq('user_id', user.id)
+          .order('month', { ascending: false })
+
+        if (latestData) {
+          const latestMap = new Map<string, string>()
+          for (const row of latestData) {
+            if (!latestMap.has(row.income_source_id)) {
+              latestMap.set(row.income_source_id, row.month)
+            }
+          }
+          for (const item of items) {
+            item.latest_salary_month = latestMap.get(item.id) ?? null
+          }
+        }
+      }
+
+      setSources(items)
       setFetched(true)
       setLoading(false)
     }
@@ -74,8 +103,20 @@ export function IncomeSourcesProvider({ children }: { children: ReactNode }) {
     return true
   }, [])
 
+  const updateLatestMonth = useCallback((sourceId: string, month: string) => {
+    setSources((prev) =>
+      prev.map((s) => {
+        if (s.id !== sourceId) return s
+        if (!s.latest_salary_month || month > s.latest_salary_month) {
+          return { ...s, latest_salary_month: month }
+        }
+        return s
+      })
+    )
+  }, [])
+
   return (
-    <IncomeSourcesContext.Provider value={{ sources, loading, error, addSource, deleteSource }}>
+    <IncomeSourcesContext.Provider value={{ sources, loading, error, addSource, deleteSource, updateLatestMonth }}>
       {children}
     </IncomeSourcesContext.Provider>
   )
