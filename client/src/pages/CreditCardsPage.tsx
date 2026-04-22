@@ -51,7 +51,9 @@ export function CreditCardsPage() {
                 <div className="card-info">
                   <span className="card-name">{card.name}</span>
                   <span className="card-details">
-                    {card.company} · מסגרת: ₪{card.expense_limit.toLocaleString()}
+                    {card.company} · {card.latest_expense_date
+                      ? `הוצאה אחרונה: ${card.latest_expense_date.split('-').reverse().join('/')}`
+                      : 'אין הוצאות עדיין'}
                   </span>
                 </div>
               </div>

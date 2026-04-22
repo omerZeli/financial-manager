@@ -7,6 +7,7 @@ export interface CreditCard {
   name: string
   company: string
   expense_limit: number
+  latest_expense_date: string | null
 }
 
 interface CreditCardsContextType {
@@ -15,6 +16,7 @@ interface CreditCardsContextType {
   error: string
   addCard: (card: CreditCard) => void
   deleteCard: (id: string) => Promise<boolean>
+  updateLatestExpenseDate: (cardId: string, date: string) => void
 }
 
 const CreditCardsContext = createContext<CreditCardsContextType | undefined>(undefined)
@@ -47,7 +49,29 @@ export function CreditCardsProvider({ children }: { children: ReactNode }) {
       if (error) {
         setError('שגיאה בטעינת כרטיסי אשראי')
       } else {
-        setCards(data ?? [])
+        const items: CreditCard[] = (data ?? []).map((c) => ({ ...c, latest_expense_date: null }))
+
+        if (items.length > 0) {
+          const { data: expenseData } = await supabase
+            .from('expenses')
+            .select('credit_card_id, date')
+            .eq('user_id', user.id)
+            .order('date', { ascending: false })
+
+          if (expenseData) {
+            const latestMap = new Map<string, string>()
+            for (const row of expenseData) {
+              if (!latestMap.has(row.credit_card_id)) {
+                latestMap.set(row.credit_card_id, row.date)
+              }
+            }
+            for (const item of items) {
+              item.latest_expense_date = latestMap.get(item.id) ?? null
+            }
+          }
+        }
+
+        setCards(items)
       }
       setFetched(true)
       setLoading(false)
@@ -75,8 +99,20 @@ export function CreditCardsProvider({ children }: { children: ReactNode }) {
     return true
   }, [])
 
+  const updateLatestExpenseDate = useCallback((cardId: string, date: string) => {
+    setCards((prev) =>
+      prev.map((c) => {
+        if (c.id !== cardId) return c
+        if (!c.latest_expense_date || date > c.latest_expense_date) {
+          return { ...c, latest_expense_date: date }
+        }
+        return c
+      })
+    )
+  }, [])
+
   return (
-    <CreditCardsContext.Provider value={{ cards, loading, error, addCard, deleteCard }}>
+    <CreditCardsContext.Provider value={{ cards, loading, error, addCard, deleteCard, updateLatestExpenseDate }}>
       {children}
     </CreditCardsContext.Provider>
   )

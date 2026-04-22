@@ -11,7 +11,7 @@ import './CreateExpense.css'
 export function CreateExpensePage() {
   const { cardId } = useParams<{ cardId: string }>()
   const { user } = useAuth()
-  const { cards } = useCreditCards()
+  const { cards, updateLatestExpenseDate } = useCreditCards()
   const navigate = useNavigate()
   const { options: categoryOptions, loading: categoriesLoading, addOption, removeOption } = useDropdownOptions('expense_category')
 
@@ -66,6 +66,7 @@ export function CreateExpensePage() {
       return false
     }
 
+    updateLatestExpenseDate(cardId, dateISO)
     setSubmitting(false)
     return true
   }
