@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { useCreditCards } from '../contexts/CreditCardsContext'
 import { useDropdownOptions } from '../hooks/useDropdownOptions'
+import { useFormattedNumber } from '../hooks/useFormattedNumber'
 import { CustomSelect } from '../components/common/CustomSelect'
 import './CreateCreditCard.css'
 
@@ -14,11 +15,11 @@ export function CreateCreditCardPage() {
   const { options: companyOptions, loading: companiesLoading, addOption, removeOption } = useDropdownOptions('credit_card_company')
   const [name, setName] = useState('')
   const [company, setCompany] = useState('')
-  const [expenseLimit, setExpenseLimit] = useState('')
+  const expenseLimit = useFormattedNumber()
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
 
-  const canSubmit = name.trim() && company.trim() && expenseLimit && !submitting
+  const canSubmit = name.trim() && company.trim() && expenseLimit.raw && !submitting
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -33,7 +34,7 @@ export function CreateCreditCardPage() {
         user_id: user.id,
         name: name.trim(),
         company: company.trim(),
-        expense_limit: parseInt(expenseLimit, 10),
+        expense_limit: parseInt(expenseLimit.raw, 10),
       })
       .select('id, name, company, expense_limit')
       .single()
@@ -86,11 +87,11 @@ export function CreateCreditCardPage() {
         <div className="form-field">
           <label>מסגרת הוצאות (₪)</label>
           <input
-            type="number"
+            type="text"
+            inputMode="numeric"
             placeholder="הכנס מסגרת הוצאות"
-            value={expenseLimit}
-            onChange={(e) => setExpenseLimit(e.target.value)}
-            min="0"
+            value={expenseLimit.display}
+            onChange={expenseLimit.onChange}
             required
           />
         </div>

@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { useIncomeSources } from '../contexts/IncomeSourcesContext'
+import { useFormattedNumber } from '../hooks/useFormattedNumber'
 import { Dropdown } from '../components/common/Dropdown'
 import './SalaryEntry.css'
 
@@ -37,12 +38,12 @@ export function SalaryEntryPage() {
 
   const [selectedMonth, setSelectedMonth] = useState('')
   const [selectedYear, setSelectedYear] = useState('')
-  const [gross, setGross] = useState('')
-  const [net, setNet] = useState('')
+  const gross = useFormattedNumber()
+  const net = useFormattedNumber()
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
 
-  const canSubmit = selectedMonth && selectedYear && gross && net && !submitting
+  const canSubmit = selectedMonth && selectedYear && gross.raw && net.raw && !submitting
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -59,8 +60,8 @@ export function SalaryEntryPage() {
         user_id: user.id,
         income_source_id: sourceId,
         month: monthDate,
-        gross: parseInt(gross, 10),
-        net: parseInt(net, 10),
+        gross: parseInt(gross.raw, 10),
+        net: parseInt(net.raw, 10),
       })
 
     if (error) {
@@ -123,11 +124,11 @@ export function SalaryEntryPage() {
         <div className="form-field">
           <label>ברוטו (₪)</label>
           <input
-            type="number"
+            type="text"
+            inputMode="numeric"
             placeholder="הכנס ברוטו"
-            value={gross}
-            onChange={(e) => setGross(e.target.value)}
-            min="0"
+            value={gross.display}
+            onChange={gross.onChange}
             required
           />
         </div>
@@ -135,11 +136,11 @@ export function SalaryEntryPage() {
         <div className="form-field">
           <label>נטו (₪)</label>
           <input
-            type="number"
+            type="text"
+            inputMode="numeric"
             placeholder="הכנס נטו"
-            value={net}
-            onChange={(e) => setNet(e.target.value)}
-            min="0"
+            value={net.display}
+            onChange={net.onChange}
             required
           />
         </div>
