@@ -5,6 +5,8 @@ import { useFixedExpenses } from '../contexts/FixedExpensesContext'
 import { usePaybacks } from '../contexts/PaybacksContext'
 import { useDropdownOptions } from '../hooks/useDropdownOptions'
 import { CustomSelect } from '../components/common/CustomSelect'
+import { NumberInput } from '../components/common/NumberInput'
+import DateInput from '../components/common/DateInput'
 import './Section.css'
 
 function formatDate(dateStr: string) {
@@ -412,10 +414,10 @@ export function ExpensesTablePage() {
               />
 
               <label>סכום</label>
-              <input type="number" placeholder="הכנס סכום" value={amount} onChange={e => setAmount(e.target.value)} required min="0" step="0.01" dir="ltr" />
+              <NumberInput placeholder="הכנס סכום" value={amount} onChange={setAmount} required />
 
               <label>תאריך</label>
-              <input type="date" value={date} onChange={e => setDate(e.target.value)} required dir="ltr" />
+              <DateInput value={date} onChange={setDate} required />
 
               <div className="modal-actions">
                 <button type="submit" className="btn-primary" disabled={saving || !category}>
@@ -450,10 +452,10 @@ export function ExpensesTablePage() {
               />
 
               <label>סכום</label>
-              <input type="number" placeholder="הכנס סכום" value={fixedAmount} onChange={e => setFixedAmount(e.target.value)} required min="0" step="0.01" dir="ltr" />
+              <NumberInput placeholder="הכנס סכום" value={fixedAmount} onChange={setFixedAmount} required />
 
               <label>תאריך התחלה</label>
-              <input type="date" value={fixedStartDate} onChange={e => setFixedStartDate(e.target.value)} required dir="ltr" />
+              <DateInput value={fixedStartDate} onChange={setFixedStartDate} required />
 
               <div className="toggle-row">
                 <label className="toggle-label" htmlFor="has-end-date">יש תאריך סיום?</label>
@@ -472,7 +474,7 @@ export function ExpensesTablePage() {
               {hasEndDate && (
                 <>
                   <label>תאריך סיום</label>
-                  <input type="date" value={fixedEndDate} onChange={e => setFixedEndDate(e.target.value)} required dir="ltr" min={fixedStartDate || undefined} />
+                  <DateInput value={fixedEndDate} onChange={setFixedEndDate} required min={fixedStartDate || undefined} />
                 </>
               )}
 
@@ -548,10 +550,10 @@ export function ExpensesTablePage() {
               )}
 
               <label>סכום</label>
-              <input type="number" placeholder="הכנס סכום" value={pbAmount} onChange={e => setPbAmount(e.target.value)} required min="0" step="0.01" dir="ltr" />
+              <NumberInput placeholder="הכנס סכום" value={pbAmount} onChange={setPbAmount} required />
 
               <label>תאריך</label>
-              <input type="date" value={pbDate} onChange={e => setPbDate(e.target.value)} required dir="ltr" />
+              <DateInput value={pbDate} onChange={setPbDate} required />
 
               <label>
                 {pbDirection === 'by_me' ? 'למי שילמתי' : 'מי שילם לי'}

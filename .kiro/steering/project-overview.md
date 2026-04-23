@@ -216,6 +216,13 @@ The investments section tracks investment channels, deposits, and value updates.
 - The provider is placed inside the protected route layout in `App.tsx` so it lives for the entire authenticated session.
 - Pages should **never** fetch entity lists directly — always consume the context.
 
+## Number Input Formatting
+- All numeric input fields use the shared `NumberInput` component (`components/common/NumberInput.tsx`).
+- The component uses `type="text"` with `inputMode="decimal"` and formats the displayed value with **commas every 3 digits** as the user types (e.g. `1,234,567.89`).
+- The underlying state stores the **raw numeric string** (no commas), so `Number()` conversion on submit works as before.
+- Props: `value` (raw string), `onChange` (receives raw string), `placeholder`, `required`.
+- When adding a new numeric field to any form, always use `<NumberInput>` instead of `<input type="number">`.
+
 ## Custom Dropdown Options
 - All dropdowns in the project use **user-managed options** — there are no hardcoded/static option lists.
 - Options are stored per-user in the `user_dropdown_options` table, categorized by a `category` string (e.g. `'credit_card_company'`).

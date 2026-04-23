@@ -714,3 +714,43 @@
 .negative-return {
   color: var(--error) !important;
 }
+
+/* Date input */
+.date-input-wrap {
+  position: relative;
+  margin-bottom: 12px;
+}
+
+.date-input-display {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-family: var(--sans);
+  color: var(--text-h);
+  background: var(--bg);
+  cursor: pointer;
+  transition: border-color 0.15s;
+  box-sizing: border-box;
+}
+
+.date-input-display::placeholder {
+  color: var(--text);
+  opacity: 0.5;
+}
+
+.date-input-display:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-bg);
+}
+
+.date-input-hidden {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  width: 100%;
+  height: 100%;
+}

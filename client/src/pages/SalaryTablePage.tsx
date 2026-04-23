@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import { useSalary } from '../contexts/SalaryContext'
+import { NumberInput } from '../components/common/NumberInput'
 import './Section.css'
 
 function formatMonth(dateStr: string) {
@@ -96,10 +97,10 @@ export function SalaryTablePage() {
               <input type="month" value={month} onChange={e => setMonth(e.target.value)} required dir="ltr" />
 
               <label>ברוטו</label>
-              <input type="number" placeholder="הכנס ברוטו" value={bruto} onChange={e => setBruto(e.target.value)} required min="0" step="0.01" dir="ltr" />
+              <NumberInput placeholder="הכנס ברוטו" value={bruto} onChange={setBruto} required />
 
               <label>נטו</label>
-              <input type="number" placeholder="הכנס נטו" value={neto} onChange={e => setNeto(e.target.value)} required min="0" step="0.01" dir="ltr" />
+              <NumberInput placeholder="הכנס נטו" value={neto} onChange={setNeto} required />
 
               <div className="modal-actions">
                 <button type="submit" className="btn-primary" disabled={saving}>

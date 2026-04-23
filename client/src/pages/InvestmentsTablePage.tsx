@@ -5,6 +5,8 @@ import { useInvestmentDeposits } from '../contexts/InvestmentDepositsContext'
 import { useInvestmentValues } from '../contexts/InvestmentValuesContext'
 import { useDropdownOptions } from '../hooks/useDropdownOptions'
 import { CustomSelect } from '../components/common/CustomSelect'
+import { NumberInput } from '../components/common/NumberInput'
+import DateInput from '../components/common/DateInput'
 import './Section.css'
 
 function formatDate(dateStr: string) {
@@ -328,10 +330,10 @@ export function InvestmentsTablePage() {
               </select>
 
               <label>סכום הפקדה</label>
-              <input type="number" placeholder="הכנס סכום" value={depAmount} onChange={e => setDepAmount(e.target.value)} required min="0" step="0.01" dir="ltr" />
+              <NumberInput placeholder="הכנס סכום" value={depAmount} onChange={setDepAmount} required />
 
               <label>תאריך</label>
-              <input type="date" value={depDate} onChange={e => setDepDate(e.target.value)} required dir="ltr" />
+              <DateInput value={depDate} onChange={setDepDate} required />
 
               <div className="modal-actions">
                 <button type="submit" className="btn-primary" disabled={depSaving || !depChannel}>
@@ -360,10 +362,10 @@ export function InvestmentsTablePage() {
               </select>
 
               <label>שווי נוכחי</label>
-              <input type="number" placeholder="הכנס שווי" value={valValue} onChange={e => setValValue(e.target.value)} required min="0" step="0.01" dir="ltr" />
+              <NumberInput placeholder="הכנס שווי" value={valValue} onChange={setValValue} required />
 
               <label>תאריך עדכון</label>
-              <input type="date" value={valDate} onChange={e => setValDate(e.target.value)} required dir="ltr" />
+              <DateInput value={valDate} onChange={setValDate} required />
 
               <div className="modal-actions">
                 <button type="submit" className="btn-primary" disabled={valSaving || !valChannel}>
