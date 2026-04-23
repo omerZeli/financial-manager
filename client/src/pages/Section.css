@@ -186,7 +186,8 @@
   margin-bottom: 4px;
 }
 
-.modal-content input {
+.modal-content > input,
+.modal-content > form > input {
   width: 100%;
   padding: 10px 12px;
   border: 1px solid var(--border);
@@ -198,7 +199,8 @@
   transition: border-color 0.15s;
 }
 
-.modal-content input:focus {
+.modal-content > input:focus,
+.modal-content > form > input:focus {
   outline: none;
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-bg);
@@ -378,4 +380,60 @@
 
 .legend-dot.neto {
   background: var(--accent);
+}
+
+/* Horizontal bar chart (category breakdown) */
+.h-bar-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.h-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.h-bar-label {
+  width: 100px;
+  font-size: 13px;
+  color: var(--text-h);
+  text-align: right;
+  flex-shrink: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.h-bar-track {
+  flex: 1;
+  height: 22px;
+  background: var(--bg-subtle);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.h-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s;
+  min-width: 2px;
+}
+
+.h-bar-value {
+  width: 90px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-h);
+  text-align: left;
+  direction: ltr;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+/* Expense bar color */
+.bar.expense-bar {
+  background: var(--accent);
+  width: 24px;
 }

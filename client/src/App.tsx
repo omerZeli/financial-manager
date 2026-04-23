@@ -8,6 +8,9 @@ import { RegisterPage } from './pages/RegisterPage'
 import { HomePage } from './pages/HomePage'
 import { SalaryTablePage } from './pages/SalaryTablePage'
 import { SalaryChartsPage } from './pages/SalaryChartsPage'
+import { ExpensesProvider } from './contexts/ExpensesContext'
+import { ExpensesTablePage } from './pages/ExpensesTablePage'
+import { ExpensesChartsPage } from './pages/ExpensesChartsPage'
 
 function GuestRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -32,7 +35,9 @@ function App() {
             element={
               <ProtectedRoute>
                 <SalaryProvider>
-                  <AppLayout />
+                  <ExpensesProvider>
+                    <AppLayout />
+                  </ExpensesProvider>
                 </SalaryProvider>
               </ProtectedRoute>
             }
@@ -40,6 +45,8 @@ function App() {
             <Route path="/" element={<HomePage />} />
             <Route path="/salary" element={<SalaryTablePage />} />
             <Route path="/salary/charts" element={<SalaryChartsPage />} />
+            <Route path="/expenses" element={<ExpensesTablePage />} />
+            <Route path="/expenses/charts" element={<ExpensesChartsPage />} />
           </Route>
           <Route
             path="/login"
