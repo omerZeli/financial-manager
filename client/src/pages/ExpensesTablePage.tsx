@@ -99,7 +99,7 @@ export function ExpensesTablePage() {
       return { ...exp, amount: exp.amount - returned, _originalAmount: exp.amount, _returnedAmount: returned }
     })
     const merged = [
-      ...adjusted.map(e => ({ ...e, _paybackPerson: undefined as string | undefined })),
+      ...adjusted.filter(e => e.amount !== 0).map(e => ({ ...e, _paybackPerson: undefined as string | undefined })),
       ...inflatedExpenses.map(e => ({ ...e, _originalAmount: undefined as number | undefined, _returnedAmount: undefined as number | undefined, _paybackPerson: undefined as string | undefined })),
       ...byMeAsExpenses.map(e => ({ ...e, _originalAmount: undefined as number | undefined, _returnedAmount: undefined as number | undefined })),
     ]
@@ -220,46 +220,17 @@ export function ExpensesTablePage() {
                   <th>קטגוריה</th>
                   <th>סכום</th>
                   <th>תאריך</th>
-                  <th className="col-actions"></th>
                 </tr>
               </thead>
               <tbody>
-                {allExpenses.map(exp => {
-                  const isPayback = exp.id.startsWith('payback_')
-                  const isInflated = !isPayback && exp.id.includes('_')
-                  const hasReturn = (exp._returnedAmount ?? 0) > 0
-                  return (
-                    <tr key={exp.id} className={isPayback ? 'payback-row' : ''}>
-                      <td>
-                        {exp.name}
-                        {isPayback && exp._paybackPerson && (
-                          <span className="payback-badge">החזר ל{exp._paybackPerson}</span>
-                        )}
-                      </td>
+                {allExpenses.map(exp => (
+                    <tr key={exp.id}>
+                      <td>{exp.name}</td>
                       <td>{exp.category}</td>
-                      <td className="num-cell">
-                        {formatCurrency(exp.amount)}
-                        {hasReturn && (
-                          <span className="returned-hint" title={`סכום מקורי: ${formatCurrency(exp._originalAmount!)} | הוחזר: ${formatCurrency(exp._returnedAmount!)}`}>
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <polyline points="1 4 1 10 7 10" /><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
-                            </svg>
-                          </span>
-                        )}
-                      </td>
+                      <td className="num-cell">{formatCurrency(exp.amount)}</td>
                       <td>{formatDate(exp.date)}</td>
-                      <td className="col-actions">
-                        {!isInflated && !isPayback && (
-                          <button className="delete-btn" onClick={() => deleteExpense(exp.id)} title="מחק">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
-                            </svg>
-                          </button>
-                        )}
-                      </td>
                     </tr>
-                  )
-                })}
+                ))}
               </tbody>
             </table>
           </div>
@@ -347,6 +318,7 @@ export function ExpensesTablePage() {
                 <tr>
                   <th>כיוון</th>
                   <th>פרטים</th>
+                  <th>קטגוריה</th>
                   <th>סכום</th>
                   <th>תאריך</th>
                   <th>אדם</th>
@@ -354,7 +326,9 @@ export function ExpensesTablePage() {
                 </tr>
               </thead>
               <tbody>
-                {paybacks.map(pb => (
+                {paybacks.map(pb => {
+                  const linkedExp = pb.direction === 'to_me' ? expenses.find(e => e.id === pb.expense_id) : null
+                  return (
                   <tr key={pb.id}>
                     <td>
                       <span className={`direction-badge ${pb.direction}`}>
@@ -363,13 +337,13 @@ export function ExpensesTablePage() {
                     </td>
                     <td>
                       {pb.direction === 'by_me'
-                        ? `${pb.name} (${pb.category})`
+                        ? pb.name
                         : (() => {
-                            const exp = expenses.find(e => e.id === pb.expense_id)
-                            return exp ? `${exp.name} (${exp.category})` : 'הוצאה שנמחקה'
+                            return linkedExp ? linkedExp.name : 'הוצאה שנמחקה'
                           })()
                       }
                     </td>
+                    <td>{pb.direction === 'by_me' ? pb.category : (linkedExp ? linkedExp.category : '-')}</td>
                     <td className="num-cell">{formatCurrency(pb.amount)}</td>
                     <td>{formatDate(pb.date)}</td>
                     <td>{pb.person}</td>
@@ -381,7 +355,8 @@ export function ExpensesTablePage() {
                       </button>
                     </td>
                   </tr>
-                ))}
+                  )
+                })}
               </tbody>
             </table>
           </div>
