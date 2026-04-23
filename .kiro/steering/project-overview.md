@@ -20,45 +20,77 @@ A personal financial manager built with React + Supabase.
 - Login and registration pages
 - Auth context and protected routes
 - A `profiles` table linked to `auth.users` (auto-created on signup)
-- Data entry flow with income sources management
-- An `income_sources` table (`id`, `user_id`, `name`, `type`)
-- A `salaries` table (`id`, `user_id`, `income_source_id`, `month`, `gross`, `net`) with a unique constraint on `(income_source_id, month)`
-- A `credit_cards` table (`id`, `user_id`, `name`, `company`, `expense_limit`)
-- An `expenses` table (`id`, `user_id`, `credit_card_id`, `name`, `category`, `amount`, `date`)
-- A `fixed_expenses` table (`id`, `user_id`, `credit_card_id`, `name`, `category`, `amount`, `start_date`, `frequency_value`, `frequency_period`, `end_date`)
-- A `user_dropdown_options` table (`id`, `user_id`, `category`, `label`) with a unique constraint on `(user_id, category, label)`
-
-## Data Entry Flow
-The "הזנת נתונים" (Data Entry) page serves as a hub that links to sub-pages in a sequential flow. Each step is a clickable item leading to its own page.
-
-### Current Steps
-1. **מקורות הכנסה (Income Sources)** — `/entry/income-sources`
-   - Lists all income sources for the user, each showing the most recent salary month if available.
-   - Clicking a source navigates to the salary entry page for that source.
-   - "הוספת מקור" button navigates to `/entry/income-sources/new`.
-   - "הבא" button at the bottom (placeholder for future flow step).
-   - **Create Income Source** page (`/entry/income-sources/new`): fields are source name (text) and type (שכיר/עצמאי toggle). On submit, redirects back to the list.
-   - **Salary Entry** page (`/entry/income-sources/:sourceId/salary`): fields are month (month picker), gross, and net. On submit, redirects back to the income sources list.
-
-2. **כרטיסי אשראי (Credit Cards)** — `/entry/credit-cards`
-   - Lists all credit cards for the user, showing company and expense limit.
-   - "הוספת כרטיס" button navigates to `/entry/credit-cards/new`.
-   - "הבא" button at the bottom (placeholder for future flow step).
-   - Clicking a card navigates to the create expense page for that card.
-   - **Create Credit Card** page (`/entry/credit-cards/new`): fields are card name (text), company (text), and expense limit (number). On submit, redirects back to the list.
-   - **Create Expense** page (`/entry/credit-cards/:cardId/expense`): fields are expense name (text), category (custom dropdown), amount (number), fixed expense toggle (כן/לא), and date fields. Two buttons: "שמירה" saves and returns to credit cards list, "שמירה והוספת הוצאה" saves and clears the form for another expense.
-     - When "הוצאה קבועה" is **לא** (default): shows a single date picker.
-     - When "הוצאה קבועה" is **כן**: shows start date, frequency (value + period dropdown: ימים/שבועות/חודשים/שנים), end date toggle, and optional end date picker.
-
-### Adding New Steps
-- New steps in the flow should be added as links in `DataEntryPage.tsx` and as nested routes under `/entry/...` in `App.tsx`.
+- Placeholder home page (דשבורד)
 
 ## Authentication
 - Supabase Auth with email/password
-- `AuthProvider` context wraps the app and exposes `user`, `session`, `loading`, `signOut`
-- `ProtectedRoute` redirects unauthenticated users to `/login`
-- `GuestRoute` redirects authenticated users to `/`
-- On signup, a trigger auto-creates a row in `profiles` with `id`, `email`, and `display_name`
+- `AuthProvider` context (`src/contexts/AuthContext.tsx`) wraps the app and exposes `user`, `session`, `profile`, `loading`, `signOut`
+- `ProtectedRoute` (`src/components/ProtectedRoute.tsx`) redirects unauthenticated users to `/login`
+- `GuestRoute` (inline in `App.tsx`) redirects authenticated users to `/`
+- On signup, a DB trigger auto-creates a row in `profiles` with `id`, `email`, and `display_name`
+
+### Login Page (`/login` — `src/pages/LoginPage.tsx`)
+- Fields: email (dir="ltr"), password (dir="ltr")
+- Submit calls `supabase.auth.signInWithPassword`, navigates to `/` on success
+- Error displayed in `.auth-error` banner
+- Link to register page at the bottom
+
+### Register Page (`/register` — `src/pages/RegisterPage.tsx`)
+- Fields: display name, email (dir="ltr"), password (dir="ltr", minLength=6)
+- Submit calls `supabase.auth.signUp` with `display_name` in user metadata
+- Error displayed in `.auth-error` banner
+- Link to login page at the bottom
+
+### Auth Styles (`src/pages/Auth.css`)
+- `.auth-container` — centered full-viewport flex container with `var(--bg-subtle)` background
+- `.auth-form` — max-width 420px card with border, radius, shadow, gap 16px, padding 40px
+- `.auth-form h1` — 26px centered heading
+- `.auth-form label` — 13px bold, `var(--text-h)` color
+- `.auth-form input` — 12px/14px padding, border with focus ring using `var(--accent)`
+- `.auth-form button[type="submit"]` — accent-colored, 15px bold, hover/active/disabled states
+- `.auth-error` — red-tinted banner for error messages
+- `.auth-link` — centered link text with accent-colored anchor
+- `.auth-loading` — centered full-viewport loading text
+
+## UI Theme & Global Styles
+
+### CSS Variables (`src/index.css`)
+- `--text: #64748b` — body text color
+- `--text-h: #0f172a` — heading/strong text color
+- `--bg: #ffffff` — card/surface background
+- `--bg-subtle: #f8fafc` — page background
+- `--border: #e2e8f0` — standard border
+- `--border-light: #f1f5f9` — light border
+- `--accent: #2563eb` — primary accent (blue)
+- `--accent-hover: #1d4ed8` — accent hover state
+- `--accent-bg: rgba(37, 99, 235, 0.06)` — accent tint background
+- `--accent-border: rgba(37, 99, 235, 0.2)` — accent border
+- `--success: #059669` / `--success-bg: #ecfdf5` — success states
+- `--error: #dc2626` / `--error-bg: #fef2f2` — error states
+- `--shadow-sm`, `--shadow`, `--shadow-md`, `--shadow-lg` — elevation levels
+- `--radius: 12px`, `--radius-sm: 8px`, `--radius-lg: 16px` — border radii
+- `--sans` / `--heading`: Inter font family
+- `--mono`: JetBrains Mono
+
+### Global Resets
+- `direction: rtl` on `:root`
+- `box-sizing: border-box` on `*`
+- Number input spinners hidden
+- `#root` is full-width flex column, min-height 100svh
+- `body` margin 0
+- `h1` 32px, `h2` 22px, `h3` 17px — all weight 600, `var(--text-h)`, negative letter-spacing
+- `::selection` uses accent colors
+
+### HTML (`index.html`)
+- `<html lang="he" dir="rtl">`
+- Google Fonts: Inter (400, 500, 600, 700)
+- Favicon: `/favicon.svg`
+
+### App Layout (`src/components/common/AppLayout.tsx` + `.css`)
+- Sticky top nav bar (56px height) with border-bottom
+- Nav links: each is a `NavLink` with icon SVG + Hebrew label, active state uses accent colors
+- User section: greeting based on time of day + display name, sign-out button
+- `<Outlet />` renders child routes in `<main className="app-content">`
 
 ## Key Principles
 - Keep the UI simple, clean, and accessible in Hebrew/RTL.
@@ -87,11 +119,3 @@ The "הזנת נתונים" (Data Entry) page serves as a hub that links to sub-
 - The shared `CustomSelect` component (`components/common/CustomSelect.tsx`) supports adding and removing options inline, as well as searching/filtering.
 - Use the `useDropdownOptions` hook (`hooks/useDropdownOptions.ts`) to fetch, add, and remove options for a given category.
 - When adding a new dropdown field, create a new category string and wire it through the hook and `CustomSelect` with `onAddOption`/`onRemoveOption` props.
-- Current categories: `credit_card_company`, `expense_category`.
-
-## Fixed Expenses Strategy
-- Fixed (recurring) expenses are stored **once** in the `fixed_expenses` table with: `start_date`, `frequency_value`, `frequency_period` (days/weeks/months/years), and an optional `end_date`.
-- They are **not** expanded into individual rows in the database.
-- When dashboards or reports need to display recurring expense data, the fixed expense should be **inflated at query/render time**: generate virtual occurrences from `start_date` forward, stepping by `frequency_value` × `frequency_period`, up to `min(end_date, current_date)`.
-- One-time expenses remain in the `expenses` table as before.
-- The create expense page uses a toggle ("הוצאה קבועה") to switch between one-time and fixed expense modes. The form fields change accordingly.
