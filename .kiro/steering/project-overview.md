@@ -22,7 +22,7 @@ A personal financial manager built with React + Supabase.
 - A `profiles` table linked to `auth.users` (auto-created on signup)
 - Placeholder home page (דשבורד)
 - Salary section with table + charts pages
-- Expenses section with regular and fixed expense types, FAB type picker, inflation logic, and charts
+- Expenses section with regular and fixed expense types, paybacks (to me / by me), FAB type picker, inflation logic, and charts
 
 ## Authentication
 - Supabase Auth with email/password
@@ -144,9 +144,20 @@ The expenses section supports two types of expenses, managed via a **FAB type pi
 - In the "כל ההוצאות" (all expenses) tab, real and inflated expenses are merged and sorted by date. Inflated rows look identical to regular ones but have **no delete button** (to delete them, remove the source fixed expense from the "הוצאות קבועות" tab).
 - The charts page also includes inflated expenses so totals and breakdowns reflect the full picture.
 
+#### Paybacks (`paybacks` table)
+- Two directions: `by_me` (I paid someone back) and `to_me` (someone paid me back).
+- Fields: `direction`, `name` (by_me only), `category` (by_me only), `amount`, `date`, `person`, `expense_id` (to_me only — references the original expense).
+- Context: `PaybacksContext` (`src/contexts/PaybacksContext.tsx`)
+- Dropdown person: `payback_person` (shared between both directions)
+- The add form has a **direction toggle** ("שילמתי לאחר" / "שילמו לי") that conditionally shows different fields.
+- **by_me** paybacks appear as virtual expense rows in "כל ההוצאות" with a badge "החזר ל[person]".
+- **to_me** paybacks reduce the displayed amount of the original expense. A return icon hint shows the original vs returned amounts on hover.
+- The charts page also accounts for paybacks: by_me adds to totals, to_me reduces original expense amounts.
+
 #### Sub-Tabs
-- The expenses table page has two sub-tabs: **"כל ההוצאות"** (all expenses — real + inflated) and **"הוצאות קבועות"** (fixed expense definitions with start/end dates).
+- The expenses table page has four sub-tabs: **"כל ההוצאות"** (all expenses — real + inflated + by_me paybacks, with to_me reductions), **"הוצאות רגילות"** (only the original regular expenses, no paybacks or inflation), **"הוצאות קבועות"** (fixed expense definitions), and **"החזרים"** (payback records).
 - The fixed expenses tab shows the raw fixed expense records with columns: name, category, amount, start date, end date.
+- The paybacks tab shows all payback records with columns: direction (badge), details, amount, date, person.
 
 ## Key Principles
 - **This file is the single source of truth for project-wide decisions.** Whenever a change is made that affects the overall architecture, data model, shared patterns, or conventions of the project, this file must be updated automatically to reflect it.

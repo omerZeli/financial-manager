@@ -595,3 +595,101 @@
   transform: translateX(-18px);
 }
 
+
+/* Payback styles */
+.payback-row {
+  background: var(--accent-bg);
+}
+
+.payback-badge {
+  display: inline-block;
+  font-size: 11px;
+  color: var(--accent);
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-border);
+  border-radius: 4px;
+  padding: 1px 6px;
+  margin-right: 6px;
+  font-weight: 500;
+}
+
+.returned-hint {
+  display: inline-flex;
+  align-items: center;
+  margin-right: 4px;
+  cursor: help;
+}
+
+.direction-badge {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 10px;
+  border-radius: 4px;
+}
+
+.direction-badge.by_me {
+  color: var(--error);
+  background: var(--error-bg);
+}
+
+.direction-badge.to_me {
+  color: var(--success);
+  background: var(--success-bg);
+}
+
+/* Direction toggle in payback form */
+.direction-toggle {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 16px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 3px;
+}
+
+.direction-btn {
+  flex: 1;
+  padding: 8px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+  font-family: var(--sans);
+  transition: background 0.15s, color 0.15s;
+}
+
+.direction-btn:hover {
+  background: var(--bg);
+  color: var(--text-h);
+}
+
+.direction-btn.active {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* Form select (native) */
+.form-select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-family: var(--sans);
+  color: var(--text-h);
+  background: var(--bg);
+  margin-bottom: 12px;
+  transition: border-color 0.15s;
+  cursor: pointer;
+}
+
+.form-select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-bg);
+}

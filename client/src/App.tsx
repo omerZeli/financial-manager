@@ -10,6 +10,7 @@ import { SalaryTablePage } from './pages/SalaryTablePage'
 import { SalaryChartsPage } from './pages/SalaryChartsPage'
 import { ExpensesProvider } from './contexts/ExpensesContext'
 import { FixedExpensesProvider } from './contexts/FixedExpensesContext'
+import { PaybacksProvider } from './contexts/PaybacksContext'
 import { ExpensesTablePage } from './pages/ExpensesTablePage'
 import { ExpensesChartsPage } from './pages/ExpensesChartsPage'
 
@@ -38,7 +39,9 @@ function App() {
                 <SalaryProvider>
                   <ExpensesProvider>
                     <FixedExpensesProvider>
-                      <AppLayout />
+                      <PaybacksProvider>
+                        <AppLayout />
+                      </PaybacksProvider>
                     </FixedExpensesProvider>
                   </ExpensesProvider>
                 </SalaryProvider>

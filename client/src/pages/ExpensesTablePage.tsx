@@ -2,6 +2,7 @@ import { useEffect, useState, useRef, useMemo } from 'react'
 import { NavLink } from 'react-router-dom'
 import { useExpenses } from '../contexts/ExpensesContext'
 import { useFixedExpenses } from '../contexts/FixedExpensesContext'
+import { usePaybacks } from '../contexts/PaybacksContext'
 import { useDropdownOptions } from '../hooks/useDropdownOptions'
 import { CustomSelect } from '../components/common/CustomSelect'
 import './Section.css'
@@ -18,17 +19,19 @@ function formatCurrency(n: number) {
   return n.toLocaleString('he-IL', { style: 'currency', currency: 'ILS', minimumFractionDigits: 0 })
 }
 
-type ModalType = null | 'picker' | 'expense' | 'fixed'
-type ActiveTab = 'expenses' | 'fixed'
+type ModalType = null | 'picker' | 'expense' | 'fixed' | 'payback'
+type ActiveTab = 'all' | 'regular' | 'fixed' | 'paybacks'
 
 export function ExpensesTablePage() {
   const { expenses, loading, fetchExpenses, addExpense, deleteExpense } = useExpenses()
   const { fixedExpenses, inflatedExpenses, loading: fixedLoading, fetchFixedExpenses, addFixedExpense, deleteFixedExpense } = useFixedExpenses()
+  const { paybacks, loading: paybacksLoading, fetchPaybacks, addPayback, deletePayback } = usePaybacks()
   const { options: categoryOptions, loading: categoryLoading, addOption: addCategory, removeOption: removeCategory } = useDropdownOptions('expense_category')
   const { options: fixedCategoryOptions, loading: fixedCategoryLoading, addOption: addFixedCategory, removeOption: removeFixedCategory } = useDropdownOptions('fixed_expense_category')
+  const { options: personOptions, loading: personLoading, addOption: addPerson, removeOption: removePerson } = useDropdownOptions('payback_person')
 
   const [modal, setModal] = useState<ModalType>(null)
-  const [activeTab, setActiveTab] = useState<ActiveTab>('expenses')
+  const [activeTab, setActiveTab] = useState<ActiveTab>('all')
 
   // Regular expense form
   const [name, setName] = useState('')
@@ -46,15 +49,62 @@ export function ExpensesTablePage() {
   const [fixedEndDate, setFixedEndDate] = useState('')
   const [fixedSaving, setFixedSaving] = useState(false)
 
+  // Payback form
+  const [pbDirection, setPbDirection] = useState<'by_me' | 'to_me'>('by_me')
+  const [pbName, setPbName] = useState('')
+  const [pbCategory, setPbCategory] = useState('')
+  const [pbAmount, setPbAmount] = useState('')
+  const [pbDate, setPbDate] = useState('')
+  const [pbPerson, setPbPerson] = useState('')
+  const [pbExpenseId, setPbExpenseId] = useState('')
+  const [pbSaving, setPbSaving] = useState(false)
+
   const pickerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => { fetchExpenses() }, [fetchExpenses])
   useEffect(() => { fetchFixedExpenses() }, [fetchFixedExpenses])
+  useEffect(() => { fetchPaybacks() }, [fetchPaybacks])
 
-  // Merge real + inflated expenses for the regular tab, sorted by date desc
+  // Build a map of "to_me" payback totals per expense_id
+  const toMeByExpense = useMemo(() => {
+    const map: Record<string, number> = {}
+    for (const pb of paybacks) {
+      if (pb.direction === 'to_me' && pb.expense_id) {
+        map[pb.expense_id] = (map[pb.expense_id] || 0) + pb.amount
+      }
+    }
+    return map
+  }, [paybacks])
+
+  // "by_me" paybacks as virtual expense rows
+  const byMeAsExpenses = useMemo(() => {
+    return paybacks
+      .filter(pb => pb.direction === 'by_me')
+      .map(pb => ({
+        id: `payback_${pb.id}`,
+        user_id: pb.user_id,
+        name: pb.name || '',
+        category: pb.category || '',
+        amount: pb.amount,
+        date: pb.date,
+        created_at: pb.created_at,
+        _paybackPerson: pb.person,
+      }))
+  }, [paybacks])
+
+  // Merge real + inflated + by_me paybacks, adjust amounts for to_me paybacks
   const allExpenses = useMemo(() => {
-    return [...expenses, ...inflatedExpenses].sort((a, b) => b.date.localeCompare(a.date))
-  }, [expenses, inflatedExpenses])
+    const adjusted = expenses.map(exp => {
+      const returned = toMeByExpense[exp.id] || 0
+      return { ...exp, amount: exp.amount - returned, _originalAmount: exp.amount, _returnedAmount: returned }
+    })
+    const merged = [
+      ...adjusted.map(e => ({ ...e, _paybackPerson: undefined as string | undefined })),
+      ...inflatedExpenses.map(e => ({ ...e, _originalAmount: undefined as number | undefined, _returnedAmount: undefined as number | undefined, _paybackPerson: undefined as string | undefined })),
+      ...byMeAsExpenses.map(e => ({ ...e, _originalAmount: undefined as number | undefined, _returnedAmount: undefined as number | undefined })),
+    ]
+    return merged.sort((a, b) => b.date.localeCompare(a.date))
+  }, [expenses, inflatedExpenses, byMeAsExpenses, toMeByExpense])
 
   // Close picker on outside click
   useEffect(() => {
@@ -70,6 +120,7 @@ export function ExpensesTablePage() {
 
   const resetExpenseForm = () => { setName(''); setCategory(''); setAmount(''); setDate('') }
   const resetFixedForm = () => { setFixedName(''); setFixedCategory(''); setFixedAmount(''); setFixedStartDate(''); setHasEndDate(false); setFixedEndDate('') }
+  const resetPaybackForm = () => { setPbDirection('by_me'); setPbName(''); setPbCategory(''); setPbAmount(''); setPbDate(''); setPbPerson(''); setPbExpenseId('') }
 
   const handleExpenseSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -97,7 +148,33 @@ export function ExpensesTablePage() {
     resetFixedForm()
   }
 
-  const isLoading = activeTab === 'expenses' ? (loading || fixedLoading) : fixedLoading
+  const handlePaybackSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!pbAmount || !pbDate || !pbPerson) return
+    if (pbDirection === 'by_me' && (!pbName || !pbCategory)) return
+    if (pbDirection === 'to_me' && !pbExpenseId) return
+    setPbSaving(true)
+    await addPayback({
+      direction: pbDirection,
+      name: pbDirection === 'by_me' ? pbName : null,
+      category: pbDirection === 'by_me' ? pbCategory : null,
+      amount: Number(pbAmount),
+      date: pbDate,
+      person: pbPerson,
+      expense_id: pbDirection === 'to_me' ? pbExpenseId : null,
+    })
+    setPbSaving(false)
+    setModal(null)
+    resetPaybackForm()
+  }
+
+  const isLoading = activeTab === 'all'
+    ? (loading || fixedLoading || paybacksLoading)
+    : activeTab === 'regular'
+      ? loading
+      : activeTab === 'fixed'
+        ? fixedLoading
+        : paybacksLoading
 
   return (
     <div className="section-page">
@@ -115,17 +192,23 @@ export function ExpensesTablePage() {
 
       {/* Sub-tabs for expense types */}
       <div className="sub-tabs">
-        <button className={`sub-tab${activeTab === 'expenses' ? ' active' : ''}`} onClick={() => setActiveTab('expenses')}>
+        <button className={`sub-tab${activeTab === 'all' ? ' active' : ''}`} onClick={() => setActiveTab('all')}>
           כל ההוצאות
+        </button>
+        <button className={`sub-tab${activeTab === 'regular' ? ' active' : ''}`} onClick={() => setActiveTab('regular')}>
+          הוצאות רגילות
         </button>
         <button className={`sub-tab${activeTab === 'fixed' ? ' active' : ''}`} onClick={() => setActiveTab('fixed')}>
           הוצאות קבועות
+        </button>
+        <button className={`sub-tab${activeTab === 'paybacks' ? ' active' : ''}`} onClick={() => setActiveTab('paybacks')}>
+          החזרים
         </button>
       </div>
 
       {isLoading ? (
         <div className="section-empty">טוען...</div>
-      ) : activeTab === 'expenses' ? (
+      ) : activeTab === 'all' ? (
         allExpenses.length === 0 ? (
           <div className="section-empty">אין הוצאות עדיין. לחץ על + כדי להוסיף.</div>
         ) : (
@@ -141,20 +224,74 @@ export function ExpensesTablePage() {
                 </tr>
               </thead>
               <tbody>
-                {allExpenses.map(exp => (
+                {allExpenses.map(exp => {
+                  const isPayback = exp.id.startsWith('payback_')
+                  const isInflated = !isPayback && exp.id.includes('_')
+                  const hasReturn = (exp._returnedAmount ?? 0) > 0
+                  return (
+                    <tr key={exp.id} className={isPayback ? 'payback-row' : ''}>
+                      <td>
+                        {exp.name}
+                        {isPayback && exp._paybackPerson && (
+                          <span className="payback-badge">החזר ל{exp._paybackPerson}</span>
+                        )}
+                      </td>
+                      <td>{exp.category}</td>
+                      <td className="num-cell">
+                        {formatCurrency(exp.amount)}
+                        {hasReturn && (
+                          <span className="returned-hint" title={`סכום מקורי: ${formatCurrency(exp._originalAmount!)} | הוחזר: ${formatCurrency(exp._returnedAmount!)}`}>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="1 4 1 10 7 10" /><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+                            </svg>
+                          </span>
+                        )}
+                      </td>
+                      <td>{formatDate(exp.date)}</td>
+                      <td className="col-actions">
+                        {!isInflated && !isPayback && (
+                          <button className="delete-btn" onClick={() => deleteExpense(exp.id)} title="מחק">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                            </svg>
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )
+      ) : activeTab === 'regular' ? (
+        expenses.length === 0 ? (
+          <div className="section-empty">אין הוצאות רגילות עדיין. לחץ על + כדי להוסיף.</div>
+        ) : (
+          <div className="section-table-wrap">
+            <table className="section-table">
+              <thead>
+                <tr>
+                  <th>שם הוצאה</th>
+                  <th>קטגוריה</th>
+                  <th>סכום</th>
+                  <th>תאריך</th>
+                  <th className="col-actions"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {expenses.map(exp => (
                   <tr key={exp.id}>
                     <td>{exp.name}</td>
                     <td>{exp.category}</td>
                     <td className="num-cell">{formatCurrency(exp.amount)}</td>
                     <td>{formatDate(exp.date)}</td>
                     <td className="col-actions">
-                      {!exp.id.includes('_') && (
-                        <button className="delete-btn" onClick={() => deleteExpense(exp.id)} title="מחק">
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
-                          </svg>
-                        </button>
-                      )}
+                      <button className="delete-btn" onClick={() => deleteExpense(exp.id)} title="מחק">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                        </svg>
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -162,7 +299,7 @@ export function ExpensesTablePage() {
             </table>
           </div>
         )
-      ) : (
+      ) : activeTab === 'fixed' ? (
         fixedExpenses.length === 0 ? (
           <div className="section-empty">אין הוצאות קבועות עדיין. לחץ על + כדי להוסיף.</div>
         ) : (
@@ -199,6 +336,56 @@ export function ExpensesTablePage() {
             </table>
           </div>
         )
+      ) : (
+        /* Paybacks tab */
+        paybacks.length === 0 ? (
+          <div className="section-empty">אין החזרים עדיין. לחץ על + כדי להוסיף.</div>
+        ) : (
+          <div className="section-table-wrap">
+            <table className="section-table">
+              <thead>
+                <tr>
+                  <th>כיוון</th>
+                  <th>פרטים</th>
+                  <th>סכום</th>
+                  <th>תאריך</th>
+                  <th>אדם</th>
+                  <th className="col-actions"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {paybacks.map(pb => (
+                  <tr key={pb.id}>
+                    <td>
+                      <span className={`direction-badge ${pb.direction}`}>
+                        {pb.direction === 'by_me' ? 'שילמתי' : 'קיבלתי'}
+                      </span>
+                    </td>
+                    <td>
+                      {pb.direction === 'by_me'
+                        ? `${pb.name} (${pb.category})`
+                        : (() => {
+                            const exp = expenses.find(e => e.id === pb.expense_id)
+                            return exp ? `${exp.name} (${exp.category})` : 'הוצאה שנמחקה'
+                          })()
+                      }
+                    </td>
+                    <td className="num-cell">{formatCurrency(pb.amount)}</td>
+                    <td>{formatDate(pb.date)}</td>
+                    <td>{pb.person}</td>
+                    <td className="col-actions">
+                      <button className="delete-btn" onClick={() => deletePayback(pb.id)} title="מחק">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                        </svg>
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )
       )}
 
       {/* FAB with type picker */}
@@ -216,6 +403,12 @@ export function ExpensesTablePage() {
                 <path d="M12 2v4" /><path d="M12 18v4" /><path d="M4.93 4.93l2.83 2.83" /><path d="M16.24 16.24l2.83 2.83" /><path d="M2 12h4" /><path d="M18 12h4" /><path d="M4.93 19.07l2.83-2.83" /><path d="M16.24 7.76l2.83-2.83" />
               </svg>
               הוצאה קבועה
+            </button>
+            <button className="fab-menu-item" onClick={() => setModal('payback')}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="1 4 1 10 7 10" /><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+              </svg>
+              החזר
             </button>
           </div>
         )}
@@ -313,6 +506,100 @@ export function ExpensesTablePage() {
                   {fixedSaving ? 'שומר...' : 'שמור'}
                 </button>
                 <button type="button" className="btn-cancel" onClick={() => { setModal(null); resetFixedForm() }}>ביטול</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Payback modal */}
+      {modal === 'payback' && (
+        <div className="modal-overlay" onClick={() => { setModal(null); resetPaybackForm() }}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <button className="modal-close" onClick={() => { setModal(null); resetPaybackForm() }} title="סגור">&times;</button>
+            <h2>הוסף החזר</h2>
+            <form onSubmit={handlePaybackSubmit}>
+              {/* Direction toggle */}
+              <div className="direction-toggle">
+                <button
+                  type="button"
+                  className={`direction-btn${pbDirection === 'by_me' ? ' active' : ''}`}
+                  onClick={() => { setPbDirection('by_me'); setPbExpenseId('') }}
+                >
+                  שילמתי לאחר
+                </button>
+                <button
+                  type="button"
+                  className={`direction-btn${pbDirection === 'to_me' ? ' active' : ''}`}
+                  onClick={() => { setPbDirection('to_me'); setPbName(''); setPbCategory('') }}
+                >
+                  שילמו לי
+                </button>
+              </div>
+
+              {pbDirection === 'by_me' ? (
+                <>
+                  <label>שם הוצאה</label>
+                  <input type="text" placeholder="הכנס שם הוצאה" value={pbName} onChange={e => setPbName(e.target.value)} required />
+
+                  <label>קטגוריה</label>
+                  <CustomSelect
+                    options={categoryOptions}
+                    value={pbCategory}
+                    placeholder="הכנס קטגוריה"
+                    onChange={setPbCategory}
+                    onAddOption={addCategory}
+                    onRemoveOption={removeCategory}
+                    loading={categoryLoading}
+                  />
+                </>
+              ) : (
+                <>
+                  <label>הוצאה מקורית</label>
+                  <select
+                    className="form-select"
+                    value={pbExpenseId}
+                    onChange={e => setPbExpenseId(e.target.value)}
+                    required
+                  >
+                    <option value="">בחר הוצאה</option>
+                    {expenses.map(exp => (
+                      <option key={exp.id} value={exp.id}>
+                        {exp.name} - {formatCurrency(exp.amount)} ({formatDate(exp.date)})
+                      </option>
+                    ))}
+                  </select>
+                </>
+              )}
+
+              <label>סכום</label>
+              <input type="number" placeholder="הכנס סכום" value={pbAmount} onChange={e => setPbAmount(e.target.value)} required min="0" step="0.01" dir="ltr" />
+
+              <label>תאריך</label>
+              <input type="date" value={pbDate} onChange={e => setPbDate(e.target.value)} required dir="ltr" />
+
+              <label>
+                {pbDirection === 'by_me' ? 'למי שילמתי' : 'מי שילם לי'}
+              </label>
+              <CustomSelect
+                options={personOptions}
+                value={pbPerson}
+                placeholder="הכנס שם"
+                onChange={setPbPerson}
+                onAddOption={addPerson}
+                onRemoveOption={removePerson}
+                loading={personLoading}
+              />
+
+              <div className="modal-actions">
+                <button
+                  type="submit"
+                  className="btn-primary"
+                  disabled={pbSaving || !pbPerson || (pbDirection === 'by_me' ? !pbCategory : !pbExpenseId)}
+                >
+                  {pbSaving ? 'שומר...' : 'שמור'}
+                </button>
+                <button type="button" className="btn-cancel" onClick={() => { setModal(null); resetPaybackForm() }}>ביטול</button>
               </div>
             </form>
           </div>

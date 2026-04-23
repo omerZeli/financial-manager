@@ -2,6 +2,7 @@ import { useEffect, useMemo } from 'react'
 import { NavLink } from 'react-router-dom'
 import { useExpenses } from '../contexts/ExpensesContext'
 import { useFixedExpenses } from '../contexts/FixedExpensesContext'
+import { usePaybacks } from '../contexts/PaybacksContext'
 import './Section.css'
 
 function formatCurrency(n: number) {
@@ -27,14 +28,45 @@ const CATEGORY_COLORS = [
 export function ExpensesChartsPage() {
   const { expenses, loading, fetchExpenses } = useExpenses()
   const { inflatedExpenses, loading: fixedLoading, fetchFixedExpenses } = useFixedExpenses()
+  const { paybacks, loading: paybacksLoading, fetchPaybacks } = usePaybacks()
 
   useEffect(() => { fetchExpenses() }, [fetchExpenses])
   useEffect(() => { fetchFixedExpenses() }, [fetchFixedExpenses])
+  useEffect(() => { fetchPaybacks() }, [fetchPaybacks])
 
-  const allExpenses = useMemo(
-    () => [...expenses, ...inflatedExpenses],
-    [expenses, inflatedExpenses]
-  )
+  // Build to_me payback totals per expense_id
+  const toMeByExpense = useMemo(() => {
+    const map: Record<string, number> = {}
+    for (const pb of paybacks) {
+      if (pb.direction === 'to_me' && pb.expense_id) {
+        map[pb.expense_id] = (map[pb.expense_id] || 0) + pb.amount
+      }
+    }
+    return map
+  }, [paybacks])
+
+  // by_me paybacks as virtual expense entries
+  const byMeExpenses = useMemo(() => {
+    return paybacks
+      .filter(pb => pb.direction === 'by_me')
+      .map(pb => ({
+        id: `payback_${pb.id}`,
+        user_id: pb.user_id,
+        name: pb.name || '',
+        category: pb.category || '',
+        amount: pb.amount,
+        date: pb.date,
+        created_at: pb.created_at,
+      }))
+  }, [paybacks])
+
+  const allExpenses = useMemo(() => {
+    const adjusted = expenses.map(exp => {
+      const returned = toMeByExpense[exp.id] || 0
+      return { ...exp, amount: exp.amount - returned }
+    })
+    return [...adjusted, ...inflatedExpenses, ...byMeExpenses]
+  }, [expenses, inflatedExpenses, byMeExpenses, toMeByExpense])
 
   const totalAmount = allExpenses.reduce((s, e) => s + e.amount, 0)
   const avgAmount = allExpenses.length ? totalAmount / allExpenses.length : 0
@@ -72,7 +104,7 @@ export function ExpensesChartsPage() {
         </div>
       </div>
 
-      {(loading || fixedLoading) ? (
+      {(loading || fixedLoading || paybacksLoading) ? (
         <div className="section-empty">טוען...</div>
       ) : allExpenses.length === 0 ? (
         <div className="section-empty">אין נתונים להצגה. הוסף הוצאות בטבלה.</div>
