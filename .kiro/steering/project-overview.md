@@ -92,6 +92,29 @@ A personal financial manager built with React + Supabase.
 - User section: greeting based on time of day + display name, sign-out button
 - `<Outlet />` renders child routes in `<main className="app-content">`
 
+## Page Structure
+
+The app has three main financial sections, each accessible from the top nav: **משכורת** (Salary), **הוצאות** (Expenses), and **השקעות** (Investments).
+
+Each section contains two sub-pages, toggled via a tab-style switcher within the page:
+
+1. **טבלה (Data Table)** — Displays all records for that section in a table. Includes an "add" button (icon) that opens a form/modal to create a new entry with fields relevant to the section's financial subject.
+2. **גרפים (Charts)** — Visualizes the section's data with charts and summaries for analysis.
+
+### Routing
+- `/salary` → Salary section (default tab: table)
+- `/salary/charts` → Salary charts
+- `/expenses` → Expenses section (default tab: table)
+- `/expenses/charts` → Expenses charts
+- `/investments` → Investments section (default tab: table)
+- `/investments/charts` → Investments charts
+
+### Shared Patterns
+- Each section follows the same two-tab layout (table + charts).
+- The data table page includes an add-item floating action button that opens a form with fields specific to that section.
+- Data is managed via a dedicated React Context per section (see Data Caching Pattern).
+- Charts pages consume the same context to visualize the cached data.
+
 ## Key Principles
 - Keep the UI simple, clean, and accessible in Hebrew/RTL.
 - The currency in this project is ILS.
