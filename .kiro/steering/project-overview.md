@@ -21,6 +21,8 @@ A personal financial manager built with React + Supabase.
 - Auth context and protected routes
 - A `profiles` table linked to `auth.users` (auto-created on signup)
 - Placeholder home page (דשבורד)
+- Salary section with table + charts pages
+- Expenses section with regular and fixed expense types, FAB type picker, inflation logic, and charts
 
 ## Authentication
 - Supabase Auth with email/password
@@ -115,7 +117,39 @@ Each section contains two sub-pages, toggled via a tab-style switcher within the
 - Data is managed via a dedicated React Context per section (see Data Caching Pattern).
 - Charts pages consume the same context to visualize the cached data.
 
+### Expenses Section
+
+The expenses section supports two types of expenses, managed via a **FAB type picker** and **sub-tabs**.
+
+#### FAB Type Picker
+- Clicking the + FAB does **not** open a form directly. Instead it opens a small popup menu with options for each expense type.
+- Each option opens its own dedicated form modal.
+- This pattern should be reused for any section that supports multiple entry types.
+
+#### Regular Expenses (`expenses` table)
+- Fields: `name`, `category`, `amount`, `date`
+- Context: `ExpensesContext` (`src/contexts/ExpensesContext.tsx`)
+- Dropdown category: `expense_category`
+
+#### Fixed Expenses (`fixed_expenses` table)
+- Fields: `name`, `category`, `amount`, `start_date`, `end_date` (nullable)
+- Context: `FixedExpensesContext` (`src/contexts/FixedExpensesContext.tsx`)
+- Dropdown category: `fixed_expense_category`
+- The add form has a **toggle switch** ("יש תאריך סיום?") that conditionally shows the end date field.
+
+#### Inflation Logic
+- Fixed expenses are **inflated** into virtual regular-expense rows — one per month from `start_date` to `min(end_date, today)`.
+- The inflated rows are computed client-side via `useMemo` in `FixedExpensesContext` and exposed as `inflatedExpenses`.
+- Inflated entries use a synthetic ID format `{fixedExpenseId}_{YYYY-MM-DD}` to distinguish them from real expenses.
+- In the "כל ההוצאות" (all expenses) tab, real and inflated expenses are merged and sorted by date. Inflated rows look identical to regular ones but have **no delete button** (to delete them, remove the source fixed expense from the "הוצאות קבועות" tab).
+- The charts page also includes inflated expenses so totals and breakdowns reflect the full picture.
+
+#### Sub-Tabs
+- The expenses table page has two sub-tabs: **"כל ההוצאות"** (all expenses — real + inflated) and **"הוצאות קבועות"** (fixed expense definitions with start/end dates).
+- The fixed expenses tab shows the raw fixed expense records with columns: name, category, amount, start date, end date.
+
 ## Key Principles
+- **This file is the single source of truth for project-wide decisions.** Whenever a change is made that affects the overall architecture, data model, shared patterns, or conventions of the project, this file must be updated automatically to reflect it.
 - Keep the UI simple, clean, and accessible in Hebrew/RTL.
 - The currency in this project is ILS.
 - All dates displayed to the user must use the **DD/MM/YYYY** format and be stored in ISO format (YYYY-MM-DD) in the database.
