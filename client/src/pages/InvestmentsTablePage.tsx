@@ -1,0 +1,380 @@
+import { useEffect, useState, useRef, useMemo } from 'react'
+import { NavLink } from 'react-router-dom'
+import { useInvestmentChannels } from '../contexts/InvestmentChannelsContext'
+import { useInvestmentDeposits } from '../contexts/InvestmentDepositsContext'
+import { useInvestmentValues } from '../contexts/InvestmentValuesContext'
+import { useDropdownOptions } from '../hooks/useDropdownOptions'
+import { CustomSelect } from '../components/common/CustomSelect'
+import './Section.css'
+
+function formatDate(dateStr: string) {
+  const d = new Date(dateStr + 'T00:00:00')
+  const day = String(d.getDate()).padStart(2, '0')
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const year = d.getFullYear()
+  return `${day}/${month}/${year}`
+}
+
+function formatCurrency(n: number) {
+  return n.toLocaleString('he-IL', { style: 'currency', currency: 'ILS', minimumFractionDigits: 0 })
+}
+
+function formatPercent(n: number) {
+  return n.toLocaleString('he-IL', { style: 'percent', minimumFractionDigits: 1, maximumFractionDigits: 1 })
+}
+
+type ModalType = null | 'picker' | 'channel' | 'deposit' | 'value'
+type ActiveTab = 'channels' | 'deposits'
+
+export function InvestmentsTablePage() {
+  const { channels, loading: chLoading, fetchChannels, addChannel, deleteChannel } = useInvestmentChannels()
+  const { deposits, loading: depLoading, fetchDeposits, addDeposit, deleteDeposit } = useInvestmentDeposits()
+  const { valueUpdates, loading: valLoading, fetchValueUpdates, addValueUpdate } = useInvestmentValues()
+  const { options: companyOptions, loading: companyLoading, addOption: addCompany, removeOption: removeCompany } = useDropdownOptions('investment_company')
+
+  const [modal, setModal] = useState<ModalType>(null)
+  const [activeTab, setActiveTab] = useState<ActiveTab>('channels')
+
+  // Channel form
+  const [chName, setChName] = useState('')
+  const [chCompany, setChCompany] = useState('')
+  const [chPath, setChPath] = useState('')
+  const [chIsPension, setChIsPension] = useState(false)
+  const [chSaving, setChSaving] = useState(false)
+
+  // Deposit form
+  const [depChannel, setDepChannel] = useState('')
+  const [depAmount, setDepAmount] = useState('')
+  const [depDate, setDepDate] = useState('')
+  const [depSaving, setDepSaving] = useState(false)
+
+  // Value update form
+  const [valChannel, setValChannel] = useState('')
+  const [valValue, setValValue] = useState('')
+  const [valDate, setValDate] = useState('')
+  const [valSaving, setValSaving] = useState(false)
+
+  const pickerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => { fetchChannels() }, [fetchChannels])
+  useEffect(() => { fetchDeposits() }, [fetchDeposits])
+  useEffect(() => { fetchValueUpdates() }, [fetchValueUpdates])
+
+  // Close picker on outside click
+  useEffect(() => {
+    if (modal !== 'picker') return
+    const handler = (e: MouseEvent) => {
+      if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) {
+        setModal(null)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [modal])
+
+  // Computed channel summary data
+  const channelSummaries = useMemo(() => {
+    return channels.map(ch => {
+      const chDeposits = deposits.filter(d => d.channel_id === ch.id)
+      const totalDeposits = chDeposits.reduce((s, d) => s + d.amount, 0)
+      const chValues = valueUpdates.filter(v => v.channel_id === ch.id).sort((a, b) => b.date.localeCompare(a.date))
+      const latestValue = chValues.length > 0 ? chValues[0] : null
+      const currentValue = latestValue ? latestValue.value : 0
+      const lastUpdated = latestValue ? latestValue.date : null
+      const returnAbsolute = currentValue - totalDeposits
+      const returnPercent = totalDeposits > 0 ? returnAbsolute / totalDeposits : 0
+      return { ...ch, totalDeposits, currentValue, lastUpdated, returnAbsolute, returnPercent }
+    })
+  }, [channels, deposits, valueUpdates])
+
+  const resetChannelForm = () => { setChName(''); setChCompany(''); setChPath(''); setChIsPension(false) }
+  const resetDepositForm = () => { setDepChannel(''); setDepAmount(''); setDepDate('') }
+  const resetValueForm = () => { setValChannel(''); setValValue(''); setValDate('') }
+
+  const handleChannelSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!chName || !chCompany || !chPath) return
+    setChSaving(true)
+    await addChannel({ name: chName, company: chCompany, investment_path: chPath, is_pension: chIsPension })
+    setChSaving(false)
+    setModal(null)
+    resetChannelForm()
+  }
+
+  const handleDepositSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!depChannel || !depAmount || !depDate) return
+    setDepSaving(true)
+    await addDeposit({ channel_id: depChannel, amount: Number(depAmount), date: depDate })
+    setDepSaving(false)
+    setModal(null)
+    resetDepositForm()
+  }
+
+  const handleValueSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!valChannel || !valValue || !valDate) return
+    setValSaving(true)
+    await addValueUpdate({ channel_id: valChannel, value: Number(valValue), date: valDate })
+    setValSaving(false)
+    setModal(null)
+    resetValueForm()
+  }
+
+  const isLoading = chLoading || depLoading || valLoading
+
+  return (
+    <div className="section-page">
+      <div className="section-header">
+        <h1>השקעות</h1>
+        <div className="section-tabs">
+          <NavLink to="/investments" end className={({ isActive }) => `section-tab${isActive ? ' active' : ''}`}>
+            טבלה
+          </NavLink>
+          <NavLink to="/investments/charts" className={({ isActive }) => `section-tab${isActive ? ' active' : ''}`}>
+            גרפים
+          </NavLink>
+        </div>
+      </div>
+
+      {/* Sub-tabs */}
+      <div className="sub-tabs">
+        <button className={`sub-tab${activeTab === 'channels' ? ' active' : ''}`} onClick={() => setActiveTab('channels')}>
+          אפיקי השקעה
+        </button>
+        <button className={`sub-tab${activeTab === 'deposits' ? ' active' : ''}`} onClick={() => setActiveTab('deposits')}>
+          הפקדות
+        </button>
+      </div>
+
+      {isLoading ? (
+        <div className="section-empty">טוען...</div>
+      ) : activeTab === 'channels' ? (
+        channelSummaries.length === 0 ? (
+          <div className="section-empty">אין אפיקי השקעה עדיין. לחץ על + כדי להוסיף.</div>
+        ) : (
+          <div className="section-table-wrap">
+            <table className="section-table">
+              <thead>
+                <tr>
+                  <th>שם</th>
+                  <th>חברה</th>
+                  <th>סה"כ הפקדות</th>
+                  <th>שווי נוכחי</th>
+                  <th>עדכון אחרון</th>
+                  <th>תשואה</th>
+                  <th>תשואה %</th>
+                  <th className="col-actions"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {channelSummaries.map(ch => (
+                  <tr key={ch.id}>
+                    <td>
+                      {ch.name}
+                      {ch.is_pension && <span className="pension-badge">פנסיה</span>}
+                    </td>
+                    <td>{ch.company}</td>
+                    <td className="num-cell">{formatCurrency(ch.totalDeposits)}</td>
+                    <td className="num-cell">{ch.lastUpdated ? formatCurrency(ch.currentValue) : '-'}</td>
+                    <td>{ch.lastUpdated ? formatDate(ch.lastUpdated) : '-'}</td>
+                    <td className={`num-cell ${ch.returnAbsolute >= 0 ? 'positive-return' : 'negative-return'}`}>
+                      {ch.lastUpdated ? formatCurrency(ch.returnAbsolute) : '-'}
+                    </td>
+                    <td className={`num-cell ${ch.returnPercent >= 0 ? 'positive-return' : 'negative-return'}`}>
+                      {ch.lastUpdated ? formatPercent(ch.returnPercent) : '-'}
+                    </td>
+                    <td className="col-actions">
+                      <button className="delete-btn" onClick={() => deleteChannel(ch.id)} title="מחק">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                        </svg>
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )
+      ) : (
+        /* Deposits tab */
+        deposits.length === 0 ? (
+          <div className="section-empty">אין הפקדות עדיין. לחץ על + כדי להוסיף.</div>
+        ) : (
+          <div className="section-table-wrap">
+            <table className="section-table">
+              <thead>
+                <tr>
+                  <th>אפיק</th>
+                  <th>סכום</th>
+                  <th>תאריך</th>
+                  <th className="col-actions"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {deposits.map(dep => {
+                  const ch = channels.find(c => c.id === dep.channel_id)
+                  return (
+                    <tr key={dep.id}>
+                      <td>{ch ? ch.name : 'אפיק שנמחק'}</td>
+                      <td className="num-cell">{formatCurrency(dep.amount)}</td>
+                      <td>{formatDate(dep.date)}</td>
+                      <td className="col-actions">
+                        <button className="delete-btn" onClick={() => deleteDeposit(dep.id)} title="מחק">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                          </svg>
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )
+      )}
+
+      {/* FAB with type picker */}
+      <div className="fab-wrap" ref={pickerRef}>
+        {modal === 'picker' && (
+          <div className="fab-menu">
+            <button className="fab-menu-item" onClick={() => setModal('channel')}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+              </svg>
+              אפיק השקעה חדש
+            </button>
+            <button className="fab-menu-item" onClick={() => setModal('deposit')}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19" /><polyline points="19 12 12 19 5 12" />
+              </svg>
+              הפקדה
+            </button>
+            <button className="fab-menu-item" onClick={() => setModal('value')}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" /><polyline points="17 6 23 6 23 12" />
+              </svg>
+              עדכון שווי
+            </button>
+          </div>
+        )}
+        <button className="section-fab" onClick={() => setModal(modal === 'picker' ? null : 'picker')} title="הוסף">+</button>
+      </div>
+
+      {/* Channel modal */}
+      {modal === 'channel' && (
+        <div className="modal-overlay" onClick={() => { setModal(null); resetChannelForm() }}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <button className="modal-close" onClick={() => { setModal(null); resetChannelForm() }} title="סגור">&times;</button>
+            <h2>אפיק השקעה חדש</h2>
+            <form onSubmit={handleChannelSubmit}>
+              <label>שם אפיק</label>
+              <input type="text" placeholder="הכנס שם אפיק" value={chName} onChange={e => setChName(e.target.value)} required />
+
+              <label>חברה</label>
+              <CustomSelect
+                options={companyOptions}
+                value={chCompany}
+                placeholder="הכנס חברה"
+                onChange={setChCompany}
+                onAddOption={addCompany}
+                onRemoveOption={removeCompany}
+                loading={companyLoading}
+              />
+
+              <label>מסלול השקעה</label>
+              <input type="text" placeholder="הכנס מסלול השקעה" value={chPath} onChange={e => setChPath(e.target.value)} required />
+
+              <div className="toggle-row">
+                <label className="toggle-label" htmlFor="is-pension">אפיק פנסיוני?</label>
+                <button
+                  type="button"
+                  id="is-pension"
+                  role="switch"
+                  aria-checked={chIsPension}
+                  className={`toggle-switch${chIsPension ? ' active' : ''}`}
+                  onClick={() => setChIsPension(prev => !prev)}
+                >
+                  <span className="toggle-knob" />
+                </button>
+              </div>
+
+              <div className="modal-actions">
+                <button type="submit" className="btn-primary" disabled={chSaving || !chCompany}>
+                  {chSaving ? 'שומר...' : 'שמור'}
+                </button>
+                <button type="button" className="btn-cancel" onClick={() => { setModal(null); resetChannelForm() }}>ביטול</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Deposit modal */}
+      {modal === 'deposit' && (
+        <div className="modal-overlay" onClick={() => { setModal(null); resetDepositForm() }}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <button className="modal-close" onClick={() => { setModal(null); resetDepositForm() }} title="סגור">&times;</button>
+            <h2>הפקדה חדשה</h2>
+            <form onSubmit={handleDepositSubmit}>
+              <label>אפיק</label>
+              <select className="form-select" value={depChannel} onChange={e => setDepChannel(e.target.value)} required>
+                <option value="">בחר אפיק</option>
+                {channels.map(ch => (
+                  <option key={ch.id} value={ch.id}>{ch.name}</option>
+                ))}
+              </select>
+
+              <label>סכום הפקדה</label>
+              <input type="number" placeholder="הכנס סכום" value={depAmount} onChange={e => setDepAmount(e.target.value)} required min="0" step="0.01" dir="ltr" />
+
+              <label>תאריך</label>
+              <input type="date" value={depDate} onChange={e => setDepDate(e.target.value)} required dir="ltr" />
+
+              <div className="modal-actions">
+                <button type="submit" className="btn-primary" disabled={depSaving || !depChannel}>
+                  {depSaving ? 'שומר...' : 'שמור'}
+                </button>
+                <button type="button" className="btn-cancel" onClick={() => { setModal(null); resetDepositForm() }}>ביטול</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Value update modal */}
+      {modal === 'value' && (
+        <div className="modal-overlay" onClick={() => { setModal(null); resetValueForm() }}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <button className="modal-close" onClick={() => { setModal(null); resetValueForm() }} title="סגור">&times;</button>
+            <h2>עדכון שווי</h2>
+            <form onSubmit={handleValueSubmit}>
+              <label>אפיק</label>
+              <select className="form-select" value={valChannel} onChange={e => setValChannel(e.target.value)} required>
+                <option value="">בחר אפיק</option>
+                {channels.map(ch => (
+                  <option key={ch.id} value={ch.id}>{ch.name}</option>
+                ))}
+              </select>
+
+              <label>שווי נוכחי</label>
+              <input type="number" placeholder="הכנס שווי" value={valValue} onChange={e => setValValue(e.target.value)} required min="0" step="0.01" dir="ltr" />
+
+              <label>תאריך עדכון</label>
+              <input type="date" value={valDate} onChange={e => setValDate(e.target.value)} required dir="ltr" />
+
+              <div className="modal-actions">
+                <button type="submit" className="btn-primary" disabled={valSaving || !valChannel}>
+                  {valSaving ? 'שומר...' : 'שמור'}
+                </button>
+                <button type="button" className="btn-cancel" onClick={() => { setModal(null); resetValueForm() }}>ביטול</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}

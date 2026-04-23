@@ -23,6 +23,7 @@ A personal financial manager built with React + Supabase.
 - Placeholder home page (דשבורד)
 - Salary section with table + charts pages
 - Expenses section with regular and fixed expense types, paybacks (to me / by me), FAB type picker, inflation logic, and charts
+- Investments section with channels, deposits, value updates, FAB type picker, and charts
 
 ## Authentication
 - Supabase Auth with email/password
@@ -158,6 +159,40 @@ The expenses section supports two types of expenses, managed via a **FAB type pi
 - The expenses table page has four sub-tabs: **"כל ההוצאות"** (all expenses — real + inflated + by_me paybacks, with to_me reductions), **"הוצאות רגילות"** (only the original regular expenses, no paybacks or inflation), **"הוצאות קבועות"** (fixed expense definitions), and **"החזרים"** (payback records).
 - The fixed expenses tab shows the raw fixed expense records with columns: name, category, amount, start date, end date.
 - The paybacks tab shows all payback records with columns: direction (badge), details, amount, date, person.
+
+### Investments Section
+
+The investments section tracks investment channels, deposits, and value updates. It uses the **FAB type picker** pattern with three actions.
+
+#### FAB Type Picker
+- Clicking the + FAB opens a popup menu with three options: create channel, deposit, update value.
+- Each option opens its own dedicated form modal.
+
+#### Investment Channels (`investment_channels` table)
+- Fields: `name`, `company`, `investment_path`, `is_pension` (boolean)
+- Context: `InvestmentChannelsContext` (`src/contexts/InvestmentChannelsContext.tsx`)
+- Dropdown company: `investment_company`
+- The add form has a **toggle switch** ("אפיק פנסיוני?") for the pension flag.
+
+#### Investment Deposits (`investment_deposits` table)
+- Fields: `channel_id` (FK to investment_channels), `amount`, `date`
+- Context: `InvestmentDepositsContext` (`src/contexts/InvestmentDepositsContext.tsx`)
+- The add form uses a native `<select>` to pick from existing channels.
+
+#### Investment Value Updates (`investment_value_updates` table)
+- Fields: `channel_id` (FK to investment_channels), `value`, `date`
+- Context: `InvestmentValuesContext` (`src/contexts/InvestmentValuesContext.tsx`)
+- The add form uses a native `<select>` to pick from existing channels.
+
+#### Sub-Tabs
+- The investments table page has two sub-tabs: **"אפיקי השקעה"** (channels summary) and **"הפקדות"** (deposits list).
+- The channels tab shows a computed summary per channel: name, company, total deposits, current value (latest value update), last update date, absolute return, return percentage.
+- The deposits tab shows all deposit records with columns: channel name, amount, date.
+
+#### Charts Page
+- Summary cards: total deposited, total current value, total return (absolute + percentage).
+- Horizontal bar chart: current value per channel.
+- Horizontal bar chart: return percentage per channel (green for positive, red for negative).
 
 ## Key Principles
 - **This file is the single source of truth for project-wide decisions.** Whenever a change is made that affects the overall architecture, data model, shared patterns, or conventions of the project, this file must be updated automatically to reflect it.

@@ -13,6 +13,11 @@ import { FixedExpensesProvider } from './contexts/FixedExpensesContext'
 import { PaybacksProvider } from './contexts/PaybacksContext'
 import { ExpensesTablePage } from './pages/ExpensesTablePage'
 import { ExpensesChartsPage } from './pages/ExpensesChartsPage'
+import { InvestmentChannelsProvider } from './contexts/InvestmentChannelsContext'
+import { InvestmentDepositsProvider } from './contexts/InvestmentDepositsContext'
+import { InvestmentValuesProvider } from './contexts/InvestmentValuesContext'
+import { InvestmentsTablePage } from './pages/InvestmentsTablePage'
+import { InvestmentsChartsPage } from './pages/InvestmentsChartsPage'
 
 function GuestRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -40,7 +45,13 @@ function App() {
                   <ExpensesProvider>
                     <FixedExpensesProvider>
                       <PaybacksProvider>
-                        <AppLayout />
+                        <InvestmentChannelsProvider>
+                          <InvestmentDepositsProvider>
+                            <InvestmentValuesProvider>
+                              <AppLayout />
+                            </InvestmentValuesProvider>
+                          </InvestmentDepositsProvider>
+                        </InvestmentChannelsProvider>
                       </PaybacksProvider>
                     </FixedExpensesProvider>
                   </ExpensesProvider>
@@ -53,6 +64,8 @@ function App() {
             <Route path="/salary/charts" element={<SalaryChartsPage />} />
             <Route path="/expenses" element={<ExpensesTablePage />} />
             <Route path="/expenses/charts" element={<ExpensesChartsPage />} />
+            <Route path="/investments" element={<InvestmentsTablePage />} />
+            <Route path="/investments/charts" element={<InvestmentsChartsPage />} />
           </Route>
           <Route
             path="/login"
