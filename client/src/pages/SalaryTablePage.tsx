@@ -89,6 +89,7 @@ export function SalaryTablePage() {
       {showModal && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
           <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <button className="modal-close" onClick={() => setShowModal(false)} title="סגור">&times;</button>
             <h2>הוסף משכורת</h2>
             <form onSubmit={handleSubmit}>
               <label>חודש</label>

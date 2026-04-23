@@ -9,6 +9,7 @@ import { HomePage } from './pages/HomePage'
 import { SalaryTablePage } from './pages/SalaryTablePage'
 import { SalaryChartsPage } from './pages/SalaryChartsPage'
 import { ExpensesProvider } from './contexts/ExpensesContext'
+import { FixedExpensesProvider } from './contexts/FixedExpensesContext'
 import { ExpensesTablePage } from './pages/ExpensesTablePage'
 import { ExpensesChartsPage } from './pages/ExpensesChartsPage'
 
@@ -36,7 +37,9 @@ function App() {
               <ProtectedRoute>
                 <SalaryProvider>
                   <ExpensesProvider>
-                    <AppLayout />
+                    <FixedExpensesProvider>
+                      <AppLayout />
+                    </FixedExpensesProvider>
                   </ExpensesProvider>
                 </SalaryProvider>
               </ProtectedRoute>
