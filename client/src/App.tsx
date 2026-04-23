@@ -1,10 +1,13 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
+import { SalaryProvider } from './contexts/SalaryContext'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { AppLayout } from './components/common/AppLayout'
 import { LoginPage } from './pages/LoginPage'
 import { RegisterPage } from './pages/RegisterPage'
 import { HomePage } from './pages/HomePage'
+import { SalaryTablePage } from './pages/SalaryTablePage'
+import { SalaryChartsPage } from './pages/SalaryChartsPage'
 
 function GuestRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -28,11 +31,15 @@ function App() {
           <Route
             element={
               <ProtectedRoute>
-                <AppLayout />
+                <SalaryProvider>
+                  <AppLayout />
+                </SalaryProvider>
               </ProtectedRoute>
             }
           >
             <Route path="/" element={<HomePage />} />
+            <Route path="/salary" element={<SalaryTablePage />} />
+            <Route path="/salary/charts" element={<SalaryChartsPage />} />
           </Route>
           <Route
             path="/login"
