@@ -1,6 +1,7 @@
-import { createContext, useContext, useState, useCallback, type ReactNode } from 'react'
+import { createContext, useContext, useState, useCallback, useMemo, type ReactNode } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from './AuthContext'
+import type { Expense } from './ExpensesContext'
 
 export interface FixedExpense {
   id: string
@@ -8,19 +9,55 @@ export interface FixedExpense {
   name: string
   category: string
   amount: number
-  day_of_month: number
+  start_date: string
+  end_date: string | null
   created_at: string
 }
 
 interface FixedExpensesContextType {
   fixedExpenses: FixedExpense[]
+  inflatedExpenses: Expense[]
   loading: boolean
   fetchFixedExpenses: () => Promise<void>
-  addFixedExpense: (expense: Pick<FixedExpense, 'name' | 'category' | 'amount' | 'day_of_month'>) => Promise<void>
+  addFixedExpense: (expense: Pick<FixedExpense, 'name' | 'category' | 'amount' | 'start_date' | 'end_date'>) => Promise<void>
   deleteFixedExpense: (id: string) => Promise<void>
 }
 
 const FixedExpensesContext = createContext<FixedExpensesContextType | undefined>(undefined)
+
+/** Generate one virtual expense per month from start_date to min(end_date, today) */
+function inflateFixed(fe: FixedExpense): Expense[] {
+  const results: Expense[] = []
+  const start = new Date(fe.start_date + 'T00:00:00')
+  const todayStr = new Date().toISOString().slice(0, 10)
+  const limitStr = fe.end_date && fe.end_date < todayStr ? fe.end_date : todayStr
+  const limit = new Date(limitStr + 'T00:00:00')
+
+  const day = start.getDate()
+  let cursor = new Date(start)
+
+  while (cursor <= limit) {
+    const yyyy = cursor.getFullYear()
+    const mm = String(cursor.getMonth() + 1).padStart(2, '0')
+    const dd = String(day).padStart(2, '0')
+    const dateStr = `${yyyy}-${mm}-${dd}`
+
+    results.push({
+      id: `${fe.id}_${dateStr}`,
+      user_id: fe.user_id,
+      name: fe.name,
+      category: fe.category,
+      amount: fe.amount,
+      date: dateStr,
+      created_at: fe.created_at,
+    })
+
+    // advance to next month
+    cursor.setMonth(cursor.getMonth() + 1)
+  }
+
+  return results
+}
 
 export function FixedExpensesProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth()
@@ -35,7 +72,7 @@ export function FixedExpensesProvider({ children }: { children: ReactNode }) {
       .from('fixed_expenses')
       .select('*')
       .eq('user_id', user.id)
-      .order('day_of_month', { ascending: true })
+      .order('start_date', { ascending: false })
     if (!error && data) {
       setFixedExpenses(data)
     }
@@ -43,7 +80,7 @@ export function FixedExpensesProvider({ children }: { children: ReactNode }) {
     setLoading(false)
   }, [fetched, user])
 
-  const addFixedExpense = async (expense: Pick<FixedExpense, 'name' | 'category' | 'amount' | 'day_of_month'>) => {
+  const addFixedExpense = async (expense: Pick<FixedExpense, 'name' | 'category' | 'amount' | 'start_date' | 'end_date'>) => {
     if (!user) return
     const { data, error } = await supabase
       .from('fixed_expenses')
@@ -52,7 +89,7 @@ export function FixedExpensesProvider({ children }: { children: ReactNode }) {
       .single()
     if (!error && data) {
       setFixedExpenses(prev =>
-        [...prev, data].sort((a, b) => a.day_of_month - b.day_of_month)
+        [...prev, data].sort((a, b) => b.start_date.localeCompare(a.start_date))
       )
     }
   }
@@ -64,8 +101,13 @@ export function FixedExpensesProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  const inflatedExpenses = useMemo(
+    () => fixedExpenses.flatMap(inflateFixed),
+    [fixedExpenses]
+  )
+
   return (
-    <FixedExpensesContext.Provider value={{ fixedExpenses, loading, fetchFixedExpenses, addFixedExpense, deleteFixedExpense }}>
+    <FixedExpensesContext.Provider value={{ fixedExpenses, inflatedExpenses, loading, fetchFixedExpenses, addFixedExpense, deleteFixedExpense }}>
       {children}
     </FixedExpensesContext.Provider>
   )

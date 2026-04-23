@@ -1,6 +1,7 @@
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { NavLink } from 'react-router-dom'
 import { useExpenses } from '../contexts/ExpensesContext'
+import { useFixedExpenses } from '../contexts/FixedExpensesContext'
 import './Section.css'
 
 function formatCurrency(n: number) {
@@ -25,14 +26,21 @@ const CATEGORY_COLORS = [
 
 export function ExpensesChartsPage() {
   const { expenses, loading, fetchExpenses } = useExpenses()
+  const { inflatedExpenses, loading: fixedLoading, fetchFixedExpenses } = useFixedExpenses()
 
   useEffect(() => { fetchExpenses() }, [fetchExpenses])
+  useEffect(() => { fetchFixedExpenses() }, [fetchFixedExpenses])
 
-  const totalAmount = expenses.reduce((s, e) => s + e.amount, 0)
-  const avgAmount = expenses.length ? totalAmount / expenses.length : 0
+  const allExpenses = useMemo(
+    () => [...expenses, ...inflatedExpenses],
+    [expenses, inflatedExpenses]
+  )
+
+  const totalAmount = allExpenses.reduce((s, e) => s + e.amount, 0)
+  const avgAmount = allExpenses.length ? totalAmount / allExpenses.length : 0
 
   // Group by category
-  const byCategory = expenses.reduce<Record<string, number>>((acc, e) => {
+  const byCategory = allExpenses.reduce<Record<string, number>>((acc, e) => {
     acc[e.category] = (acc[e.category] || 0) + e.amount
     return acc
   }, {})
@@ -40,7 +48,7 @@ export function ExpensesChartsPage() {
   const maxCategory = categories.length ? categories[0][1] : 1
 
   // Monthly totals (last 12 months)
-  const byMonth = expenses.reduce<Record<string, number>>((acc, e) => {
+  const byMonth = allExpenses.reduce<Record<string, number>>((acc, e) => {
     const key = e.date.slice(0, 7) // YYYY-MM
     acc[key] = (acc[key] || 0) + e.amount
     return acc
@@ -64,9 +72,9 @@ export function ExpensesChartsPage() {
         </div>
       </div>
 
-      {loading ? (
+      {(loading || fixedLoading) ? (
         <div className="section-empty">טוען...</div>
-      ) : expenses.length === 0 ? (
+      ) : allExpenses.length === 0 ? (
         <div className="section-empty">אין נתונים להצגה. הוסף הוצאות בטבלה.</div>
       ) : (
         <div className="charts-grid">
@@ -81,7 +89,7 @@ export function ExpensesChartsPage() {
             </div>
             <div className="summary-card">
               <div className="label">מספר הוצאות</div>
-              <div className="value">{expenses.length}</div>
+              <div className="value">{allExpenses.length}</div>
             </div>
           </div>
 
