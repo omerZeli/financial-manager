@@ -17,6 +17,7 @@ interface InvestmentChannelsContextType {
   loading: boolean
   fetchChannels: () => Promise<void>
   addChannel: (channel: Pick<InvestmentChannel, 'name' | 'company' | 'investment_path' | 'is_pension'>) => Promise<void>
+  updateChannel: (id: string, updates: Partial<Pick<InvestmentChannel, 'name' | 'company' | 'investment_path' | 'is_pension'>>) => Promise<void>
   deleteChannel: (id: string) => Promise<void>
 }
 
@@ -55,6 +56,18 @@ export function InvestmentChannelsProvider({ children }: { children: ReactNode }
     }
   }
 
+  const updateChannel = async (id: string, updates: Partial<Pick<InvestmentChannel, 'name' | 'company' | 'investment_path' | 'is_pension'>>) => {
+    const { data, error } = await supabase
+      .from('investment_channels')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single()
+    if (!error && data) {
+      setChannels(prev => prev.map(c => c.id === id ? data : c))
+    }
+  }
+
   const deleteChannel = async (id: string) => {
     const { error } = await supabase.from('investment_channels').delete().eq('id', id)
     if (!error) {
@@ -63,7 +76,7 @@ export function InvestmentChannelsProvider({ children }: { children: ReactNode }
   }
 
   return (
-    <InvestmentChannelsContext.Provider value={{ channels, loading, fetchChannels, addChannel, deleteChannel }}>
+    <InvestmentChannelsContext.Provider value={{ channels, loading, fetchChannels, addChannel, updateChannel, deleteChannel }}>
       {children}
     </InvestmentChannelsContext.Provider>
   )

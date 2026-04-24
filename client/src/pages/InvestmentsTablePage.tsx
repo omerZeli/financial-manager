@@ -30,7 +30,7 @@ type ModalType = null | 'picker' | 'channel' | 'deposit' | 'value'
 type ActiveTab = 'channels' | 'deposits'
 
 export function InvestmentsTablePage() {
-  const { channels, loading: chLoading, fetchChannels, addChannel, deleteChannel } = useInvestmentChannels()
+  const { channels, loading: chLoading, fetchChannels, addChannel, updateChannel, deleteChannel } = useInvestmentChannels()
   const { deposits, loading: depLoading, fetchDeposits, addDeposit, deleteDeposit } = useInvestmentDeposits()
   const { valueUpdates, loading: valLoading, fetchValueUpdates, addValueUpdate } = useInvestmentValues()
   const { options: companyOptions, loading: companyLoading, addOption: addCompany, removeOption: removeCompany } = useDropdownOptions('investment_company')
@@ -54,6 +54,7 @@ export function InvestmentsTablePage() {
   // Value update form
   const [valChannel, setValChannel] = useState('')
   const [valValue, setValValue] = useState('')
+  const [valPath, setValPath] = useState('')
   const [valDate, setValDate] = useState('')
   const [valSaving, setValSaving] = useState(false)
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
@@ -94,11 +95,18 @@ export function InvestmentsTablePage() {
 
   const resetChannelForm = () => { setChName(''); setChCompany(''); setChPath(''); setChIsPension(false) }
   const resetDepositForm = () => { setDepChannel(''); setDepAmount(''); setDepDate('') }
-  const resetValueForm = () => { setValChannel(''); setValValue(''); setValDate('') }
+  const resetValueForm = () => { setValChannel(''); setValValue(''); setValPath(''); setValDate('') }
 
   const openValueFormForChannel = (channelId: string) => {
-    resetValueForm()
+    const ch = channels.find(c => c.id === channelId)
+    const latestValue = valueUpdates
+      .filter(v => v.channel_id === channelId)
+      .sort((a, b) => b.date.localeCompare(a.date))[0]
+    const today = new Date().toISOString().slice(0, 10)
     setValChannel(channelId)
+    setValValue(latestValue ? String(latestValue.value) : '')
+    setValPath(ch ? ch.investment_path : '')
+    setValDate(today)
     setModal('value')
   }
 
@@ -124,8 +132,12 @@ export function InvestmentsTablePage() {
 
   const handleValueSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!valChannel || !valValue || !valDate) return
+    if (!valChannel || !valValue || !valPath || !valDate) return
     setValSaving(true)
+    const ch = channels.find(c => c.id === valChannel)
+    if (ch && valPath !== ch.investment_path) {
+      await updateChannel(valChannel, { investment_path: valPath })
+    }
     await addValueUpdate({ channel_id: valChannel, value: Number(valValue), date: valDate })
     setValSaving(false)
     setModal(null)
@@ -170,6 +182,7 @@ export function InvestmentsTablePage() {
                 <tr>
                   <th>שם</th>
                   <th>חברה</th>
+                  <th>מסלול</th>
                   <th>סה"כ הפקדות</th>
                   <th>שווי נוכחי</th>
                   <th>עדכון אחרון</th>
@@ -186,6 +199,7 @@ export function InvestmentsTablePage() {
                       {ch.is_pension && <span className="pension-badge">פנסיה</span>}
                     </td>
                     <td>{ch.company}</td>
+                    <td>{ch.investment_path}</td>
                     <td className="num-cell">{formatCurrency(ch.totalDeposits)}</td>
                     <td className="num-cell">{ch.lastUpdated ? formatCurrency(ch.currentValue) : '-'}</td>
                     <td>{ch.lastUpdated ? formatDate(ch.lastUpdated) : '-'}</td>
@@ -373,18 +387,13 @@ export function InvestmentsTablePage() {
         <div className="modal-overlay" onClick={() => { setModal(null); resetValueForm() }}>
           <div className="modal-content" onClick={e => e.stopPropagation()}>
             <button className="modal-close" onClick={() => { setModal(null); resetValueForm() }} title="סגור">&times;</button>
-            <h2>עדכון שווי</h2>
+            <h2>עדכון שווי - {channels.find(c => c.id === valChannel)?.name}</h2>
             <form onSubmit={handleValueSubmit}>
-              <label>אפיק</label>
-              <select className="form-select" value={valChannel} onChange={e => setValChannel(e.target.value)} required>
-                <option value="">בחר אפיק</option>
-                {channels.map(ch => (
-                  <option key={ch.id} value={ch.id}>{ch.name}</option>
-                ))}
-              </select>
-
               <label>שווי נוכחי</label>
               <NumberInput placeholder="הכנס שווי" value={valValue} onChange={setValValue} required />
+
+              <label>מסלול השקעה</label>
+              <input type="text" placeholder="הכנס מסלול השקעה" value={valPath} onChange={e => setValPath(e.target.value)} required />
 
               <label>תאריך עדכון</label>
               <DateInput value={valDate} onChange={setValDate} required />
