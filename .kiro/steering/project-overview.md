@@ -137,6 +137,9 @@ The expenses section supports two types of expenses, managed via a **FAB type pi
 - Context: `FixedExpensesContext` (`src/contexts/FixedExpensesContext.tsx`)
 - Dropdown category: `fixed_expense_category`
 - The add form has a **toggle switch** ("יש תאריך סיום?") that conditionally shows the end date field.
+- The fixed expenses table has an **edit button** (pencil icon) per row that opens an edit modal with a single end date field.
+- The context exposes `updateFixedExpense` for editing.
+- Deleting a fixed expense hard-deletes the DB row and all its inflated expenses disappear.
 
 #### Inflation Logic
 - Fixed expenses are **inflated** into virtual regular-expense rows — one per month from `start_date` to `min(end_date, today)`.

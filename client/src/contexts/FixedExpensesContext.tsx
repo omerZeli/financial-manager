@@ -20,6 +20,7 @@ interface FixedExpensesContextType {
   loading: boolean
   fetchFixedExpenses: () => Promise<void>
   addFixedExpense: (expense: Pick<FixedExpense, 'name' | 'category' | 'amount' | 'start_date' | 'end_date'>) => Promise<void>
+  updateFixedExpense: (id: string, fields: Partial<Pick<FixedExpense, 'name' | 'category' | 'amount' | 'start_date' | 'end_date'>>) => Promise<void>
   deleteFixedExpense: (id: string) => Promise<void>
 }
 
@@ -94,6 +95,20 @@ export function FixedExpensesProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  const updateFixedExpense = async (id: string, fields: Partial<Pick<FixedExpense, 'name' | 'category' | 'amount' | 'start_date' | 'end_date'>>) => {
+    const { data, error } = await supabase
+      .from('fixed_expenses')
+      .update(fields)
+      .eq('id', id)
+      .select()
+      .single()
+    if (!error && data) {
+      setFixedExpenses(prev =>
+        prev.map(e => e.id === id ? data : e).sort((a, b) => b.start_date.localeCompare(a.start_date))
+      )
+    }
+  }
+
   const deleteFixedExpense = async (id: string) => {
     const { error } = await supabase.from('fixed_expenses').delete().eq('id', id)
     if (!error) {
@@ -107,7 +122,7 @@ export function FixedExpensesProvider({ children }: { children: ReactNode }) {
   )
 
   return (
-    <FixedExpensesContext.Provider value={{ fixedExpenses, inflatedExpenses, loading, fetchFixedExpenses, addFixedExpense, deleteFixedExpense }}>
+    <FixedExpensesContext.Provider value={{ fixedExpenses, inflatedExpenses, loading, fetchFixedExpenses, addFixedExpense, updateFixedExpense, deleteFixedExpense }}>
       {children}
     </FixedExpensesContext.Provider>
   )

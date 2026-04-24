@@ -27,7 +27,7 @@ type ActiveTab = 'all' | 'regular' | 'fixed' | 'paybacks'
 
 export function ExpensesTablePage() {
   const { expenses, loading, fetchExpenses, addExpense, deleteExpense } = useExpenses()
-  const { fixedExpenses, inflatedExpenses, loading: fixedLoading, fetchFixedExpenses, addFixedExpense, deleteFixedExpense } = useFixedExpenses()
+  const { fixedExpenses, inflatedExpenses, loading: fixedLoading, fetchFixedExpenses, addFixedExpense, updateFixedExpense, deleteFixedExpense } = useFixedExpenses()
   const { paybacks, loading: paybacksLoading, fetchPaybacks, addPayback, deletePayback, removeByExpenseId } = usePaybacks()
   const { options: categoryOptions, loading: categoryLoading, addOption: addCategory, removeOption: removeCategory } = useDropdownOptions('expense_category')
   const { options: fixedCategoryOptions, loading: fixedCategoryLoading, addOption: addFixedCategory, removeOption: removeFixedCategory } = useDropdownOptions('fixed_expense_category')
@@ -63,6 +63,11 @@ export function ExpensesTablePage() {
   const [pbSaving, setPbSaving] = useState(false)
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
   const [pendingDeleteType, setPendingDeleteType] = useState<'expense' | 'fixed' | 'payback' | null>(null)
+
+  // Edit fixed expense state
+  const [editingFixed, setEditingFixed] = useState<string | null>(null)
+  const [editFixedEndDate, setEditFixedEndDate] = useState('')
+  const [editFixedSaving, setEditFixedSaving] = useState(false)
 
   const pickerRef = useRef<HTMLDivElement>(null)
 
@@ -126,6 +131,29 @@ export function ExpensesTablePage() {
   const resetExpenseForm = () => { setName(''); setCategory(''); setAmount(''); setDate('') }
   const resetFixedForm = () => { setFixedName(''); setFixedCategory(''); setFixedAmount(''); setFixedStartDate(''); setHasEndDate(false); setFixedEndDate('') }
   const resetPaybackForm = () => { setPbDirection('by_me'); setPbName(''); setPbCategory(''); setPbAmount(''); setPbDate(''); setPbPerson(''); setPbExpenseId('') }
+
+  const openEditFixed = (id: string) => {
+    const fe = fixedExpenses.find(e => e.id === id)
+    if (!fe) return
+    setEditingFixed(id)
+    setEditFixedEndDate(fe.end_date || '')
+  }
+
+  const resetEditFixed = () => {
+    setEditingFixed(null)
+    setEditFixedEndDate('')
+  }
+
+  const handleEditFixedSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editingFixed) return
+    setEditFixedSaving(true)
+    await updateFixedExpense(editingFixed, {
+      end_date: editFixedEndDate || null,
+    })
+    setEditFixedSaving(false)
+    resetEditFixed()
+  }
 
   const handleExpenseSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -299,7 +327,12 @@ export function ExpensesTablePage() {
                     <td className="num-cell">{formatCurrency(exp.amount)}</td>
                     <td>{formatDate(exp.start_date)}</td>
                     <td>{exp.end_date ? formatDate(exp.end_date) : '-'}</td>
-                    <td className="col-actions">
+                    <td className="col-actions actions-group">
+                      <button className="edit-btn" onClick={() => openEditFixed(exp.id)} title="ערוך">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" /><path d="m15 5 4 4" />
+                        </svg>
+                      </button>
                       <button className="delete-btn" onClick={() => { setPendingDeleteId(exp.id); setPendingDeleteType('fixed') }} title="מחק">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
@@ -393,6 +426,12 @@ export function ExpensesTablePage() {
               const linked = paybacks.filter(p => p.expense_id === pendingDeleteId)
               if (linked.length === 0) return undefined
               return linked.map(p => `החזר - ${formatCurrency(p.amount)} מ${p.person} (${formatDate(p.date)})`)
+            }
+            if (pendingDeleteType === 'fixed') {
+              const related = inflatedExpenses.filter(ie => ie.id.startsWith(pendingDeleteId + '_'))
+              if (related.length === 0) return undefined
+              const dates = related.map(ie => ie.date).sort()
+              return [`${related.length} הוצאות (${formatDate(dates[dates.length - 1])} - ${formatDate(dates[0])})`]
             }
             return undefined
           })()}
@@ -622,6 +661,27 @@ export function ExpensesTablePage() {
                   {pbSaving ? 'שומר...' : 'שמור'}
                 </button>
                 <button type="button" className="btn-cancel" onClick={() => { setModal(null); resetPaybackForm() }}>ביטול</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit fixed expense modal */}
+      {editingFixed && (
+        <div className="modal-overlay" onClick={resetEditFixed}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <button className="modal-close" onClick={resetEditFixed} title="סגור">&times;</button>
+            <h2>עריכת הוצאה קבועה</h2>
+            <form onSubmit={handleEditFixedSubmit}>
+              <label>תאריך סיום</label>
+              <DateInput value={editFixedEndDate} onChange={setEditFixedEndDate} />
+
+              <div className="modal-actions">
+                <button type="submit" className="btn-primary" disabled={editFixedSaving}>
+                  {editFixedSaving ? 'שומר...' : 'שמור'}
+                </button>
+                <button type="button" className="btn-cancel" onClick={resetEditFixed}>ביטול</button>
               </div>
             </form>
           </div>
