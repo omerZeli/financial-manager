@@ -223,6 +223,12 @@ The investments section tracks investment channels, deposits, and value updates.
 - Props: `value` (raw string), `onChange` (receives raw string), `placeholder`, `required`.
 - When adding a new numeric field to any form, always use `<NumberInput>` instead of `<input type="number">`.
 
+## Delete Confirmation
+- Every delete button in every table page shows a **confirmation dialog** before actually deleting.
+- The shared `ConfirmDialog` component (`components/common/ConfirmDialog.tsx` + `.css`) renders a centered overlay with the message "האם אתה בטוח שברצונך למחוק?" and two buttons: "מחק" (confirm) and "ביטול" (cancel).
+- Each table page tracks a `pendingDeleteId` state (and `pendingDeleteType` when the page has multiple entity types). Clicking the trash icon sets the pending ID; the actual context delete function is only called on confirm.
+- When adding a new table with delete functionality, always use `ConfirmDialog` instead of deleting directly on click.
+
 ## Custom Dropdown Options
 - All dropdowns in the project use **user-managed options** — there are no hardcoded/static option lists.
 - Options are stored per-user in the `user_dropdown_options` table, categorized by a `category` string (e.g. `'credit_card_company'`).

@@ -6,6 +6,7 @@ import { usePaybacks } from '../contexts/PaybacksContext'
 import { useDropdownOptions } from '../hooks/useDropdownOptions'
 import { CustomSelect } from '../components/common/CustomSelect'
 import { NumberInput } from '../components/common/NumberInput'
+import { ConfirmDialog } from '../components/common/ConfirmDialog'
 import DateInput from '../components/common/DateInput'
 import './Section.css'
 
@@ -60,6 +61,8 @@ export function ExpensesTablePage() {
   const [pbPerson, setPbPerson] = useState('')
   const [pbExpenseId, setPbExpenseId] = useState('')
   const [pbSaving, setPbSaving] = useState(false)
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
+  const [pendingDeleteType, setPendingDeleteType] = useState<'expense' | 'fixed' | 'payback' | null>(null)
 
   const pickerRef = useRef<HTMLDivElement>(null)
 
@@ -260,7 +263,7 @@ export function ExpensesTablePage() {
                     <td className="num-cell">{formatCurrency(exp.amount)}</td>
                     <td>{formatDate(exp.date)}</td>
                     <td className="col-actions">
-                      <button className="delete-btn" onClick={() => deleteExpense(exp.id)} title="מחק">
+                      <button className="delete-btn" onClick={() => { setPendingDeleteId(exp.id); setPendingDeleteType('expense') }} title="מחק">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
                         </svg>
@@ -297,7 +300,7 @@ export function ExpensesTablePage() {
                     <td>{formatDate(exp.start_date)}</td>
                     <td>{exp.end_date ? formatDate(exp.end_date) : '-'}</td>
                     <td className="col-actions">
-                      <button className="delete-btn" onClick={() => deleteFixedExpense(exp.id)} title="מחק">
+                      <button className="delete-btn" onClick={() => { setPendingDeleteId(exp.id); setPendingDeleteType('fixed') }} title="מחק">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
                         </svg>
@@ -350,7 +353,7 @@ export function ExpensesTablePage() {
                     <td>{formatDate(pb.date)}</td>
                     <td>{pb.person}</td>
                     <td className="col-actions">
-                      <button className="delete-btn" onClick={() => deletePayback(pb.id)} title="מחק">
+                      <button className="delete-btn" onClick={() => { setPendingDeleteId(pb.id); setPendingDeleteType('payback') }} title="מחק">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
                         </svg>
@@ -363,6 +366,20 @@ export function ExpensesTablePage() {
             </table>
           </div>
         )
+      )}
+
+      {pendingDeleteId && pendingDeleteType && (
+        <ConfirmDialog
+          message="האם אתה בטוח שברצונך למחוק?"
+          onConfirm={() => {
+            if (pendingDeleteType === 'expense') deleteExpense(pendingDeleteId)
+            else if (pendingDeleteType === 'fixed') deleteFixedExpense(pendingDeleteId)
+            else if (pendingDeleteType === 'payback') deletePayback(pendingDeleteId)
+            setPendingDeleteId(null)
+            setPendingDeleteType(null)
+          }}
+          onCancel={() => { setPendingDeleteId(null); setPendingDeleteType(null) }}
+        />
       )}
 
       {/* FAB with type picker */}

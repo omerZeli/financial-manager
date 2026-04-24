@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import { useSalary } from '../contexts/SalaryContext'
 import { NumberInput } from '../components/common/NumberInput'
+import { ConfirmDialog } from '../components/common/ConfirmDialog'
 import './Section.css'
 
 function formatMonth(dateStr: string) {
@@ -20,6 +21,7 @@ export function SalaryTablePage() {
   const [bruto, setBruto] = useState('')
   const [neto, setNeto] = useState('')
   const [saving, setSaving] = useState(false)
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
 
   useEffect(() => { fetchSalaries() }, [fetchSalaries])
 
@@ -72,7 +74,7 @@ export function SalaryTablePage() {
                   <td className="num-cell">{formatCurrency(s.bruto)}</td>
                   <td className="num-cell">{formatCurrency(s.neto)}</td>
                   <td className="col-actions">
-                    <button className="delete-btn" onClick={() => deleteSalary(s.id)} title="מחק">
+                    <button className="delete-btn" onClick={() => setPendingDeleteId(s.id)} title="מחק">
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
                       </svg>
@@ -86,6 +88,14 @@ export function SalaryTablePage() {
       )}
 
       <button className="section-fab" onClick={() => setShowModal(true)} title="הוסף משכורת">+</button>
+
+      {pendingDeleteId && (
+        <ConfirmDialog
+          message="האם אתה בטוח שברצונך למחוק?"
+          onConfirm={() => { deleteSalary(pendingDeleteId); setPendingDeleteId(null) }}
+          onCancel={() => setPendingDeleteId(null)}
+        />
+      )}
 
       {showModal && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>

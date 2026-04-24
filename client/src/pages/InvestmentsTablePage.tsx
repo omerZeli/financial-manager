@@ -6,6 +6,7 @@ import { useInvestmentValues } from '../contexts/InvestmentValuesContext'
 import { useDropdownOptions } from '../hooks/useDropdownOptions'
 import { CustomSelect } from '../components/common/CustomSelect'
 import { NumberInput } from '../components/common/NumberInput'
+import { ConfirmDialog } from '../components/common/ConfirmDialog'
 import DateInput from '../components/common/DateInput'
 import './Section.css'
 
@@ -55,6 +56,8 @@ export function InvestmentsTablePage() {
   const [valValue, setValValue] = useState('')
   const [valDate, setValDate] = useState('')
   const [valSaving, setValSaving] = useState(false)
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
+  const [pendingDeleteType, setPendingDeleteType] = useState<'channel' | 'deposit' | null>(null)
 
   const pickerRef = useRef<HTMLDivElement>(null)
 
@@ -198,7 +201,7 @@ export function InvestmentsTablePage() {
                           <path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" /><path d="m15 5 4 4" />
                         </svg>
                       </button>
-                      <button className="delete-btn" onClick={() => deleteChannel(ch.id)} title="מחק">
+                      <button className="delete-btn" onClick={() => { setPendingDeleteId(ch.id); setPendingDeleteType('channel') }} title="מחק">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
                         </svg>
@@ -234,7 +237,7 @@ export function InvestmentsTablePage() {
                       <td className="num-cell">{formatCurrency(dep.amount)}</td>
                       <td>{formatDate(dep.date)}</td>
                       <td className="col-actions">
-                        <button className="delete-btn" onClick={() => deleteDeposit(dep.id)} title="מחק">
+                        <button className="delete-btn" onClick={() => { setPendingDeleteId(dep.id); setPendingDeleteType('deposit') }} title="מחק">
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
                           </svg>
@@ -247,6 +250,19 @@ export function InvestmentsTablePage() {
             </table>
           </div>
         )
+      )}
+
+      {pendingDeleteId && pendingDeleteType && (
+        <ConfirmDialog
+          message="האם אתה בטוח שברצונך למחוק?"
+          onConfirm={() => {
+            if (pendingDeleteType === 'channel') deleteChannel(pendingDeleteId)
+            else if (pendingDeleteType === 'deposit') deleteDeposit(pendingDeleteId)
+            setPendingDeleteId(null)
+            setPendingDeleteType(null)
+          }}
+          onCancel={() => { setPendingDeleteId(null); setPendingDeleteType(null) }}
+        />
       )}
 
       {/* FAB with type picker */}
