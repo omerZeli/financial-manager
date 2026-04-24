@@ -5,6 +5,7 @@ import { useInvestmentDeposits } from '../contexts/InvestmentDepositsContext'
 import { useInvestmentValues } from '../contexts/InvestmentValuesContext'
 import { useDropdownOptions } from '../hooks/useDropdownOptions'
 import { CustomSelect } from '../components/common/CustomSelect'
+import { ReadOnlySelect } from '../components/common/ReadOnlySelect'
 import { NumberInput } from '../components/common/NumberInput'
 import { ConfirmDialog } from '../components/common/ConfirmDialog'
 import DateInput from '../components/common/DateInput'
@@ -34,6 +35,7 @@ export function InvestmentsTablePage() {
   const { deposits, loading: depLoading, fetchDeposits, addDeposit, deleteDeposit, removeByChannelId: removeDepositsByChannel } = useInvestmentDeposits()
   const { valueUpdates, loading: valLoading, fetchValueUpdates, addValueUpdate, deleteValueUpdate, removeByChannelId: removeValuesByChannel } = useInvestmentValues()
   const { options: companyOptions, loading: companyLoading, addOption: addCompany, removeOption: removeCompany } = useDropdownOptions('investment_company')
+  const { options: depositorOptions, loading: depositorLoading, addOption: addDepositor, removeOption: removeDepositor } = useDropdownOptions('investment_depositor')
 
   const [modal, setModal] = useState<ModalType>(null)
   const [activeTab, setActiveTab] = useState<ActiveTab>('channels')
@@ -49,6 +51,7 @@ export function InvestmentsTablePage() {
   const [depChannel, setDepChannel] = useState('')
   const [depAmount, setDepAmount] = useState('')
   const [depDate, setDepDate] = useState('')
+  const [depDepositor, setDepDepositor] = useState('')
   const [depSaving, setDepSaving] = useState(false)
 
   // Value update form
@@ -94,7 +97,7 @@ export function InvestmentsTablePage() {
   }, [channels, deposits, valueUpdates])
 
   const resetChannelForm = () => { setChName(''); setChCompany(''); setChPath(''); setChIsPension(false) }
-  const resetDepositForm = () => { setDepChannel(''); setDepAmount(''); setDepDate('') }
+  const resetDepositForm = () => { setDepChannel(''); setDepAmount(''); setDepDate(''); setDepDepositor('') }
   const resetValueForm = () => { setValChannel(''); setValValue(''); setValPath(''); setValDate('') }
 
   const openValueFormForChannel = (channelId: string) => {
@@ -122,9 +125,9 @@ export function InvestmentsTablePage() {
 
   const handleDepositSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!depChannel || !depAmount || !depDate) return
+    if (!depChannel || !depAmount || !depDate || !depDepositor) return
     setDepSaving(true)
-    await addDeposit({ channel_id: depChannel, amount: Number(depAmount), date: depDate })
+    await addDeposit({ channel_id: depChannel, amount: Number(depAmount), date: depDate, depositor: depDepositor })
     setDepSaving(false)
     setModal(null)
     resetDepositForm()
@@ -241,6 +244,7 @@ export function InvestmentsTablePage() {
                 <tr>
                   <th>אפיק</th>
                   <th>סכום</th>
+                  <th>מפקיד</th>
                   <th>תאריך</th>
                   <th className="col-actions"></th>
                 </tr>
@@ -252,6 +256,7 @@ export function InvestmentsTablePage() {
                     <tr key={dep.id}>
                       <td>{ch ? ch.name : 'אפיק שנמחק'}</td>
                       <td className="num-cell">{formatCurrency(dep.amount)}</td>
+                      <td>{dep.depositor}</td>
                       <td>{formatDate(dep.date)}</td>
                       <td className="col-actions">
                         <button className="delete-btn" onClick={() => { setPendingDeleteId(dep.id); setPendingDeleteType('deposit') }} title="מחק">
@@ -318,7 +323,7 @@ export function InvestmentsTablePage() {
               const dep = deposits.find(d => d.id === pendingDeleteId)
               if (!dep) return undefined
               const ch = channels.find(c => c.id === dep.channel_id)
-              return `הפקדה - ${formatCurrency(dep.amount)} (${ch ? ch.name : ''}, ${formatDate(dep.date)})`
+              return `הפקדה - ${formatCurrency(dep.amount)} (${ch ? ch.name : ''}, ${dep.depositor}, ${formatDate(dep.date)})`
             }
             if (pendingDeleteType === 'value') {
               const vu = valueUpdates.find(v => v.id === pendingDeleteId)
@@ -437,21 +442,32 @@ export function InvestmentsTablePage() {
             <h2>הפקדה חדשה</h2>
             <form onSubmit={handleDepositSubmit}>
               <label>אפיק</label>
-              <select className="form-select" value={depChannel} onChange={e => setDepChannel(e.target.value)} required>
-                <option value="">בחר אפיק</option>
-                {channels.map(ch => (
-                  <option key={ch.id} value={ch.id}>{ch.name}</option>
-                ))}
-              </select>
+              <ReadOnlySelect
+                options={channels.map(ch => ({ value: ch.id, label: ch.name }))}
+                value={depChannel}
+                placeholder="בחר אפיק"
+                onChange={setDepChannel}
+              />
 
               <label>סכום הפקדה</label>
               <NumberInput placeholder="הכנס סכום" value={depAmount} onChange={setDepAmount} required />
+
+              <label>מי הפקיד</label>
+              <CustomSelect
+                options={depositorOptions}
+                value={depDepositor}
+                placeholder="הכנס מפקיד"
+                onChange={setDepDepositor}
+                onAddOption={addDepositor}
+                onRemoveOption={removeDepositor}
+                loading={depositorLoading}
+              />
 
               <label>תאריך</label>
               <DateInput value={depDate} onChange={setDepDate} required />
 
               <div className="modal-actions">
-                <button type="submit" className="btn-primary" disabled={depSaving || !depChannel}>
+                <button type="submit" className="btn-primary" disabled={depSaving || !depChannel || !depDepositor}>
                   {depSaving ? 'שומר...' : 'שמור'}
                 </button>
                 <button type="button" className="btn-cancel" onClick={() => { setModal(null); resetDepositForm() }}>ביטול</button>
