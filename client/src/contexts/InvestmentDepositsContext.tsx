@@ -9,6 +9,7 @@ export interface InvestmentDeposit {
   amount: number
   date: string
   depositor: string
+  salary_id: string | null
   created_at: string
 }
 
@@ -16,7 +17,7 @@ interface InvestmentDepositsContextType {
   deposits: InvestmentDeposit[]
   loading: boolean
   fetchDeposits: () => Promise<void>
-  addDeposit: (deposit: Pick<InvestmentDeposit, 'channel_id' | 'amount' | 'date' | 'depositor'>) => Promise<void>
+  addDeposit: (deposit: Pick<InvestmentDeposit, 'channel_id' | 'amount' | 'date' | 'depositor' | 'salary_id'>) => Promise<void>
   deleteDeposit: (id: string) => Promise<void>
   removeByChannelId: (channelId: string) => void
 }
@@ -44,7 +45,7 @@ export function InvestmentDepositsProvider({ children }: { children: ReactNode }
     setLoading(false)
   }, [fetched, user])
 
-  const addDeposit = async (deposit: Pick<InvestmentDeposit, 'channel_id' | 'amount' | 'date' | 'depositor'>) => {
+  const addDeposit = async (deposit: Pick<InvestmentDeposit, 'channel_id' | 'amount' | 'date' | 'depositor' | 'salary_id'>) => {
     if (!user) return
     const { data, error } = await supabase
       .from('investment_deposits')

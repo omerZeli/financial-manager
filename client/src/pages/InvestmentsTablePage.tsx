@@ -3,6 +3,7 @@ import { NavLink } from 'react-router-dom'
 import { useInvestmentChannels } from '../contexts/InvestmentChannelsContext'
 import { useInvestmentDeposits } from '../contexts/InvestmentDepositsContext'
 import { useInvestmentValues } from '../contexts/InvestmentValuesContext'
+import { useSalary } from '../contexts/SalaryContext'
 import { useDropdownOptions } from '../hooks/useDropdownOptions'
 import { CustomSelect } from '../components/common/CustomSelect'
 import { ReadOnlySelect } from '../components/common/ReadOnlySelect'
@@ -36,6 +37,7 @@ export function InvestmentsTablePage() {
   const { valueUpdates, loading: valLoading, fetchValueUpdates, addValueUpdate, deleteValueUpdate, removeByChannelId: removeValuesByChannel } = useInvestmentValues()
   const { options: companyOptions, loading: companyLoading, addOption: addCompany, removeOption: removeCompany } = useDropdownOptions('investment_company')
   const { options: depositorOptions, loading: depositorLoading, addOption: addDepositor, removeOption: removeDepositor } = useDropdownOptions('investment_depositor')
+  const { salaries, fetchSalaries } = useSalary()
 
   const [modal, setModal] = useState<ModalType>(null)
   const [activeTab, setActiveTab] = useState<ActiveTab>('channels')
@@ -53,6 +55,8 @@ export function InvestmentsTablePage() {
   const [depDate, setDepDate] = useState('')
   const [depDepositor, setDepDepositor] = useState('')
   const [depSaving, setDepSaving] = useState(false)
+  const [depDeductedFromSalary, setDepDeductedFromSalary] = useState(false)
+  const [depSelectedSalaryId, setDepSelectedSalaryId] = useState('')
 
   // Value update form
   const [valChannel, setValChannel] = useState('')
@@ -68,6 +72,7 @@ export function InvestmentsTablePage() {
   useEffect(() => { fetchChannels() }, [fetchChannels])
   useEffect(() => { fetchDeposits() }, [fetchDeposits])
   useEffect(() => { fetchValueUpdates() }, [fetchValueUpdates])
+  useEffect(() => { fetchSalaries() }, [fetchSalaries])
 
   // Close picker on outside click
   useEffect(() => {
@@ -97,8 +102,35 @@ export function InvestmentsTablePage() {
   }, [channels, deposits, valueUpdates])
 
   const resetChannelForm = () => { setChName(''); setChCompany(''); setChPath(''); setChIsPension(false) }
-  const resetDepositForm = () => { setDepChannel(''); setDepAmount(''); setDepDate(''); setDepDepositor('') }
+  const resetDepositForm = () => { setDepChannel(''); setDepAmount(''); setDepDate(''); setDepDepositor(''); setDepDeductedFromSalary(false); setDepSelectedSalaryId('') }
   const resetValueForm = () => { setValChannel(''); setValValue(''); setValPath(''); setValDate('') }
+
+  // Recent salaries (last 6 months)
+  const recentSalaries = useMemo(() => {
+    const now = new Date()
+    const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1)
+    const cutoff = sixMonthsAgo.toISOString().slice(0, 10)
+    return salaries.filter(s => s.month >= cutoff)
+  }, [salaries])
+
+  const salaryOptions = useMemo(() => {
+    return recentSalaries.map(s => {
+      const d = new Date(s.month + 'T00:00:00')
+      const monthLabel = d.toLocaleDateString('he-IL', { month: 'long', year: 'numeric' })
+      return { value: s.id, label: `${monthLabel} - ${s.employer}` }
+    })
+  }, [recentSalaries])
+
+  // Auto-select salary for deposit when date changes (previous month's salary)
+  useEffect(() => {
+    if (!depDeductedFromSalary || !depDate) { setDepSelectedSalaryId(''); return }
+    const d = new Date(depDate + 'T00:00:00')
+    const prev = new Date(d.getFullYear(), d.getMonth() - 1, 1)
+    const prevMonth = `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, '0')}`
+    const matching = recentSalaries.filter(s => s.month.slice(0, 7) === prevMonth)
+    if (matching.length === 1) setDepSelectedSalaryId(matching[0].id)
+    else setDepSelectedSalaryId('')
+  }, [depDeductedFromSalary, depDate, recentSalaries])
 
   const openValueFormForChannel = (channelId: string) => {
     const ch = channels.find(c => c.id === channelId)
@@ -127,7 +159,7 @@ export function InvestmentsTablePage() {
     e.preventDefault()
     if (!depChannel || !depAmount || !depDate || !depDepositor) return
     setDepSaving(true)
-    await addDeposit({ channel_id: depChannel, amount: Number(depAmount), date: depDate, depositor: depDepositor })
+    await addDeposit({ channel_id: depChannel, amount: Number(depAmount), date: depDate, depositor: depDepositor, salary_id: depDeductedFromSalary && depSelectedSalaryId ? depSelectedSalaryId : null })
     setDepSaving(false)
     setModal(null)
     resetDepositForm()
@@ -466,8 +498,34 @@ export function InvestmentsTablePage() {
               <label>תאריך</label>
               <DateInput value={depDate} onChange={setDepDate} required />
 
+              <div className="toggle-row">
+                <label className="toggle-label" htmlFor="dep-salary-deduct">נוכה מהמשכורת?</label>
+                <button
+                  type="button"
+                  id="dep-salary-deduct"
+                  role="switch"
+                  aria-checked={depDeductedFromSalary}
+                  className={`toggle-switch${depDeductedFromSalary ? ' active' : ''}`}
+                  onClick={() => { setDepDeductedFromSalary(prev => !prev); setDepSelectedSalaryId('') }}
+                >
+                  <span className="toggle-knob" />
+                </button>
+              </div>
+
+              {depDeductedFromSalary && (
+                <>
+                  <label>משכורת</label>
+                  <ReadOnlySelect
+                    options={salaryOptions}
+                    value={depSelectedSalaryId}
+                    placeholder="בחר משכורת"
+                    onChange={setDepSelectedSalaryId}
+                  />
+                </>
+              )}
+
               <div className="modal-actions">
-                <button type="submit" className="btn-primary" disabled={depSaving || !depChannel || !depDepositor}>
+                <button type="submit" className="btn-primary" disabled={depSaving || !depChannel || !depDepositor || (depDeductedFromSalary && !depSelectedSalaryId)}>
                   {depSaving ? 'שומר...' : 'שמור'}
                 </button>
                 <button type="button" className="btn-cancel" onClick={() => { setModal(null); resetDepositForm() }}>ביטול</button>

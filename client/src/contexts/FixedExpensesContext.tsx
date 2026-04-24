@@ -11,6 +11,7 @@ export interface FixedExpense {
   amount: number
   start_date: string
   end_date: string | null
+  salary_employer: string | null
   created_at: string
 }
 
@@ -19,7 +20,7 @@ interface FixedExpensesContextType {
   inflatedExpenses: Expense[]
   loading: boolean
   fetchFixedExpenses: () => Promise<void>
-  addFixedExpense: (expense: Pick<FixedExpense, 'name' | 'category' | 'amount' | 'start_date' | 'end_date'>) => Promise<void>
+  addFixedExpense: (expense: Pick<FixedExpense, 'name' | 'category' | 'amount' | 'start_date' | 'end_date' | 'salary_employer'>) => Promise<void>
   updateFixedExpense: (id: string, fields: Partial<Pick<FixedExpense, 'name' | 'category' | 'amount' | 'start_date' | 'end_date'>>) => Promise<void>
   deleteFixedExpense: (id: string) => Promise<void>
 }
@@ -81,7 +82,7 @@ export function FixedExpensesProvider({ children }: { children: ReactNode }) {
     setLoading(false)
   }, [fetched, user])
 
-  const addFixedExpense = async (expense: Pick<FixedExpense, 'name' | 'category' | 'amount' | 'start_date' | 'end_date'>) => {
+  const addFixedExpense = async (expense: Pick<FixedExpense, 'name' | 'category' | 'amount' | 'start_date' | 'end_date' | 'salary_employer'>) => {
     if (!user) return
     const { data, error } = await supabase
       .from('fixed_expenses')

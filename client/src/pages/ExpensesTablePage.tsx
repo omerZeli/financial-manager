@@ -3,8 +3,10 @@ import { NavLink } from 'react-router-dom'
 import { useExpenses } from '../contexts/ExpensesContext'
 import { useFixedExpenses } from '../contexts/FixedExpensesContext'
 import { usePaybacks } from '../contexts/PaybacksContext'
+import { useSalary } from '../contexts/SalaryContext'
 import { useDropdownOptions } from '../hooks/useDropdownOptions'
 import { CustomSelect } from '../components/common/CustomSelect'
+import { ReadOnlySelect } from '../components/common/ReadOnlySelect'
 import { NumberInput } from '../components/common/NumberInput'
 import { ConfirmDialog } from '../components/common/ConfirmDialog'
 import DateInput from '../components/common/DateInput'
@@ -29,6 +31,7 @@ export function ExpensesTablePage() {
   const { expenses, loading, fetchExpenses, addExpense, deleteExpense } = useExpenses()
   const { fixedExpenses, inflatedExpenses, loading: fixedLoading, fetchFixedExpenses, addFixedExpense, updateFixedExpense, deleteFixedExpense } = useFixedExpenses()
   const { paybacks, loading: paybacksLoading, fetchPaybacks, addPayback, deletePayback, removeByExpenseId } = usePaybacks()
+  const { salaries, fetchSalaries } = useSalary()
   const { options: categoryOptions, loading: categoryLoading, addOption: addCategory, removeOption: removeCategory } = useDropdownOptions('expense_category')
   const { options: fixedCategoryOptions, loading: fixedCategoryLoading, addOption: addFixedCategory, removeOption: removeFixedCategory } = useDropdownOptions('fixed_expense_category')
   const { options: personOptions, loading: personLoading, addOption: addPerson, removeOption: removePerson } = useDropdownOptions('payback_person')
@@ -42,6 +45,8 @@ export function ExpensesTablePage() {
   const [amount, setAmount] = useState('')
   const [date, setDate] = useState('')
   const [saving, setSaving] = useState(false)
+  const [deductedFromSalary, setDeductedFromSalary] = useState(false)
+  const [selectedSalaryId, setSelectedSalaryId] = useState('')
 
   // Fixed expense form
   const [fixedName, setFixedName] = useState('')
@@ -51,6 +56,8 @@ export function ExpensesTablePage() {
   const [hasEndDate, setHasEndDate] = useState(false)
   const [fixedEndDate, setFixedEndDate] = useState('')
   const [fixedSaving, setFixedSaving] = useState(false)
+  const [fixedDeductedFromSalary, setFixedDeductedFromSalary] = useState(false)
+  const [fixedSalaryEmployer, setFixedSalaryEmployer] = useState('')
 
   // Payback form
   const [pbDirection, setPbDirection] = useState<'by_me' | 'to_me'>('by_me')
@@ -74,6 +81,7 @@ export function ExpensesTablePage() {
   useEffect(() => { fetchExpenses() }, [fetchExpenses])
   useEffect(() => { fetchFixedExpenses() }, [fetchFixedExpenses])
   useEffect(() => { fetchPaybacks() }, [fetchPaybacks])
+  useEffect(() => { fetchSalaries() }, [fetchSalaries])
 
   // Build a map of "to_me" payback totals per expense_id
   const toMeByExpense = useMemo(() => {
@@ -128,9 +136,49 @@ export function ExpensesTablePage() {
     return () => document.removeEventListener('mousedown', handler)
   }, [modal])
 
-  const resetExpenseForm = () => { setName(''); setCategory(''); setAmount(''); setDate('') }
-  const resetFixedForm = () => { setFixedName(''); setFixedCategory(''); setFixedAmount(''); setFixedStartDate(''); setHasEndDate(false); setFixedEndDate('') }
+  const resetExpenseForm = () => { setName(''); setCategory(''); setAmount(''); setDate(''); setDeductedFromSalary(false); setSelectedSalaryId('') }
+  const resetFixedForm = () => { setFixedName(''); setFixedCategory(''); setFixedAmount(''); setFixedStartDate(''); setHasEndDate(false); setFixedEndDate(''); setFixedDeductedFromSalary(false); setFixedSalaryEmployer('') }
   const resetPaybackForm = () => { setPbDirection('by_me'); setPbName(''); setPbCategory(''); setPbAmount(''); setPbDate(''); setPbPerson(''); setPbExpenseId('') }
+
+  // Recent salaries (last 6 months)
+  const recentSalaries = useMemo(() => {
+    const now = new Date()
+    const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1)
+    const cutoff = sixMonthsAgo.toISOString().slice(0, 10)
+    return salaries.filter(s => s.month >= cutoff)
+  }, [salaries])
+
+  const salaryOptions = useMemo(() => {
+    return recentSalaries.map(s => {
+      const d = new Date(s.month + 'T00:00:00')
+      const monthLabel = d.toLocaleDateString('he-IL', { month: 'long', year: 'numeric' })
+      return { value: s.id, label: `${monthLabel} - ${s.employer}` }
+    })
+  }, [recentSalaries])
+
+  // Auto-select salary for regular expense when date changes (previous month's salary)
+  useEffect(() => {
+    if (!deductedFromSalary || !date) { setSelectedSalaryId(''); return }
+    const d = new Date(date + 'T00:00:00')
+    const prev = new Date(d.getFullYear(), d.getMonth() - 1, 1)
+    const prevMonth = `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, '0')}`
+    const matching = recentSalaries.filter(s => s.month.slice(0, 7) === prevMonth)
+    if (matching.length === 1) setSelectedSalaryId(matching[0].id)
+    else setSelectedSalaryId('')
+  }, [deductedFromSalary, date, recentSalaries])
+
+  // Unique employer options from salaries
+  const employerOptions = useMemo(() => {
+    const unique = [...new Set(salaries.map(s => s.employer))]
+    return unique.map(e => ({ value: e, label: e }))
+  }, [salaries])
+
+  // Auto-select employer when there's only one
+  useEffect(() => {
+    if (!fixedDeductedFromSalary) { setFixedSalaryEmployer(''); return }
+    if (employerOptions.length === 1) setFixedSalaryEmployer(employerOptions[0].value)
+    else setFixedSalaryEmployer('')
+  }, [fixedDeductedFromSalary, employerOptions])
 
   const openEditFixed = (id: string) => {
     const fe = fixedExpenses.find(e => e.id === id)
@@ -159,7 +207,7 @@ export function ExpensesTablePage() {
     e.preventDefault()
     if (!name || !category || !amount || !date) return
     setSaving(true)
-    await addExpense({ name, category, amount: Number(amount), date })
+    await addExpense({ name, category, amount: Number(amount), date, salary_id: deductedFromSalary && selectedSalaryId ? selectedSalaryId : null })
     setSaving(false)
     setModal(null)
     resetExpenseForm()
@@ -175,6 +223,7 @@ export function ExpensesTablePage() {
       amount: Number(fixedAmount),
       start_date: fixedStartDate,
       end_date: hasEndDate && fixedEndDate ? fixedEndDate : null,
+      salary_employer: fixedDeductedFromSalary && fixedSalaryEmployer ? fixedSalaryEmployer : null,
     })
     setFixedSaving(false)
     setModal(null)
@@ -503,8 +552,34 @@ export function ExpensesTablePage() {
               <label>תאריך</label>
               <DateInput value={date} onChange={setDate} required />
 
+              <div className="toggle-row">
+                <label className="toggle-label" htmlFor="exp-salary-deduct">נוכה מהמשכורת?</label>
+                <button
+                  type="button"
+                  id="exp-salary-deduct"
+                  role="switch"
+                  aria-checked={deductedFromSalary}
+                  className={`toggle-switch${deductedFromSalary ? ' active' : ''}`}
+                  onClick={() => { setDeductedFromSalary(prev => !prev); setSelectedSalaryId('') }}
+                >
+                  <span className="toggle-knob" />
+                </button>
+              </div>
+
+              {deductedFromSalary && (
+                <>
+                  <label>משכורת</label>
+                  <ReadOnlySelect
+                    options={salaryOptions}
+                    value={selectedSalaryId}
+                    placeholder="בחר משכורת"
+                    onChange={setSelectedSalaryId}
+                  />
+                </>
+              )}
+
               <div className="modal-actions">
-                <button type="submit" className="btn-primary" disabled={saving || !category}>
+                <button type="submit" className="btn-primary" disabled={saving || !category || (deductedFromSalary && !selectedSalaryId)}>
                   {saving ? 'שומר...' : 'שמור'}
                 </button>
                 <button type="button" className="btn-cancel" onClick={() => { setModal(null); resetExpenseForm() }}>ביטול</button>
@@ -562,8 +637,34 @@ export function ExpensesTablePage() {
                 </>
               )}
 
+              <div className="toggle-row">
+                <label className="toggle-label" htmlFor="fixed-salary-deduct">נוכה מהמשכורת?</label>
+                <button
+                  type="button"
+                  id="fixed-salary-deduct"
+                  role="switch"
+                  aria-checked={fixedDeductedFromSalary}
+                  className={`toggle-switch${fixedDeductedFromSalary ? ' active' : ''}`}
+                  onClick={() => { setFixedDeductedFromSalary(prev => !prev); setFixedSalaryEmployer('') }}
+                >
+                  <span className="toggle-knob" />
+                </button>
+              </div>
+
+              {fixedDeductedFromSalary && (
+                <>
+                  <label>מעסיק</label>
+                  <ReadOnlySelect
+                    options={employerOptions}
+                    value={fixedSalaryEmployer}
+                    placeholder="בחר מעסיק"
+                    onChange={setFixedSalaryEmployer}
+                  />
+                </>
+              )}
+
               <div className="modal-actions">
-                <button type="submit" className="btn-primary" disabled={fixedSaving || !fixedCategory}>
+                <button type="submit" className="btn-primary" disabled={fixedSaving || !fixedCategory || (fixedDeductedFromSalary && !fixedSalaryEmployer)}>
                   {fixedSaving ? 'שומר...' : 'שמור'}
                 </button>
                 <button type="button" className="btn-cancel" onClick={() => { setModal(null); resetFixedForm() }}>ביטול</button>

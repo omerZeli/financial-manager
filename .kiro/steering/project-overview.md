@@ -137,12 +137,12 @@ The expenses section supports two types of expenses, managed via a **FAB type pi
 - This pattern should be reused for any section that supports multiple entry types.
 
 #### Regular Expenses (`expenses` table)
-- Fields: `name`, `category`, `amount`, `date`
+- Fields: `name`, `category`, `amount`, `date`, `salary_id` (nullable FK to salaries)
 - Context: `ExpensesContext` (`src/contexts/ExpensesContext.tsx`)
 - Dropdown category: `expense_category`
 
 #### Fixed Expenses (`fixed_expenses` table)
-- Fields: `name`, `category`, `amount`, `start_date`, `end_date` (nullable)
+- Fields: `name`, `category`, `amount`, `start_date`, `end_date` (nullable), `salary_employer` (nullable text — employer name for salary deduction)
 - Context: `FixedExpensesContext` (`src/contexts/FixedExpensesContext.tsx`)
 - Dropdown category: `fixed_expense_category`
 - The add form has a **toggle switch** ("יש תאריך סיום?") that conditionally shows the end date field.
@@ -187,7 +187,7 @@ The investments section tracks investment channels, deposits, and value updates.
 - The add form has a **toggle switch** ("אפיק פנסיוני?") for the pension flag.
 
 #### Investment Deposits (`investment_deposits` table)
-- Fields: `channel_id` (FK to investment_channels), `amount`, `date`
+- Fields: `channel_id` (FK to investment_channels), `amount`, `date`, `depositor`, `salary_id` (nullable FK to salaries)
 - Context: `InvestmentDepositsContext` (`src/contexts/InvestmentDepositsContext.tsx`)
 - The add form uses a native `<select>` to pick from existing channels.
 
@@ -236,6 +236,13 @@ The investments section tracks investment channels, deposits, and value updates.
 - The underlying state stores the **raw numeric string** (no commas), so `Number()` conversion on submit works as before.
 - Props: `value` (raw string), `onChange` (receives raw string), `placeholder`, `required`.
 - When adding a new numeric field to any form, always use `<NumberInput>` instead of `<input type="number">`.
+
+## Salary Deduction Toggle
+- The add forms for **regular expenses**, **fixed expenses**, and **investment deposits** include a toggle switch ("נוכה מהמשכורת?") that asks whether the item was deducted from a salary.
+- **Regular expenses & investment deposits**: When the toggle is enabled, a `ReadOnlySelect` dropdown appears showing the user's salaries from the **last 6 months**, formatted as `"חודש שנה - מעסיק"`. The selected salary ID is stored in the `salary_id` column (nullable FK to `salaries`, `ON DELETE SET NULL`). If there is exactly **one salary** in the **previous month** relative to the expense/deposit date, it is **auto-selected**.
+- **Fixed expenses**: Since fixed expenses recur monthly, linking to a single salary doesn't make sense. Instead, when the toggle is enabled, a `ReadOnlySelect` dropdown shows the user's **unique employer names** (derived from all salaries). The selected employer is stored in the `salary_employer` column (nullable text). Each inflated monthly expense is implicitly linked to that employer's previous-month salary. If there is only **one employer**, it is **auto-selected**.
+- The submit button is disabled when the toggle is on but no salary/employer is selected.
+- When adding a new form that needs salary deduction, follow this same pattern: toggle → conditional ReadOnlySelect → auto-select on single match.
 
 ## Delete Confirmation
 - Every delete button in every table page shows a **confirmation dialog** before actually deleting.

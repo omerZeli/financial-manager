@@ -9,6 +9,7 @@ export interface Expense {
   category: string
   amount: number
   date: string
+  salary_id: string | null
   created_at: string
 }
 
@@ -16,7 +17,7 @@ interface ExpensesContextType {
   expenses: Expense[]
   loading: boolean
   fetchExpenses: () => Promise<void>
-  addExpense: (expense: Pick<Expense, 'name' | 'category' | 'amount' | 'date'>) => Promise<void>
+  addExpense: (expense: Pick<Expense, 'name' | 'category' | 'amount' | 'date' | 'salary_id'>) => Promise<void>
   deleteExpense: (id: string) => Promise<void>
 }
 
@@ -43,7 +44,7 @@ export function ExpensesProvider({ children }: { children: ReactNode }) {
     setLoading(false)
   }, [fetched, user])
 
-  const addExpense = async (expense: Pick<Expense, 'name' | 'category' | 'amount' | 'date'>) => {
+  const addExpense = async (expense: Pick<Expense, 'name' | 'category' | 'amount' | 'date' | 'salary_id'>) => {
     if (!user) return
     const { data, error } = await supabase
       .from('expenses')
