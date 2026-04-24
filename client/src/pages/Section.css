@@ -101,6 +101,17 @@
   text-align: center;
 }
 
+.section-table .col-actions.actions-group {
+  width: 72px;
+}
+
+.actions-group {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
 .delete-btn {
   background: none;
   border: none;
@@ -117,6 +128,24 @@
 .delete-btn:hover {
   color: var(--error);
   background: var(--error-bg);
+}
+
+.edit-btn {
+  background: none;
+  border: none;
+  color: var(--text);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s, background 0.15s;
+}
+
+.edit-btn:hover {
+  color: var(--accent);
+  background: var(--accent-bg);
 }
 
 .section-empty {

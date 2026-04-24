@@ -156,7 +156,7 @@ The expenses section supports two types of expenses, managed via a **FAB type pi
 - The charts page also accounts for paybacks: by_me adds to totals, to_me reduces original expense amounts.
 
 #### Sub-Tabs
-- The expenses table page has four sub-tabs: **"כל ההוצאות"** (all expenses — real + inflated + by_me paybacks, with to_me reductions), **"הוצאות רגילות"** (only the original regular expenses, no paybacks or inflation), **"הוצאות קבועות"** (fixed expense definitions), and **"החזרים"** (payback records).
+- The expenses table page has four sub-tabs: **"כל ההוצאות"** (all expenses — real + inflated + by_me paybacks, with to_me reductions), **"הוצאות רגילות"** (only the original regular expenses, no paybacks or inflation), **"הוצאות קבועות"** (fixed expense definitions), and **"העברות"** (payback records).
 - The fixed expenses tab shows the raw fixed expense records with columns: name, category, amount, start date, end date.
 - The paybacks tab shows all payback records with columns: direction (badge), details, amount, date, person.
 

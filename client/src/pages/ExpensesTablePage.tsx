@@ -204,7 +204,7 @@ export function ExpensesTablePage() {
           הוצאות קבועות
         </button>
         <button className={`sub-tab${activeTab === 'paybacks' ? ' active' : ''}`} onClick={() => setActiveTab('paybacks')}>
-          החזרים
+          העברות
         </button>
       </div>
 
@@ -312,7 +312,7 @@ export function ExpensesTablePage() {
       ) : (
         /* Paybacks tab */
         paybacks.length === 0 ? (
-          <div className="section-empty">אין החזרים עדיין. לחץ על + כדי להוסיף.</div>
+          <div className="section-empty">אין העברות עדיין. לחץ על + כדי להוסיף.</div>
         ) : (
           <div className="section-table-wrap">
             <table className="section-table">
