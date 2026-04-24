@@ -411,7 +411,6 @@ export function InvestmentsTablePage() {
               </svg>
               הפקדה
             </button>
-
           </div>
         )}
         <button className="section-fab" onClick={() => setModal(modal === 'picker' ? null : 'picker')} title="הוסף">+</button>

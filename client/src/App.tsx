@@ -16,6 +16,7 @@ import { ExpensesChartsPage } from './pages/ExpensesChartsPage'
 import { InvestmentChannelsProvider } from './contexts/InvestmentChannelsContext'
 import { InvestmentDepositsProvider } from './contexts/InvestmentDepositsContext'
 import { InvestmentValuesProvider } from './contexts/InvestmentValuesContext'
+import { ExpenseTypesProvider } from './contexts/ExpenseTypesContext'
 import { InvestmentsTablePage } from './pages/InvestmentsTablePage'
 import { InvestmentsChartsPage } from './pages/InvestmentsChartsPage'
 
@@ -48,7 +49,9 @@ function App() {
                         <InvestmentChannelsProvider>
                           <InvestmentDepositsProvider>
                             <InvestmentValuesProvider>
-                              <AppLayout />
+                              <ExpenseTypesProvider>
+                                <AppLayout />
+                              </ExpenseTypesProvider>
                             </InvestmentValuesProvider>
                           </InvestmentDepositsProvider>
                         </InvestmentChannelsProvider>

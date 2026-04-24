@@ -3,11 +3,13 @@ import { NavLink } from 'react-router-dom'
 import { useExpenses } from '../contexts/ExpensesContext'
 import { useFixedExpenses } from '../contexts/FixedExpensesContext'
 import { usePaybacks } from '../contexts/PaybacksContext'
+import { useExpenseTypes } from '../contexts/ExpenseTypesContext'
 import { useSalary } from '../contexts/SalaryContext'
 import { useDropdownOptions } from '../hooks/useDropdownOptions'
 import { CustomSelect } from '../components/common/CustomSelect'
 import { ReadOnlySelect } from '../components/common/ReadOnlySelect'
 import { NumberInput } from '../components/common/NumberInput'
+import { MultiSelect } from '../components/common/MultiSelect'
 import { ConfirmDialog } from '../components/common/ConfirmDialog'
 import DateInput from '../components/common/DateInput'
 import './Section.css'
@@ -24,7 +26,7 @@ function formatCurrency(n: number) {
   return n.toLocaleString('he-IL', { style: 'currency', currency: 'ILS', minimumFractionDigits: 0 })
 }
 
-type ModalType = null | 'picker' | 'expense' | 'fixed' | 'payback'
+type ModalType = null | 'picker' | 'expense' | 'fixed' | 'payback' | 'expense_type'
 type ActiveTab = 'all' | 'regular' | 'fixed' | 'paybacks'
 
 export function ExpensesTablePage() {
@@ -35,6 +37,8 @@ export function ExpensesTablePage() {
   const { options: categoryOptions, loading: categoryLoading, addOption: addCategory, removeOption: removeCategory } = useDropdownOptions('expense_category')
   const { options: fixedCategoryOptions, loading: fixedCategoryLoading, addOption: addFixedCategory, removeOption: removeFixedCategory } = useDropdownOptions('fixed_expense_category')
   const { options: personOptions, loading: personLoading, addOption: addPerson, removeOption: removePerson } = useDropdownOptions('payback_person')
+  const { options: expenseTypeOptions, loading: etTypeLoading, addOption: addExpenseTypeOption, removeOption: removeExpenseTypeOption } = useDropdownOptions('expense_type')
+  const { expenseTypes, fetchExpenseTypes, addExpenseType, updateExpenseType, deleteExpenseType } = useExpenseTypes()
 
   const [modal, setModal] = useState<ModalType>(null)
   const [activeTab, setActiveTab] = useState<ActiveTab>('all')
@@ -76,11 +80,17 @@ export function ExpensesTablePage() {
   const [editFixedEndDate, setEditFixedEndDate] = useState('')
   const [editFixedSaving, setEditFixedSaving] = useState(false)
 
+  // Expense type form
+  const [etTypeName, setEtTypeName] = useState('')
+  const [etCategories, setEtCategories] = useState<string[]>([])
+  const [etSaving, setEtSaving] = useState(false)
+
   const pickerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => { fetchExpenses() }, [fetchExpenses])
   useEffect(() => { fetchFixedExpenses() }, [fetchFixedExpenses])
   useEffect(() => { fetchPaybacks() }, [fetchPaybacks])
+  useEffect(() => { fetchExpenseTypes() }, [fetchExpenseTypes])
   useEffect(() => { fetchSalaries() }, [fetchSalaries])
 
   // Build a map of "to_me" payback totals per expense_id
@@ -201,6 +211,40 @@ export function ExpensesTablePage() {
     })
     setEditFixedSaving(false)
     resetEditFixed()
+  }
+
+  // Expense type helpers
+  const resetExpenseTypeForm = () => { setEtTypeName(''); setEtCategories([]) }
+
+  const allCategoryLabels = useMemo(() => {
+    const set = new Set<string>()
+    for (const o of categoryOptions) set.add(o.label)
+    for (const o of fixedCategoryOptions) set.add(o.label)
+    return Array.from(set).sort((a, b) => a.localeCompare(b))
+  }, [categoryOptions, fixedCategoryOptions])
+
+  const existingType = useMemo(() => expenseTypes.find(et => et.type_name === etTypeName), [expenseTypes, etTypeName])
+
+  useEffect(() => {
+    if (existingType) {
+      setEtCategories(existingType.categories)
+    } else {
+      setEtCategories([])
+    }
+  }, [existingType])
+
+  const handleExpenseTypeSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!etTypeName || etCategories.length === 0) return
+    setEtSaving(true)
+    if (existingType) {
+      await updateExpenseType(existingType.id, etCategories)
+    } else {
+      await addExpenseType(etTypeName, etCategories)
+    }
+    setEtSaving(false)
+    setModal(null)
+    resetExpenseTypeForm()
   }
 
   const handleExpenseSubmit = async (e: React.FormEvent) => {
@@ -520,6 +564,12 @@ export function ExpensesTablePage() {
               </svg>
               החזר
             </button>
+            <button className="fab-menu-item" onClick={() => setModal('expense_type')}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 5H2v7l6.29 6.29c.94.94 2.48.94 3.42 0l4.58-4.58c.94-.94.94-2.48 0-3.42L9 5Z" /><circle cx="6" cy="9" r="1" />
+              </svg>
+              סוגי הוצאות
+            </button>
           </div>
         )}
         <button className="section-fab" onClick={() => setModal(modal === 'picker' ? null : 'picker')} title="הוסף הוצאה">+</button>
@@ -783,6 +833,52 @@ export function ExpensesTablePage() {
                   {editFixedSaving ? 'שומר...' : 'שמור'}
                 </button>
                 <button type="button" className="btn-cancel" onClick={resetEditFixed}>ביטול</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Expense type modal */}
+      {modal === 'expense_type' && (
+        <div className="modal-overlay" onClick={() => { setModal(null); resetExpenseTypeForm() }}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <button className="modal-close" onClick={() => { setModal(null); resetExpenseTypeForm() }} title="סגור">&times;</button>
+            <h2>{existingType ? 'עריכת סוג הוצאות' : 'סוג הוצאות חדש'}</h2>
+            <form onSubmit={handleExpenseTypeSubmit}>
+              <label>סוג</label>
+              <CustomSelect
+                options={expenseTypeOptions}
+                value={etTypeName}
+                placeholder="הכנס סוג הוצאות"
+                onChange={setEtTypeName}
+                onAddOption={addExpenseTypeOption}
+                onRemoveOption={async (id) => {
+                  const opt = expenseTypeOptions.find(o => o.id === id)
+                  const removed = await removeExpenseTypeOption(id)
+                  if (removed && opt) {
+                    const et = expenseTypes.find(e => e.type_name === opt.label)
+                    if (et) await deleteExpenseType(et.id)
+                    if (opt.label === etTypeName) setEtTypeName('')
+                  }
+                  return removed
+                }}
+                loading={etTypeLoading}
+              />
+
+              <label>קטגוריות</label>
+              <MultiSelect
+                options={allCategoryLabels}
+                value={etCategories}
+                placeholder="בחר קטגוריות"
+                onChange={setEtCategories}
+              />
+
+              <div className="modal-actions">
+                <button type="submit" className="btn-primary" disabled={etSaving || !etTypeName || etCategories.length === 0}>
+                  {etSaving ? 'שומר...' : 'שמור'}
+                </button>
+                <button type="button" className="btn-cancel" onClick={() => { setModal(null); resetExpenseTypeForm() }}>ביטול</button>
               </div>
             </form>
           </div>

@@ -208,6 +208,19 @@ The investments section tracks investment channels, deposits, and value updates.
 - Horizontal bar chart: current value per channel.
 - Horizontal bar chart: return percentage per channel (green for positive, red for negative).
 
+### Expense Types
+
+Expense types allow users to group expense categories into named types for use in charts and analysis.
+
+#### Expense Types (`expense_types` table)
+- Fields: `type_name` (text, unique per user), `categories` (text array of category names)
+- Context: `ExpenseTypesContext` (`src/contexts/ExpenseTypesContext.tsx`)
+- The type name uses a `CustomSelect` with dropdown category `expense_type`.
+- Categories are selected via a `MultiSelect` component (`components/common/MultiSelect.tsx`) that shows all expense categories (regular + fixed).
+- When an existing type is selected, its categories are loaded for editing.
+- The form is accessible from the expenses page FAB type picker under "סוגי הוצאות".
+- Removing a type option from the `CustomSelect` also deletes the corresponding `expense_types` DB row.
+
 ## Key Principles
 - **This file is the single source of truth for project-wide decisions.** Whenever a change is made that affects the overall architecture, data model, shared patterns, or conventions of the project, this file must be updated automatically to reflect it.
 - Keep the UI simple, clean, and accessible in Hebrew/RTL.
