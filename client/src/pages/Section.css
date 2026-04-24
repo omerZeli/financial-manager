@@ -60,8 +60,15 @@
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  overflow: hidden;
+  overflow: auto;
   box-shadow: var(--shadow-sm);
+  max-height: calc(100svh - 220px);
+}
+
+.section-table-wrap thead {
+  position: sticky;
+  top: 0;
+  z-index: 1;
 }
 
 .section-table {
@@ -287,6 +294,8 @@
   padding: 2rem;
   width: 100%;
   max-width: 420px;
+  max-height: calc(100svh - 2rem);
+  overflow-y: auto;
   box-shadow: var(--shadow-lg);
   position: relative;
 }
