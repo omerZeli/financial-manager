@@ -16,6 +16,7 @@ interface InvestmentValuesContextType {
   loading: boolean
   fetchValueUpdates: () => Promise<void>
   addValueUpdate: (update: Pick<InvestmentValueUpdate, 'channel_id' | 'value' | 'date'>) => Promise<void>
+  updateValueUpdate: (id: string, updates: Pick<InvestmentValueUpdate, 'value' | 'date'>) => Promise<void>
   deleteValueUpdate: (id: string) => Promise<void>
   removeByChannelId: (channelId: string) => void
 }
@@ -55,6 +56,18 @@ export function InvestmentValuesProvider({ children }: { children: ReactNode }) 
     }
   }
 
+  const updateValueUpdate = async (id: string, updates: Pick<InvestmentValueUpdate, 'value' | 'date'>) => {
+    const { data, error } = await supabase
+      .from('investment_value_updates')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single()
+    if (!error && data) {
+      setValueUpdates(prev => prev.map(v => v.id === id ? data : v).sort((a, b) => b.date.localeCompare(a.date)))
+    }
+  }
+
   const deleteValueUpdate = async (id: string) => {
     const { error } = await supabase.from('investment_value_updates').delete().eq('id', id)
     if (!error) {
@@ -67,7 +80,7 @@ export function InvestmentValuesProvider({ children }: { children: ReactNode }) 
   }
 
   return (
-    <InvestmentValuesContext.Provider value={{ valueUpdates, loading, fetchValueUpdates, addValueUpdate, deleteValueUpdate, removeByChannelId }}>
+    <InvestmentValuesContext.Provider value={{ valueUpdates, loading, fetchValueUpdates, addValueUpdate, updateValueUpdate, deleteValueUpdate, removeByChannelId }}>
       {children}
     </InvestmentValuesContext.Provider>
   )

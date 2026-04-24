@@ -188,9 +188,11 @@ The investments section tracks investment channels, deposits, and value updates.
 - The add form uses a native `<select>` to pick from existing channels.
 
 #### Sub-Tabs
-- The investments table page has two sub-tabs: **"אפיקי השקעה"** (channels summary) and **"הפקדות"** (deposits list).
+- The investments table page has three sub-tabs: **"אפיקי השקעה"** (channels summary), **"הפקדות"** (deposits list), and **"עדכוני ערך"** (value updates list).
 - The channels tab shows a computed summary per channel: name, company, total deposits, current value (latest value update), last update date, absolute return, return percentage.
 - The deposits tab shows all deposit records with columns: channel name, amount, date.
+- The value updates tab shows all value update records with columns: channel name, value, date. Each row has an **edit button** (pencil icon) that opens an edit modal with value and date fields, and a **delete button** (trash icon) with confirmation dialog.
+- The context exposes `updateValueUpdate` for editing value updates.
 
 #### Charts Page
 - Summary cards: total deposited, total current value, total return (absolute + percentage).

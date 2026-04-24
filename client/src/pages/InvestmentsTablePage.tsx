@@ -27,12 +27,12 @@ function formatPercent(n: number) {
 }
 
 type ModalType = null | 'picker' | 'channel' | 'deposit' | 'value'
-type ActiveTab = 'channels' | 'deposits'
+type ActiveTab = 'channels' | 'deposits' | 'values'
 
 export function InvestmentsTablePage() {
   const { channels, loading: chLoading, fetchChannels, addChannel, updateChannel, deleteChannel } = useInvestmentChannels()
   const { deposits, loading: depLoading, fetchDeposits, addDeposit, deleteDeposit, removeByChannelId: removeDepositsByChannel } = useInvestmentDeposits()
-  const { valueUpdates, loading: valLoading, fetchValueUpdates, addValueUpdate, removeByChannelId: removeValuesByChannel } = useInvestmentValues()
+  const { valueUpdates, loading: valLoading, fetchValueUpdates, addValueUpdate, deleteValueUpdate, removeByChannelId: removeValuesByChannel } = useInvestmentValues()
   const { options: companyOptions, loading: companyLoading, addOption: addCompany, removeOption: removeCompany } = useDropdownOptions('investment_company')
 
   const [modal, setModal] = useState<ModalType>(null)
@@ -58,7 +58,7 @@ export function InvestmentsTablePage() {
   const [valDate, setValDate] = useState('')
   const [valSaving, setValSaving] = useState(false)
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
-  const [pendingDeleteType, setPendingDeleteType] = useState<'channel' | 'deposit' | null>(null)
+  const [pendingDeleteType, setPendingDeleteType] = useState<'channel' | 'deposit' | 'value' | null>(null)
 
   const pickerRef = useRef<HTMLDivElement>(null)
 
@@ -168,6 +168,9 @@ export function InvestmentsTablePage() {
         <button className={`sub-tab${activeTab === 'deposits' ? ' active' : ''}`} onClick={() => setActiveTab('deposits')}>
           הפקדות
         </button>
+        <button className={`sub-tab${activeTab === 'values' ? ' active' : ''}`} onClick={() => setActiveTab('values')}>
+          עדכוני ערך
+        </button>
       </div>
 
       {isLoading ? (
@@ -227,7 +230,7 @@ export function InvestmentsTablePage() {
             </table>
           </div>
         )
-      ) : (
+      ) : activeTab === 'deposits' ? (
         /* Deposits tab */
         deposits.length === 0 ? (
           <div className="section-empty">אין הפקדות עדיין. לחץ על + כדי להוסיף.</div>
@@ -264,7 +267,44 @@ export function InvestmentsTablePage() {
             </table>
           </div>
         )
-      )}
+      ) : activeTab === 'values' ? (
+        /* Value updates tab */
+        valueUpdates.length === 0 ? (
+          <div className="section-empty">אין עדכוני ערך עדיין. לחץ על + כדי להוסיף.</div>
+        ) : (
+          <div className="section-table-wrap">
+            <table className="section-table">
+              <thead>
+                <tr>
+                  <th>אפיק</th>
+                  <th>שווי</th>
+                  <th>תאריך</th>
+                  <th className="col-actions"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {valueUpdates.map(vu => {
+                  const ch = channels.find(c => c.id === vu.channel_id)
+                  return (
+                    <tr key={vu.id}>
+                      <td>{ch ? ch.name : 'אפיק שנמחק'}</td>
+                      <td className="num-cell">{formatCurrency(vu.value)}</td>
+                      <td>{formatDate(vu.date)}</td>
+                      <td className="col-actions">
+                        <button className="delete-btn" onClick={() => { setPendingDeleteId(vu.id); setPendingDeleteType('value') }} title="מחק">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                          </svg>
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )
+      ) : null}
 
       {pendingDeleteId && pendingDeleteType && (
         <ConfirmDialog
@@ -279,6 +319,12 @@ export function InvestmentsTablePage() {
               if (!dep) return undefined
               const ch = channels.find(c => c.id === dep.channel_id)
               return `הפקדה - ${formatCurrency(dep.amount)} (${ch ? ch.name : ''}, ${formatDate(dep.date)})`
+            }
+            if (pendingDeleteType === 'value') {
+              const vu = valueUpdates.find(v => v.id === pendingDeleteId)
+              if (!vu) return undefined
+              const ch = channels.find(c => c.id === vu.channel_id)
+              return `עדכון שווי - ${formatCurrency(vu.value)} (${ch ? ch.name : ''}, ${formatDate(vu.date)})`
             }
             return undefined
           })()}
@@ -304,6 +350,7 @@ export function InvestmentsTablePage() {
               removeValuesByChannel(pendingDeleteId)
             }
             else if (pendingDeleteType === 'deposit') deleteDeposit(pendingDeleteId)
+            else if (pendingDeleteType === 'value') deleteValueUpdate(pendingDeleteId)
             setPendingDeleteId(null)
             setPendingDeleteType(null)
           }}
