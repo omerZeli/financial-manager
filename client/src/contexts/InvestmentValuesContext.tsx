@@ -17,6 +17,7 @@ interface InvestmentValuesContextType {
   fetchValueUpdates: () => Promise<void>
   addValueUpdate: (update: Pick<InvestmentValueUpdate, 'channel_id' | 'value' | 'date'>) => Promise<void>
   deleteValueUpdate: (id: string) => Promise<void>
+  removeByChannelId: (channelId: string) => void
 }
 
 const InvestmentValuesContext = createContext<InvestmentValuesContextType | undefined>(undefined)
@@ -61,8 +62,12 @@ export function InvestmentValuesProvider({ children }: { children: ReactNode }) 
     }
   }
 
+  const removeByChannelId = (channelId: string) => {
+    setValueUpdates(prev => prev.filter(v => v.channel_id !== channelId))
+  }
+
   return (
-    <InvestmentValuesContext.Provider value={{ valueUpdates, loading, fetchValueUpdates, addValueUpdate, deleteValueUpdate }}>
+    <InvestmentValuesContext.Provider value={{ valueUpdates, loading, fetchValueUpdates, addValueUpdate, deleteValueUpdate, removeByChannelId }}>
       {children}
     </InvestmentValuesContext.Provider>
   )

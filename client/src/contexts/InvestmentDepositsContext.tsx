@@ -17,6 +17,7 @@ interface InvestmentDepositsContextType {
   fetchDeposits: () => Promise<void>
   addDeposit: (deposit: Pick<InvestmentDeposit, 'channel_id' | 'amount' | 'date'>) => Promise<void>
   deleteDeposit: (id: string) => Promise<void>
+  removeByChannelId: (channelId: string) => void
 }
 
 const InvestmentDepositsContext = createContext<InvestmentDepositsContextType | undefined>(undefined)
@@ -61,8 +62,12 @@ export function InvestmentDepositsProvider({ children }: { children: ReactNode }
     }
   }
 
+  const removeByChannelId = (channelId: string) => {
+    setDeposits(prev => prev.filter(d => d.channel_id !== channelId))
+  }
+
   return (
-    <InvestmentDepositsContext.Provider value={{ deposits, loading, fetchDeposits, addDeposit, deleteDeposit }}>
+    <InvestmentDepositsContext.Provider value={{ deposits, loading, fetchDeposits, addDeposit, deleteDeposit, removeByChannelId }}>
       {children}
     </InvestmentDepositsContext.Provider>
   )

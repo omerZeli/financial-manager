@@ -31,8 +31,8 @@ type ActiveTab = 'channels' | 'deposits'
 
 export function InvestmentsTablePage() {
   const { channels, loading: chLoading, fetchChannels, addChannel, updateChannel, deleteChannel } = useInvestmentChannels()
-  const { deposits, loading: depLoading, fetchDeposits, addDeposit, deleteDeposit } = useInvestmentDeposits()
-  const { valueUpdates, loading: valLoading, fetchValueUpdates, addValueUpdate } = useInvestmentValues()
+  const { deposits, loading: depLoading, fetchDeposits, addDeposit, deleteDeposit, removeByChannelId: removeDepositsByChannel } = useInvestmentDeposits()
+  const { valueUpdates, loading: valLoading, fetchValueUpdates, addValueUpdate, removeByChannelId: removeValuesByChannel } = useInvestmentValues()
   const { options: companyOptions, loading: companyLoading, addOption: addCompany, removeOption: removeCompany } = useDropdownOptions('investment_company')
 
   const [modal, setModal] = useState<ModalType>(null)
@@ -270,7 +270,11 @@ export function InvestmentsTablePage() {
         <ConfirmDialog
           message="האם אתה בטוח שברצונך למחוק?"
           onConfirm={() => {
-            if (pendingDeleteType === 'channel') deleteChannel(pendingDeleteId)
+            if (pendingDeleteType === 'channel') {
+              deleteChannel(pendingDeleteId)
+              removeDepositsByChannel(pendingDeleteId)
+              removeValuesByChannel(pendingDeleteId)
+            }
             else if (pendingDeleteType === 'deposit') deleteDeposit(pendingDeleteId)
             setPendingDeleteId(null)
             setPendingDeleteType(null)

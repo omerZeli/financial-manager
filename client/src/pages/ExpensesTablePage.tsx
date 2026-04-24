@@ -28,7 +28,7 @@ type ActiveTab = 'all' | 'regular' | 'fixed' | 'paybacks'
 export function ExpensesTablePage() {
   const { expenses, loading, fetchExpenses, addExpense, deleteExpense } = useExpenses()
   const { fixedExpenses, inflatedExpenses, loading: fixedLoading, fetchFixedExpenses, addFixedExpense, deleteFixedExpense } = useFixedExpenses()
-  const { paybacks, loading: paybacksLoading, fetchPaybacks, addPayback, deletePayback } = usePaybacks()
+  const { paybacks, loading: paybacksLoading, fetchPaybacks, addPayback, deletePayback, removeByExpenseId } = usePaybacks()
   const { options: categoryOptions, loading: categoryLoading, addOption: addCategory, removeOption: removeCategory } = useDropdownOptions('expense_category')
   const { options: fixedCategoryOptions, loading: fixedCategoryLoading, addOption: addFixedCategory, removeOption: removeFixedCategory } = useDropdownOptions('fixed_expense_category')
   const { options: personOptions, loading: personLoading, addOption: addPerson, removeOption: removePerson } = useDropdownOptions('payback_person')
@@ -372,7 +372,10 @@ export function ExpensesTablePage() {
         <ConfirmDialog
           message="האם אתה בטוח שברצונך למחוק?"
           onConfirm={() => {
-            if (pendingDeleteType === 'expense') deleteExpense(pendingDeleteId)
+            if (pendingDeleteType === 'expense') {
+              deleteExpense(pendingDeleteId)
+              removeByExpenseId(pendingDeleteId)
+            }
             else if (pendingDeleteType === 'fixed') deleteFixedExpense(pendingDeleteId)
             else if (pendingDeleteType === 'payback') deletePayback(pendingDeleteId)
             setPendingDeleteId(null)

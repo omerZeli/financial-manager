@@ -229,6 +229,13 @@ The investments section tracks investment channels, deposits, and value updates.
 - Each table page tracks a `pendingDeleteId` state (and `pendingDeleteType` when the page has multiple entity types). Clicking the trash icon sets the pending ID; the actual context delete function is only called on confirm.
 - When adding a new table with delete functionality, always use `ConfirmDialog` instead of deleting directly on click.
 
+## Cascade Deletes
+- When a parent entity is deleted, all child entities that reference it must also be deleted — both in the database (via `ON DELETE CASCADE` foreign keys) and in the client-side context caches.
+- **Expense → Paybacks**: Deleting a regular expense cascades to delete all "to_me" paybacks linked to it. The DB FK `paybacks.expense_id` uses `ON DELETE CASCADE`. The page calls `removeByExpenseId` on the PaybacksContext to clean the local cache.
+- **Investment Channel → Deposits + Value Updates**: Deleting a channel cascades to delete all its deposits and value updates. The DB FKs on `investment_deposits.channel_id` and `investment_value_updates.channel_id` use `ON DELETE CASCADE`. The page calls `removeByChannelId` on both `InvestmentDepositsContext` and `InvestmentValuesContext` to clean the local caches.
+- Each child context exposes a `removeBy[Parent]Id` helper that filters out orphaned records from the local state without making a Supabase call (the DB cascade already handled it).
+- When adding a new parent-child relationship, always add `ON DELETE CASCADE` to the FK and a corresponding `removeBy...` cache cleanup helper in the child context.
+
 ## Custom Dropdown Options
 - All dropdowns in the project use **user-managed options** — there are no hardcoded/static option lists.
 - Options are stored per-user in the `user_dropdown_options` table, categorized by a `category` string (e.g. `'credit_card_company'`).
