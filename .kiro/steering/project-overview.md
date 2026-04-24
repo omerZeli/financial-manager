@@ -21,7 +21,7 @@ A personal financial manager built with React + Supabase.
 - Auth context and protected routes
 - A `profiles` table linked to `auth.users` (auto-created on signup)
 - Placeholder home page (דשבורד)
-- Salary section with table + charts pages
+- Salary section with table + charts pages, employer dropdown
 - Expenses section with regular and fixed expense types, paybacks (to me / by me), FAB type picker, inflation logic, and charts
 - Investments section with channels, deposits, value updates, FAB type picker, and charts
 
@@ -117,6 +117,15 @@ Each section contains two sub-pages, toggled via a tab-style switcher within the
 - The data table page includes an add-item floating action button that opens a form with fields specific to that section.
 - Data is managed via a dedicated React Context per section (see Data Caching Pattern).
 - Charts pages consume the same context to visualize the cached data.
+
+### Salary Section
+
+#### Salaries (`salaries` table)
+- Fields: `month`, `employer`, `bruto`, `neto`
+- Context: `SalaryContext` (`src/contexts/SalaryContext.tsx`)
+- Dropdown employer: `employer`
+- The table shows columns: month, employer, bruto, neto.
+- When the user has exactly one employer option, it is auto-selected as the default in the add form.
 
 ### Expenses Section
 

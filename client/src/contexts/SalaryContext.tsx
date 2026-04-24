@@ -6,6 +6,7 @@ export interface Salary {
   id: string
   user_id: string
   month: string
+  employer: string
   bruto: number
   neto: number
   created_at: string
@@ -15,7 +16,7 @@ interface SalaryContextType {
   salaries: Salary[]
   loading: boolean
   fetchSalaries: () => Promise<void>
-  addSalary: (salary: Pick<Salary, 'month' | 'bruto' | 'neto'>) => Promise<void>
+  addSalary: (salary: Pick<Salary, 'month' | 'employer' | 'bruto' | 'neto'>) => Promise<void>
   deleteSalary: (id: string) => Promise<void>
 }
 
@@ -42,7 +43,7 @@ export function SalaryProvider({ children }: { children: ReactNode }) {
     setLoading(false)
   }, [fetched, user])
 
-  const addSalary = async (salary: Pick<Salary, 'month' | 'bruto' | 'neto'>) => {
+  const addSalary = async (salary: Pick<Salary, 'month' | 'employer' | 'bruto' | 'neto'>) => {
     if (!user) return
     const { data, error } = await supabase
       .from('salaries')

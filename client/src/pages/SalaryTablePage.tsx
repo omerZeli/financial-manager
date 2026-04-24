@@ -2,7 +2,9 @@ import { useEffect, useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import { useSalary } from '../contexts/SalaryContext'
 import { NumberInput } from '../components/common/NumberInput'
+import { CustomSelect } from '../components/common/CustomSelect'
 import { ConfirmDialog } from '../components/common/ConfirmDialog'
+import { useDropdownOptions } from '../hooks/useDropdownOptions'
 import './Section.css'
 
 function formatMonth(dateStr: string) {
@@ -16,8 +18,10 @@ function formatCurrency(n: number) {
 
 export function SalaryTablePage() {
   const { salaries, loading, fetchSalaries, addSalary, deleteSalary } = useSalary()
+  const { options: employerOptions, loading: employerLoading, addOption: addEmployer, removeOption: removeEmployer } = useDropdownOptions('employer')
   const [showModal, setShowModal] = useState(false)
   const [month, setMonth] = useState('')
+  const [employer, setEmployer] = useState('')
   const [bruto, setBruto] = useState('')
   const [neto, setNeto] = useState('')
   const [saving, setSaving] = useState(false)
@@ -25,15 +29,22 @@ export function SalaryTablePage() {
 
   useEffect(() => { fetchSalaries() }, [fetchSalaries])
 
+  // Auto-default employer when there's exactly one option
+  useEffect(() => {
+    if (!employer && employerOptions.length === 1) {
+      setEmployer(employerOptions[0].label)
+    }
+  }, [employerOptions, employer])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!month || !bruto || !neto) return
+    if (!month || !employer || !bruto || !neto) return
     setSaving(true)
-    // Store as first day of the selected month
-    await addSalary({ month: month + '-01', bruto: Number(bruto), neto: Number(neto) })
+    await addSalary({ month: month + '-01', employer, bruto: Number(bruto), neto: Number(neto) })
     setSaving(false)
     setShowModal(false)
     setMonth('')
+    setEmployer(employerOptions.length === 1 ? employerOptions[0].label : '')
     setBruto('')
     setNeto('')
   }
@@ -62,6 +73,7 @@ export function SalaryTablePage() {
             <thead>
               <tr>
                 <th>חודש</th>
+                <th>מעסיק</th>
                 <th>ברוטו</th>
                 <th>נטו</th>
                 <th className="col-actions"></th>
@@ -71,6 +83,7 @@ export function SalaryTablePage() {
               {salaries.map(s => (
                 <tr key={s.id}>
                   <td>{formatMonth(s.month)}</td>
+                  <td>{s.employer}</td>
                   <td className="num-cell">{formatCurrency(s.bruto)}</td>
                   <td className="num-cell">{formatCurrency(s.neto)}</td>
                   <td className="col-actions">
@@ -94,7 +107,7 @@ export function SalaryTablePage() {
           message="האם אתה בטוח שברצונך למחוק?"
           itemName={(() => {
             const s = salaries.find(s => s.id === pendingDeleteId)
-            return s ? `${formatMonth(s.month)} - ברוטו ${formatCurrency(s.bruto)}, נטו ${formatCurrency(s.neto)}` : undefined
+            return s ? `${formatMonth(s.month)} - ${s.employer} - ברוטו ${formatCurrency(s.bruto)}, נטו ${formatCurrency(s.neto)}` : undefined
           })()}
           onConfirm={() => { deleteSalary(pendingDeleteId); setPendingDeleteId(null) }}
           onCancel={() => setPendingDeleteId(null)}
@@ -109,6 +122,17 @@ export function SalaryTablePage() {
             <form onSubmit={handleSubmit}>
               <label>חודש</label>
               <input type="month" value={month} onChange={e => setMonth(e.target.value)} required dir="ltr" />
+
+              <label>מעסיק</label>
+              <CustomSelect
+                options={employerOptions}
+                value={employer}
+                placeholder="בחר מעסיק"
+                onChange={setEmployer}
+                onAddOption={addEmployer}
+                onRemoveOption={removeEmployer}
+                loading={employerLoading}
+              />
 
               <label>ברוטו</label>
               <NumberInput placeholder="הכנס ברוטו" value={bruto} onChange={setBruto} required />
