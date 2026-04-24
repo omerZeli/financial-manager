@@ -22,8 +22,47 @@
 .confirm-message {
   font-size: 15px;
   color: var(--text-h);
-  margin: 0 0 1.25rem;
+  margin: 0 0 0.5rem;
   line-height: 1.5;
+}
+
+.confirm-item-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-h);
+  margin: 0 0 1rem;
+  line-height: 1.4;
+}
+
+.confirm-cascade-label {
+  font-size: 13px;
+  color: var(--text);
+  margin: 0 0 6px;
+  text-align: start;
+}
+
+.confirm-details {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1.25rem;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  text-align: start;
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+.confirm-details li {
+  font-size: 13px;
+  color: var(--text-h);
+  padding: 4px 0;
+  line-height: 1.4;
+}
+
+.confirm-details li + li {
+  border-top: 1px solid var(--border-light);
 }
 
 .confirm-actions {

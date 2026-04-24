@@ -92,6 +92,10 @@ export function SalaryTablePage() {
       {pendingDeleteId && (
         <ConfirmDialog
           message="האם אתה בטוח שברצונך למחוק?"
+          itemName={(() => {
+            const s = salaries.find(s => s.id === pendingDeleteId)
+            return s ? `${formatMonth(s.month)} - ברוטו ${formatCurrency(s.bruto)}, נטו ${formatCurrency(s.neto)}` : undefined
+          })()}
           onConfirm={() => { deleteSalary(pendingDeleteId); setPendingDeleteId(null) }}
           onCancel={() => setPendingDeleteId(null)}
         />

@@ -371,6 +371,31 @@ export function ExpensesTablePage() {
       {pendingDeleteId && pendingDeleteType && (
         <ConfirmDialog
           message="האם אתה בטוח שברצונך למחוק?"
+          itemName={(() => {
+            if (pendingDeleteType === 'expense') {
+              const exp = expenses.find(e => e.id === pendingDeleteId)
+              return exp ? `${exp.name} - ${formatCurrency(exp.amount)} (${formatDate(exp.date)})` : undefined
+            }
+            if (pendingDeleteType === 'fixed') {
+              const fe = fixedExpenses.find(e => e.id === pendingDeleteId)
+              return fe ? `${fe.name} - ${formatCurrency(fe.amount)}` : undefined
+            }
+            if (pendingDeleteType === 'payback') {
+              const pb = paybacks.find(p => p.id === pendingDeleteId)
+              if (!pb) return undefined
+              const label = pb.direction === 'by_me' ? pb.name : expenses.find(e => e.id === pb.expense_id)?.name
+              return `${label || 'החזר'} - ${formatCurrency(pb.amount)} (${formatDate(pb.date)})`
+            }
+            return undefined
+          })()}
+          details={(() => {
+            if (pendingDeleteType === 'expense') {
+              const linked = paybacks.filter(p => p.expense_id === pendingDeleteId)
+              if (linked.length === 0) return undefined
+              return linked.map(p => `החזר - ${formatCurrency(p.amount)} מ${p.person} (${formatDate(p.date)})`)
+            }
+            return undefined
+          })()}
           onConfirm={() => {
             if (pendingDeleteType === 'expense') {
               deleteExpense(pendingDeleteId)

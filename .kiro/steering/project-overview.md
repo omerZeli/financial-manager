@@ -226,6 +226,7 @@ The investments section tracks investment channels, deposits, and value updates.
 ## Delete Confirmation
 - Every delete button in every table page shows a **confirmation dialog** before actually deleting.
 - The shared `ConfirmDialog` component (`components/common/ConfirmDialog.tsx` + `.css`) renders a centered overlay with the message "האם אתה בטוח שברצונך למחוק?" and two buttons: "מחק" (confirm) and "ביטול" (cancel).
+- `ConfirmDialog` accepts an optional `details` prop (`string[]`). When provided, it renders a scrollable list of items that will be cascade-deleted alongside the main record. This gives the user full visibility before confirming.
 - Each table page tracks a `pendingDeleteId` state (and `pendingDeleteType` when the page has multiple entity types). Clicking the trash icon sets the pending ID; the actual context delete function is only called on confirm.
 - When adding a new table with delete functionality, always use `ConfirmDialog` instead of deleting directly on click.
 

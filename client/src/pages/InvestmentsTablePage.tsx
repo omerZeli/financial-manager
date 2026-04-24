@@ -269,6 +269,34 @@ export function InvestmentsTablePage() {
       {pendingDeleteId && pendingDeleteType && (
         <ConfirmDialog
           message="האם אתה בטוח שברצונך למחוק?"
+          itemName={(() => {
+            if (pendingDeleteType === 'channel') {
+              const ch = channels.find(c => c.id === pendingDeleteId)
+              return ch ? `${ch.name} - ${ch.company}` : undefined
+            }
+            if (pendingDeleteType === 'deposit') {
+              const dep = deposits.find(d => d.id === pendingDeleteId)
+              if (!dep) return undefined
+              const ch = channels.find(c => c.id === dep.channel_id)
+              return `הפקדה - ${formatCurrency(dep.amount)} (${ch ? ch.name : ''}, ${formatDate(dep.date)})`
+            }
+            return undefined
+          })()}
+          details={(() => {
+            if (pendingDeleteType === 'channel') {
+              const items: string[] = []
+              const chDeps = deposits.filter(d => d.channel_id === pendingDeleteId)
+              const chVals = valueUpdates.filter(v => v.channel_id === pendingDeleteId)
+              for (const d of chDeps) {
+                items.push(`הפקדה - ${formatCurrency(d.amount)} (${formatDate(d.date)})`)
+              }
+              for (const v of chVals) {
+                items.push(`עדכון שווי - ${formatCurrency(v.value)} (${formatDate(v.date)})`)
+              }
+              return items.length > 0 ? items : undefined
+            }
+            return undefined
+          })()}
           onConfirm={() => {
             if (pendingDeleteType === 'channel') {
               deleteChannel(pendingDeleteId)
