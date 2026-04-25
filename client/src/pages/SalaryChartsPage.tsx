@@ -152,8 +152,12 @@ export function SalaryChartsPage() {
               {last12.map(s => (
                 <div className="bar-group" key={s.id}>
                   <div className="bar-pair">
-                    <div className="bar bruto" style={{ height: `${(s.bruto / maxVal) * 100}%` }} title={`ברוטו: ${formatCurrency(s.bruto)}`} />
-                    <div className="bar neto" style={{ height: `${(s.neto / maxVal) * 100}%` }} title={`נטו: ${formatCurrency(s.neto)}`} />
+                    <div className="bar bruto" style={{ height: `${(s.bruto / maxVal) * 100}%` }}>
+                      <span className="bar-value">{s.bruto.toLocaleString('he-IL')}</span>
+                    </div>
+                    <div className="bar neto" style={{ height: `${(s.neto / maxVal) * 100}%` }}>
+                      <span className="bar-value">{s.neto.toLocaleString('he-IL')}</span>
+                    </div>
                   </div>
                   <span className="bar-label">{formatMonth(s.month)}</span>
                 </div>
