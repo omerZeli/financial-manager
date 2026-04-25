@@ -145,7 +145,7 @@ export function InvestmentsChartsPage() {
         <div className="charts-grid">
           {/* Filters */}
           <div className="charts-filters">
-            <div className="filter-group">
+            <div className="filter-group filter-group-wide">
               <label className="filter-label">אפיק השקעה</label>
               <ReadOnlySelect
                 options={channelOptions}
@@ -179,12 +179,12 @@ export function InvestmentsChartsPage() {
 
           <div className="summary-row">
             <div className="summary-card">
-              <div className="label">שווי נוכחי</div>
-              <div className="value">{formatCurrency(totalCurrentValue)}</div>
-            </div>
-            <div className="summary-card">
               <div className="label">הפקדות (נטו)</div>
               <div className="value">{formatCurrency(totalDeposited)}</div>
+            </div>
+            <div className="summary-card">
+              <div className="label">שווי נוכחי</div>
+              <div className="value">{formatCurrency(totalCurrentValue)}</div>
             </div>
             <div className="summary-card">
               <div className="label">תשואה כוללת</div>

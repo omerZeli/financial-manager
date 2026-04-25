@@ -967,3 +967,16 @@
   width: 100%;
   height: 100%;
 }
+
+/* Wide filter select (investments channel filter) */
+.filter-group-wide .custom-select {
+  min-width: 250px;
+}
+
+.filter-group-wide .custom-select-menu {
+  min-width: 250px;
+}
+
+.filter-group-wide .custom-select-item {
+  white-space: nowrap;
+}
