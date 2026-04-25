@@ -4,6 +4,7 @@ import { useExpenses } from '../contexts/ExpensesContext'
 import { useFixedExpenses } from '../contexts/FixedExpensesContext'
 import { usePaybacks } from '../contexts/PaybacksContext'
 import { useExpenseTypes } from '../contexts/ExpenseTypesContext'
+import { useSalary } from '../contexts/SalaryContext'
 import { ReadOnlySelect } from '../components/common/ReadOnlySelect'
 import DateInput from '../components/common/DateInput'
 import './Section.css'
@@ -41,9 +42,10 @@ function getMinDate(range: TimeRange, customFrom: string): string {
 
 export function ExpensesChartsPage() {
   const { expenses, loading, fetchExpenses } = useExpenses()
-  const { inflatedExpenses, loading: fixedLoading, fetchFixedExpenses } = useFixedExpenses()
+  const { fixedExpenses, inflatedExpenses, loading: fixedLoading, fetchFixedExpenses } = useFixedExpenses()
   const { paybacks, loading: paybacksLoading, fetchPaybacks } = usePaybacks()
   const { expenseTypes, fetchExpenseTypes } = useExpenseTypes()
+  const { salaries, fetchSalaries } = useSalary()
 
   const [timeRange, setTimeRange] = useState<TimeRange>('last12')
   const [customFrom, setCustomFrom] = useState('')
@@ -55,6 +57,7 @@ export function ExpensesChartsPage() {
   useEffect(() => { fetchFixedExpenses() }, [fetchFixedExpenses])
   useEffect(() => { fetchPaybacks() }, [fetchPaybacks])
   useEffect(() => { fetchExpenseTypes() }, [fetchExpenseTypes])
+  useEffect(() => { fetchSalaries() }, [fetchSalaries])
 
   // Build to_me payback totals per expense_id
   const toMeByExpense = useMemo(() => {
@@ -79,16 +82,27 @@ export function ExpensesChartsPage() {
         amount: pb.amount,
         date: pb.date,
         created_at: pb.created_at,
+        _salaryDeducted: false,
+        _fixed: false,
       }))
   }, [paybacks])
+
+  // Set of fixed expense IDs that are salary-deducted
+  const salaryDeductedFixedIds = useMemo(() => {
+    return new Set(fixedExpenses.filter(fe => fe.salary_employer).map(fe => fe.id))
+  }, [fixedExpenses])
 
   const allExpensesRaw = useMemo(() => {
     const adjusted = expenses.map(exp => {
       const returned = toMeByExpense[exp.id] || 0
-      return { ...exp, amount: exp.amount - returned }
+      return { ...exp, amount: exp.amount - returned, _salaryDeducted: !!exp.salary_id, _fixed: false }
     })
-    return [...adjusted, ...inflatedExpenses, ...byMeExpenses]
-  }, [expenses, inflatedExpenses, byMeExpenses, toMeByExpense])
+    const inflated = inflatedExpenses.map(ie => {
+      const fixedId = ie.id.substring(0, ie.id.lastIndexOf('_'))
+      return { ...ie, _salaryDeducted: salaryDeductedFixedIds.has(fixedId), _fixed: true }
+    })
+    return [...adjusted, ...inflated, ...byMeExpenses]
+  }, [expenses, inflatedExpenses, byMeExpenses, toMeByExpense, salaryDeductedFixedIds])
 
   // Expense type options for filter
   const typeOptions = useMemo(() => [
@@ -132,8 +146,26 @@ export function ExpensesChartsPage() {
   const monthCount = byMonth.length
   const totalAmount = filtered.reduce((s, e) => s + e.amount, 0)
   const aggTotal = monthCount ? (aggMode === 'avg' ? totalAmount / monthCount : totalAmount) : 0
-  const expenseCount = filtered.length
-  const aggCount = monthCount ? (aggMode === 'avg' ? expenseCount / monthCount : expenseCount) : 0
+
+  // Split fixed vs non-fixed
+  const fixedTotal = filtered.filter(e => e._fixed).reduce((s, e) => s + e.amount, 0)
+  const nonFixedTotal = totalAmount - fixedTotal
+  const aggFixed = monthCount ? (aggMode === 'avg' ? fixedTotal / monthCount : fixedTotal) : 0
+  const aggNonFixed = monthCount ? (aggMode === 'avg' ? nonFixedTotal / monthCount : nonFixedTotal) : 0
+
+  // Non-salary-deducted expenses total (for % of neto calc)
+  const nonDeductedTotal = filtered.filter(e => !e._salaryDeducted).reduce((s, e) => s + e.amount, 0)
+
+  // Total neto in the same time range
+  const totalNetoInRange = useMemo(() => {
+    const minDate = getMinDate(timeRange, customFrom)
+    const maxDate = timeRange === 'custom' && customTo ? customTo : '9999-12-31'
+    return salaries
+      .filter(s => s.month >= minDate && s.month <= maxDate)
+      .reduce((s, r) => s + r.neto, 0)
+  }, [salaries, timeRange, customFrom, customTo])
+
+  const pctOfNeto = totalNetoInRange > 0 ? (nonDeductedTotal / totalNetoInRange) * 100 : 0
 
   // Group by category
   const byCategory = filtered.reduce<Record<string, number>>((acc, e) => {
@@ -216,12 +248,16 @@ export function ExpensesChartsPage() {
                   <div className="value">{formatCurrency(aggTotal)}</div>
                 </div>
                 <div className="summary-card">
-                  <div className="label">{aggLabel} להוצאה</div>
-                  <div className="value">{formatCurrency(expenseCount ? totalAmount / expenseCount : 0)}</div>
+                  <div className="label">{aggLabel} הוצאות רגילות</div>
+                  <div className="value">{formatCurrency(aggNonFixed)}</div>
                 </div>
                 <div className="summary-card">
-                  <div className="label">{aggLabel} מספר הוצאות</div>
-                  <div className="value">{Math.round(aggCount)}</div>
+                  <div className="label">{aggLabel} הוצאות קבועות</div>
+                  <div className="value">{formatCurrency(aggFixed)}</div>
+                </div>
+                <div className="summary-card">
+                  <div className="label">אחוז מהנטו</div>
+                  <div className="value">{pctOfNeto.toFixed(1)}%</div>
                 </div>
               </div>
 
