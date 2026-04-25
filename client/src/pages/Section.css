@@ -432,6 +432,29 @@
   margin-bottom: 0;
 }
 
+.filter-group .custom-select-menu {
+  min-width: 100px;
+}
+
+.filter-group .custom-select-search {
+  padding: 5px;
+}
+
+.filter-group .custom-select-search input {
+  padding: 5px 8px;
+  font-size: 12px;
+}
+
+.filter-group .custom-select-options {
+  padding: 3px;
+}
+
+.filter-group .custom-select-item {
+  padding: 6px 10px;
+  font-size: 12px;
+  border-radius: 4px;
+}
+
 .filter-label {
   font-size: 12px;
   font-weight: 600;
