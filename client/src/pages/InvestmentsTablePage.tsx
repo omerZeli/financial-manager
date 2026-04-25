@@ -330,7 +330,7 @@ export function InvestmentsTablePage() {
                   const ch = channels.find(c => c.id === dep.channel_id)
                   return (
                     <tr key={dep.id}>
-                      <td>{ch ? ch.name : 'אפיק שנמחק'}</td>
+                      <td>{ch ? `${ch.name} - ${ch.company}` : 'אפיק שנמחק'}</td>
                       <td>{dep.is_withdrawal
                         ? <span className="direction-badge by_me">משיכה</span>
                         : <span className="direction-badge to_me">הפקדה</span>
@@ -372,7 +372,7 @@ export function InvestmentsTablePage() {
                   const ch = channels.find(c => c.id === vu.channel_id)
                   return (
                     <tr key={vu.id}>
-                      <td>{ch ? ch.name : 'אפיק שנמחק'}</td>
+                      <td>{ch ? `${ch.name} - ${ch.company}` : 'אפיק שנמחק'}</td>
                       <td className="num-cell">{formatCurrency(vu.value)}</td>
                       <td>{formatDate(vu.date)}</td>
                       <td className="col-actions">
@@ -530,7 +530,7 @@ export function InvestmentsTablePage() {
             <form onSubmit={handleDepositSubmit}>
               <label>אפיק</label>
               <ReadOnlySelect
-                options={channels.map(ch => ({ value: ch.id, label: ch.name }))}
+                options={channels.map(ch => ({ value: ch.id, label: `${ch.name} - ${ch.company}` }))}
                 value={depChannel}
                 placeholder="בחר אפיק"
                 onChange={setDepChannel}
@@ -598,7 +598,8 @@ export function InvestmentsTablePage() {
         <div className="modal-overlay" onClick={() => { setModal(null); resetValueForm() }}>
           <div className="modal-content" onClick={e => e.stopPropagation()}>
             <button className="modal-close" onClick={() => { setModal(null); resetValueForm() }} title="סגור">&times;</button>
-            <h2>עדכון שווי - {channels.find(c => c.id === valChannel)?.name}</h2>
+            <h2>עדכון שווי</h2>
+            <div className="modal-subtitle">{(() => { const c = channels.find(c => c.id === valChannel); return c ? `${c.name} - ${c.company}` : '' })()}</div>
             <form onSubmit={handleValueSubmit}>
               <label>שווי נוכחי</label>
               <NumberInput placeholder="הכנס שווי" value={valValue} onChange={setValValue} required />
@@ -629,7 +630,7 @@ export function InvestmentsTablePage() {
             <form onSubmit={handleWithdrawalSubmit}>
               <label>אפיק</label>
               <ReadOnlySelect
-                options={channels.map(ch => ({ value: ch.id, label: ch.name }))}
+                options={channels.map(ch => ({ value: ch.id, label: `${ch.name} - ${ch.company}` }))}
                 value={wdChannel}
                 placeholder="בחר אפיק"
                 onChange={setWdChannel}

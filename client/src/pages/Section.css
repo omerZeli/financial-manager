@@ -93,6 +93,10 @@
   padding: 10px 16px;
   border-bottom: 1px solid var(--border-light);
   color: var(--text-h);
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .section-table tr:last-child td {
@@ -323,6 +327,12 @@
 .modal-content h2 {
   margin: 0 0 1.25rem;
   font-size: 18px;
+}
+
+.modal-subtitle {
+  font-size: 14px;
+  color: var(--text);
+  margin: -1rem 0 1.25rem;
 }
 
 .modal-content label {
