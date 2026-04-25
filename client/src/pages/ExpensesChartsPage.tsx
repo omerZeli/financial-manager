@@ -104,15 +104,26 @@ export function ExpensesChartsPage() {
     return [...adjusted, ...inflated, ...byMeExpenses]
   }, [expenses, inflatedExpenses, byMeExpenses, toMeByExpense, salaryDeductedFixedIds])
 
+  // All categories covered by any expense type
+  const allTypedCategories = useMemo(() => {
+    const set = new Set<string>()
+    for (const et of expenseTypes) {
+      for (const cat of et.categories) set.add(cat)
+    }
+    return set
+  }, [expenseTypes])
+
   // Expense type options for filter
   const typeOptions = useMemo(() => [
     { value: '', label: 'הכל' },
     ...expenseTypes.map(et => ({ value: et.id, label: et.type_name })),
+    ...(expenseTypes.length > 0 ? [{ value: '__others__', label: 'אחר' }] : []),
   ], [expenseTypes])
 
   // Categories for selected expense type
   const selectedTypeCategories = useMemo(() => {
     if (!expenseType) return null
+    if (expenseType === '__others__') return null
     const et = expenseTypes.find(t => t.id === expenseType)
     return et ? new Set(et.categories) : null
   }, [expenseType, expenseTypes])
@@ -121,7 +132,9 @@ export function ExpensesChartsPage() {
   const filtered = useMemo(() => {
     let list = allExpensesRaw
     // expense type filter
-    if (selectedTypeCategories) {
+    if (expenseType === '__others__') {
+      list = list.filter(e => !allTypedCategories.has(e.category))
+    } else if (selectedTypeCategories) {
       list = list.filter(e => selectedTypeCategories.has(e.category))
     }
     // time range filter
@@ -129,7 +142,7 @@ export function ExpensesChartsPage() {
     const maxDate = timeRange === 'custom' && customTo ? customTo : '9999-12-31'
     list = list.filter(e => e.date >= minDate && e.date <= maxDate)
     return list
-  }, [allExpensesRaw, selectedTypeCategories, timeRange, customFrom, customTo])
+  }, [allExpensesRaw, expenseType, allTypedCategories, selectedTypeCategories, timeRange, customFrom, customTo])
 
   const aggLabel = aggMode === 'avg' ? 'ממוצע' : 'סה"כ'
 
