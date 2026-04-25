@@ -36,7 +36,7 @@ export function InvestmentsChartsPage() {
   const summaries = useMemo(() => {
     return channels.map(ch => {
       const chDeposits = deposits.filter(d => d.channel_id === ch.id)
-      const totalDeposits = chDeposits.reduce((s, d) => s + d.amount, 0)
+      const totalDeposits = chDeposits.reduce((s, d) => s + (d.is_withdrawal ? -d.amount : d.amount), 0)
       const chValues = valueUpdates.filter(v => v.channel_id === ch.id).sort((a, b) => b.date.localeCompare(a.date))
       const currentValue = chValues.length > 0 ? chValues[0].value : 0
       const returnAbsolute = currentValue - totalDeposits

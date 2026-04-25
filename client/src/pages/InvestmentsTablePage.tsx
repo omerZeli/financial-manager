@@ -28,12 +28,12 @@ function formatPercent(n: number) {
   return n.toLocaleString('he-IL', { style: 'percent', minimumFractionDigits: 1, maximumFractionDigits: 1 })
 }
 
-type ModalType = null | 'picker' | 'channel' | 'deposit' | 'value'
+type ModalType = null | 'picker' | 'channel' | 'deposit' | 'value' | 'withdrawal'
 type ActiveTab = 'channels' | 'deposits' | 'values'
 
 export function InvestmentsTablePage() {
   const { channels, loading: chLoading, fetchChannels, addChannel, updateChannel, deleteChannel } = useInvestmentChannels()
-  const { deposits, loading: depLoading, fetchDeposits, addDeposit, deleteDeposit, removeByChannelId: removeDepositsByChannel } = useInvestmentDeposits()
+  const { deposits, loading: depLoading, fetchDeposits, addDeposit, addWithdrawal, deleteDeposit, removeByChannelId: removeDepositsByChannel } = useInvestmentDeposits()
   const { valueUpdates, loading: valLoading, fetchValueUpdates, addValueUpdate, deleteValueUpdate, removeByChannelId: removeValuesByChannel } = useInvestmentValues()
   const { options: companyOptions, loading: companyLoading, addOption: addCompany, removeOption: removeCompany } = useDropdownOptions('investment_company')
   const { options: depositorOptions, loading: depositorLoading, addOption: addDepositor, removeOption: removeDepositor } = useDropdownOptions('investment_depositor')
@@ -64,6 +64,13 @@ export function InvestmentsTablePage() {
   const [valPath, setValPath] = useState('')
   const [valDate, setValDate] = useState('')
   const [valSaving, setValSaving] = useState(false)
+
+  // Withdrawal form
+  const [wdChannel, setWdChannel] = useState('')
+  const [wdAmount, setWdAmount] = useState('')
+  const [wdDate, setWdDate] = useState('')
+  const [wdSaving, setWdSaving] = useState(false)
+
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
   const [pendingDeleteType, setPendingDeleteType] = useState<'channel' | 'deposit' | 'value' | null>(null)
 
@@ -90,7 +97,7 @@ export function InvestmentsTablePage() {
   const channelSummaries = useMemo(() => {
     return channels.map(ch => {
       const chDeposits = deposits.filter(d => d.channel_id === ch.id)
-      const totalDeposits = chDeposits.reduce((s, d) => s + d.amount, 0)
+      const totalDeposits = chDeposits.reduce((s, d) => s + (d.is_withdrawal ? -d.amount : d.amount), 0)
       const chValues = valueUpdates.filter(v => v.channel_id === ch.id).sort((a, b) => b.date.localeCompare(a.date))
       const latestValue = chValues.length > 0 ? chValues[0] : null
       const currentValue = latestValue ? latestValue.value : 0
@@ -104,6 +111,7 @@ export function InvestmentsTablePage() {
   const resetChannelForm = () => { setChName(''); setChCompany(''); setChPath(''); setChIsPension(false) }
   const resetDepositForm = () => { setDepChannel(''); setDepAmount(''); setDepDate(''); setDepDepositor(''); setDepDeductedFromSalary(false); setDepSelectedSalaryId('') }
   const resetValueForm = () => { setValChannel(''); setValValue(''); setValPath(''); setValDate('') }
+  const resetWithdrawalForm = () => { setWdChannel(''); setWdAmount(''); setWdDate('') }
 
   // Pinned depositor options: "אני" + unique employer names
   const pinnedDepositors = useMemo(() => {
@@ -197,6 +205,23 @@ export function InvestmentsTablePage() {
     resetValueForm()
   }
 
+  const handleWithdrawalSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!wdChannel || !wdAmount || !wdDate) return
+    setWdSaving(true)
+    const amount = Number(wdAmount)
+    // Add withdrawal record (deposit with is_withdrawal=true)
+    await addWithdrawal({ channel_id: wdChannel, amount, date: wdDate })
+    // Compute new value: latest value minus withdrawal amount
+    const chValues = valueUpdates.filter(v => v.channel_id === wdChannel).sort((a, b) => b.date.localeCompare(a.date))
+    const latestValue = chValues.length > 0 ? chValues[0].value : 0
+    const newValue = latestValue - amount
+    await addValueUpdate({ channel_id: wdChannel, value: newValue, date: wdDate })
+    setWdSaving(false)
+    setModal(null)
+    resetWithdrawalForm()
+  }
+
   const isLoading = chLoading || depLoading || valLoading
 
   return (
@@ -219,7 +244,7 @@ export function InvestmentsTablePage() {
           אפיקי השקעה
         </button>
         <button className={`sub-tab${activeTab === 'deposits' ? ' active' : ''}`} onClick={() => setActiveTab('deposits')}>
-          הפקדות
+          הפקדות ומשיכות
         </button>
         <button className={`sub-tab${activeTab === 'values' ? ' active' : ''}`} onClick={() => setActiveTab('values')}>
           עדכוני ערך
@@ -286,15 +311,16 @@ export function InvestmentsTablePage() {
       ) : activeTab === 'deposits' ? (
         /* Deposits tab */
         deposits.length === 0 ? (
-          <div className="section-empty">אין הפקדות עדיין. לחץ על + כדי להוסיף.</div>
+          <div className="section-empty">אין הפקדות ומשיכות עדיין. לחץ על + כדי להוסיף.</div>
         ) : (
           <div className="section-table-wrap">
             <table className="section-table">
               <thead>
                 <tr>
                   <th>אפיק</th>
+                  <th>סוג</th>
                   <th>סכום</th>
-                  <th>מפקיד</th>
+                  <th>מבצע</th>
                   <th>תאריך</th>
                   <th className="col-actions"></th>
                 </tr>
@@ -305,6 +331,10 @@ export function InvestmentsTablePage() {
                   return (
                     <tr key={dep.id}>
                       <td>{ch ? ch.name : 'אפיק שנמחק'}</td>
+                      <td>{dep.is_withdrawal
+                        ? <span className="direction-badge by_me">משיכה</span>
+                        : <span className="direction-badge to_me">הפקדה</span>
+                      }</td>
                       <td className="num-cell">{formatCurrency(dep.amount)}</td>
                       <td>{dep.depositor}</td>
                       <td>{formatDate(dep.date)}</td>
@@ -373,7 +403,8 @@ export function InvestmentsTablePage() {
               const dep = deposits.find(d => d.id === pendingDeleteId)
               if (!dep) return undefined
               const ch = channels.find(c => c.id === dep.channel_id)
-              return `הפקדה - ${formatCurrency(dep.amount)} (${ch ? ch.name : ''}, ${dep.depositor}, ${formatDate(dep.date)})`
+              const typeLabel = dep.is_withdrawal ? 'משיכה' : 'הפקדה'
+              return `${typeLabel} - ${formatCurrency(dep.amount)} (${ch ? ch.name : ''}, ${dep.depositor}, ${formatDate(dep.date)})`
             }
             if (pendingDeleteType === 'value') {
               const vu = valueUpdates.find(v => v.id === pendingDeleteId)
@@ -389,7 +420,8 @@ export function InvestmentsTablePage() {
               const chDeps = deposits.filter(d => d.channel_id === pendingDeleteId)
               const chVals = valueUpdates.filter(v => v.channel_id === pendingDeleteId)
               for (const d of chDeps) {
-                items.push(`הפקדה - ${formatCurrency(d.amount)} (${formatDate(d.date)})`)
+                const depLabel = d.is_withdrawal ? 'משיכה' : 'הפקדה'
+                items.push(`${depLabel} - ${formatCurrency(d.amount)} (${formatDate(d.date)})`)
               }
               for (const v of chVals) {
                 items.push(`עדכון שווי - ${formatCurrency(v.value)} (${formatDate(v.date)})`)
@@ -428,6 +460,12 @@ export function InvestmentsTablePage() {
                 <rect x="2" y="4" width="20" height="16" rx="2" /><path d="M12 9v6" /><path d="M9 12h6" />
               </svg>
               הפקדה
+            </button>
+            <button className="fab-menu-item" onClick={() => setModal('withdrawal')}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="2" y="4" width="20" height="16" rx="2" /><path d="M9 12h6" />
+              </svg>
+              משיכה
             </button>
           </div>
         )}
@@ -576,6 +614,38 @@ export function InvestmentsTablePage() {
                   {valSaving ? 'שומר...' : 'שמור'}
                 </button>
                 <button type="button" className="btn-cancel" onClick={() => { setModal(null); resetValueForm() }}>ביטול</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Withdrawal modal */}
+      {modal === 'withdrawal' && (
+        <div className="modal-overlay" onClick={() => { setModal(null); resetWithdrawalForm() }}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <button className="modal-close" onClick={() => { setModal(null); resetWithdrawalForm() }} title="סגור">&times;</button>
+            <h2>משיכה מאפיק</h2>
+            <form onSubmit={handleWithdrawalSubmit}>
+              <label>אפיק</label>
+              <ReadOnlySelect
+                options={channels.map(ch => ({ value: ch.id, label: ch.name }))}
+                value={wdChannel}
+                placeholder="בחר אפיק"
+                onChange={setWdChannel}
+              />
+
+              <label>סכום משיכה</label>
+              <NumberInput placeholder="הכנס סכום" value={wdAmount} onChange={setWdAmount} required />
+
+              <label>תאריך</label>
+              <DateInput value={wdDate} onChange={setWdDate} required />
+
+              <div className="modal-actions">
+                <button type="submit" className="btn-primary" disabled={wdSaving || !wdChannel}>
+                  {wdSaving ? 'שומר...' : 'שמור'}
+                </button>
+                <button type="button" className="btn-cancel" onClick={() => { setModal(null); resetWithdrawalForm() }}>ביטול</button>
               </div>
             </form>
           </div>

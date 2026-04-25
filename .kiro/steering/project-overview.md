@@ -174,10 +174,10 @@ The expenses section supports two types of expenses, managed via a **FAB type pi
 
 ### Investments Section
 
-The investments section tracks investment channels, deposits, and value updates. It uses the **FAB type picker** pattern with three actions.
+The investments section tracks investment channels, deposits, withdrawals, and value updates. It uses the **FAB type picker** pattern with four actions.
 
 #### FAB Type Picker
-- Clicking the + FAB opens a popup menu with three options: create channel, deposit, update value.
+- Clicking the + FAB opens a popup menu with four options: create channel, deposit, withdrawal, update value.
 - Each option opens its own dedicated form modal.
 
 #### Investment Channels (`investment_channels` table)
@@ -187,9 +187,18 @@ The investments section tracks investment channels, deposits, and value updates.
 - The add form has a **toggle switch** ("אפיק פנסיוני?") for the pension flag.
 
 #### Investment Deposits (`investment_deposits` table)
-- Fields: `channel_id` (FK to investment_channels), `amount`, `date`, `depositor`, `salary_id` (nullable FK to salaries)
+- Fields: `channel_id` (FK to investment_channels), `amount`, `date`, `depositor`, `salary_id` (nullable FK to salaries), `is_withdrawal` (boolean, default false)
 - Context: `InvestmentDepositsContext` (`src/contexts/InvestmentDepositsContext.tsx`)
-- The add form uses a native `<select>` to pick from existing channels.
+- The add form uses a `ReadOnlySelect` to pick from existing channels.
+- Withdrawals are stored in the same table with `is_withdrawal = true`, `depositor = 'אני'`, and no salary link.
+
+#### Investment Withdrawals
+- Withdrawals are recorded as deposit rows with `is_withdrawal = true`.
+- The withdrawal form has three fields: channel (ReadOnlySelect), amount, and date. No depositor field (always "אני").
+- On submit, two records are created: (1) a deposit row with `is_withdrawal = true`, and (2) a value update that reduces the channel's latest value by the withdrawal amount.
+- In the deposits tab, withdrawals show a red "משיכה" badge and a negative amount.
+- In channel summaries and charts, withdrawals are subtracted from total deposits.
+- The context exposes `addWithdrawal` for creating withdrawal records.
 
 #### Investment Value Updates (`investment_value_updates` table)
 - Fields: `channel_id` (FK to investment_channels), `value`, `date`
@@ -198,8 +207,8 @@ The investments section tracks investment channels, deposits, and value updates.
 
 #### Sub-Tabs
 - The investments table page has three sub-tabs: **"אפיקי השקעה"** (channels summary), **"הפקדות"** (deposits list), and **"עדכוני ערך"** (value updates list).
-- The channels tab shows a computed summary per channel: name, company, total deposits, current value (latest value update), last update date, absolute return, return percentage.
-- The deposits tab shows all deposit records with columns: channel name, amount, date.
+- The channels tab shows a computed summary per channel: name, company, total deposits (net of withdrawals), current value (latest value update), last update date, absolute return, return percentage.
+- The deposits tab shows all deposit and withdrawal records with columns: channel name, type (הפקדה/משיכה), amount, depositor, date.
 - The value updates tab shows all value update records with columns: channel name, value, date. Each row has an **edit button** (pencil icon) that opens an edit modal with value and date fields, and a **delete button** (trash icon) with confirmation dialog.
 - The context exposes `updateValueUpdate` for editing value updates.
 
