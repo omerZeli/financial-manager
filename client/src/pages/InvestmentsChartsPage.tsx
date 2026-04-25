@@ -50,6 +50,28 @@ export function InvestmentsChartsPage() {
   const totalReturn = totalCurrentValue - totalDeposited
   const totalReturnPercent = totalDeposited > 0 ? totalReturn / totalDeposited : 0
 
+  // Earliest deposit date across all channels → investment duration
+  const investmentDuration = useMemo(() => {
+    const allDates = deposits.filter(d => !d.is_withdrawal).map(d => d.date)
+    if (allDates.length === 0) return { label: '-', years: 0 }
+    const earliest = allDates.sort()[0]
+    const start = new Date(earliest)
+    const now = new Date()
+    const diffMs = now.getTime() - start.getTime()
+    const totalMonths = diffMs / (1000 * 60 * 60 * 24 * 30.44)
+    const years = Math.floor(totalMonths / 12)
+    const months = Math.round(totalMonths % 12)
+    const parts: string[] = []
+    if (years > 0) parts.push(`${years} שנים`)
+    if (months > 0 || years === 0) parts.push(`${months} חודשים`)
+    return { label: parts.join(' ו-'), months: totalMonths }
+  }, [deposits])
+
+  // Average yearly return (annualized via monthly CAGR)
+  const avgYearlyReturn = investmentDuration.months > 0
+    ? Math.pow(1 + totalReturnPercent, 12 / investmentDuration.months) - 1
+    : 0
+
   const maxValue = summaries.reduce((m, c) => Math.max(m, c.currentValue, c.totalDeposits), 0) || 1
 
   const isLoading = chLoading || depLoading || valLoading
@@ -76,17 +98,29 @@ export function InvestmentsChartsPage() {
         <div className="charts-grid">
           <div className="summary-row">
             <div className="summary-card">
-              <div className="label">סה"כ הפקדות</div>
-              <div className="value">{formatCurrency(totalDeposited)}</div>
-            </div>
-            <div className="summary-card">
               <div className="label">שווי נוכחי</div>
               <div className="value">{formatCurrency(totalCurrentValue)}</div>
+            </div>
+            <div className="summary-card">
+              <div className="label">הפקדות (נטו)</div>
+              <div className="value">{formatCurrency(totalDeposited)}</div>
             </div>
             <div className="summary-card">
               <div className="label">תשואה כוללת</div>
               <div className={`value ${totalReturn >= 0 ? 'positive-return' : 'negative-return'}`}>
                 {formatCurrency(totalReturn)} ({formatPercent(totalReturnPercent)})
+              </div>
+            </div>
+          </div>
+          <div className="summary-row">
+            <div className="summary-card">
+              <div className="label">זמן השקעה</div>
+              <div className="value value-sm">{investmentDuration.label}</div>
+            </div>
+            <div className="summary-card">
+              <div className="label">תשואה שנתית ממוצעת</div>
+              <div className={`value ${avgYearlyReturn >= 0 ? 'positive-return' : 'negative-return'}`}>
+                {formatCurrency(avgYearlyReturn * totalDeposited)} ({formatPercent(avgYearlyReturn)})
               </div>
             </div>
           </div>

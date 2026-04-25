@@ -576,6 +576,10 @@
   font-variant-numeric: tabular-nums;
 }
 
+.summary-card .value.value-sm {
+  font-size: 17px;
+}
+
 .summary-card .sub-value {
   font-size: 12px;
   color: var(--text);
