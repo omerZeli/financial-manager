@@ -3,7 +3,7 @@ import { NavLink } from 'react-router-dom'
 import { useInvestmentChannels } from '../contexts/InvestmentChannelsContext'
 import { useInvestmentDeposits } from '../contexts/InvestmentDepositsContext'
 import { useInvestmentValues } from '../contexts/InvestmentValuesContext'
-import { ReadOnlySelect } from '../components/common/ReadOnlySelect'
+import { FilterMultiSelect } from '../components/common/FilterMultiSelect'
 import DateInput from '../components/common/DateInput'
 import './Section.css'
 
@@ -45,39 +45,56 @@ export function InvestmentsChartsPage() {
   const [timeRange, setTimeRange] = useState<TimeRange>('all')
   const [customFrom, setCustomFrom] = useState('')
   const [customTo, setCustomTo] = useState('')
-  const [channelFilter, setChannelFilter] = useState('')
+  const [selectedChannels, setSelectedChannels] = useState<string[]>([])
+  const [channelsInited, setChannelsInited] = useState(false)
 
   useEffect(() => { fetchChannels() }, [fetchChannels])
   useEffect(() => { fetchDeposits() }, [fetchDeposits])
   useEffect(() => { fetchValueUpdates() }, [fetchValueUpdates])
 
   // Channel filter options
-  const channelOptions = useMemo(() => [
-    { value: '', label: 'הכל' },
-    ...channels.map(ch => ({ value: ch.id, label: `${ch.name} - ${ch.company}` })),
-  ], [channels])
+  const channelOptions = useMemo(() =>
+    channels.map(ch => ({ value: ch.id, label: `${ch.name} - ${ch.company}` })),
+  [channels])
+
+  // Init selected channels to all when data loads
+  useEffect(() => {
+    if (!channelsInited && channelOptions.length > 0) {
+      setSelectedChannels(channelOptions.map(o => o.value))
+      setChannelsInited(true)
+    }
+  }, [channelOptions, channelsInited])
 
   // Filter deposits and value updates by time range
   const filteredDeposits = useMemo(() => {
     const minDate = getMinDate(timeRange, customFrom)
     const maxDate = timeRange === 'custom' && customTo ? customTo : '9999-12-31'
     let list = deposits.filter(d => d.date >= minDate && d.date <= maxDate)
-    if (channelFilter) list = list.filter(d => d.channel_id === channelFilter)
+    if (selectedChannels.length < channels.length) {
+      const set = new Set(selectedChannels)
+      list = list.filter(d => set.has(d.channel_id))
+    }
     return list
-  }, [deposits, timeRange, customFrom, customTo, channelFilter])
+  }, [deposits, timeRange, customFrom, customTo, selectedChannels, channels.length])
 
   const filteredValues = useMemo(() => {
     const minDate = getMinDate(timeRange, customFrom)
     const maxDate = timeRange === 'custom' && customTo ? customTo : '9999-12-31'
     let list = valueUpdates.filter(v => v.date >= minDate && v.date <= maxDate)
-    if (channelFilter) list = list.filter(v => v.channel_id === channelFilter)
+    if (selectedChannels.length < channels.length) {
+      const set = new Set(selectedChannels)
+      list = list.filter(v => set.has(v.channel_id))
+    }
     return list
-  }, [valueUpdates, timeRange, customFrom, customTo, channelFilter])
+  }, [valueUpdates, timeRange, customFrom, customTo, selectedChannels, channels.length])
 
   const filteredChannels = useMemo(() => {
-    if (channelFilter) return channels.filter(ch => ch.id === channelFilter)
+    if (selectedChannels.length < channels.length) {
+      const set = new Set(selectedChannels)
+      return channels.filter(ch => set.has(ch.id))
+    }
     return channels
-  }, [channels, channelFilter])
+  }, [channels, selectedChannels])
 
   const summaries = useMemo(() => {
     return filteredChannels.map(ch => {
@@ -147,11 +164,11 @@ export function InvestmentsChartsPage() {
           <div className="charts-filters">
             <div className="filter-group filter-group-wide">
               <label className="filter-label">אפיק השקעה</label>
-              <ReadOnlySelect
+              <FilterMultiSelect
                 options={channelOptions}
-                value={channelFilter}
+                value={selectedChannels}
                 placeholder="הכל"
-                onChange={setChannelFilter}
+                onChange={setSelectedChannels}
               />
             </div>
             <div className="filter-group">

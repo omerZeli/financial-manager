@@ -5,7 +5,7 @@ import { useFixedExpenses } from '../contexts/FixedExpensesContext'
 import { usePaybacks } from '../contexts/PaybacksContext'
 import { useExpenseTypes } from '../contexts/ExpenseTypesContext'
 import { useSalary } from '../contexts/SalaryContext'
-import { ReadOnlySelect } from '../components/common/ReadOnlySelect'
+import { FilterMultiSelect } from '../components/common/FilterMultiSelect'
 import DateInput from '../components/common/DateInput'
 import './Section.css'
 
@@ -50,7 +50,8 @@ export function ExpensesChartsPage() {
   const [timeRange, setTimeRange] = useState<TimeRange>('last12')
   const [customFrom, setCustomFrom] = useState('')
   const [customTo, setCustomTo] = useState('')
-  const [expenseType, setExpenseType] = useState('')
+  const [selectedTypes, setSelectedTypes] = useState<string[]>([])
+  const [typesInited, setTypesInited] = useState(false)
   const [aggMode, setAggMode] = useState<AggMode>('sum')
 
   useEffect(() => { fetchExpenses() }, [fetchExpenses])
@@ -115,34 +116,49 @@ export function ExpensesChartsPage() {
 
   // Expense type options for filter
   const typeOptions = useMemo(() => [
-    { value: '', label: 'הכל' },
     ...expenseTypes.map(et => ({ value: et.id, label: et.type_name })),
     ...(expenseTypes.length > 0 ? [{ value: '__others__', label: 'אחר' }] : []),
   ], [expenseTypes])
 
-  // Categories for selected expense type
+  // Init selected types to all when data loads
+  useEffect(() => {
+    if (!typesInited && typeOptions.length > 0) {
+      setSelectedTypes(typeOptions.map(o => o.value))
+      setTypesInited(true)
+    }
+  }, [typeOptions, typesInited])
+
+  // Categories for selected expense types
   const selectedTypeCategories = useMemo(() => {
-    if (!expenseType) return null
-    if (expenseType === '__others__') return null
-    const et = expenseTypes.find(t => t.id === expenseType)
-    return et ? new Set(et.categories) : null
-  }, [expenseType, expenseTypes])
+    if (selectedTypes.length === typeOptions.length) return null
+    if (selectedTypes.length === 0) return { cats: new Set<string>(), hasOthers: false }
+    const cats = new Set<string>()
+    const hasOthers = selectedTypes.includes('__others__')
+    for (const typeId of selectedTypes) {
+      if (typeId === '__others__') continue
+      const et = expenseTypes.find(t => t.id === typeId)
+      if (et) for (const cat of et.categories) cats.add(cat)
+    }
+    return { cats, hasOthers }
+  }, [selectedTypes, typeOptions.length, expenseTypes])
 
   // Filtered expenses
   const filtered = useMemo(() => {
     let list = allExpensesRaw
     // expense type filter
-    if (expenseType === '__others__') {
-      list = list.filter(e => !allTypedCategories.has(e.category))
-    } else if (selectedTypeCategories) {
-      list = list.filter(e => selectedTypeCategories.has(e.category))
+    if (selectedTypeCategories) {
+      list = list.filter(e => {
+        if (selectedTypeCategories.cats.has(e.category)) return true
+        if (selectedTypeCategories.hasOthers && !allTypedCategories.has(e.category)) return true
+        return false
+      })
     }
     // time range filter
     const minDate = getMinDate(timeRange, customFrom)
     const maxDate = timeRange === 'custom' && customTo ? customTo : '9999-12-31'
     list = list.filter(e => e.date >= minDate && e.date <= maxDate)
     return list
-  }, [allExpensesRaw, expenseType, allTypedCategories, selectedTypeCategories, timeRange, customFrom, customTo])
+  }, [allExpensesRaw, selectedTypeCategories, allTypedCategories, timeRange, customFrom, customTo])
 
   const aggLabel = aggMode === 'avg' ? 'ממוצע' : 'סה"כ'
 
@@ -221,11 +237,11 @@ export function ExpensesChartsPage() {
             </div>
             <div className="filter-group">
               <label className="filter-label">סוג הוצאה</label>
-              <ReadOnlySelect
+              <FilterMultiSelect
                 options={typeOptions}
-                value={expenseType}
+                value={selectedTypes}
                 placeholder="הכל"
-                onChange={setExpenseType}
+                onChange={setSelectedTypes}
               />
             </div>
             <div className="filter-group">

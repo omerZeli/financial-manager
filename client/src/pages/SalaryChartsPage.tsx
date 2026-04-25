@@ -5,7 +5,7 @@ import { useInvestmentDeposits } from '../contexts/InvestmentDepositsContext'
 import { useExpenses } from '../contexts/ExpensesContext'
 import { useFixedExpenses } from '../contexts/FixedExpensesContext'
 import DateInput from '../components/common/DateInput'
-import { ReadOnlySelect } from '../components/common/ReadOnlySelect'
+import { FilterMultiSelect } from '../components/common/FilterMultiSelect'
 import './Section.css'
 
 function formatCurrency(n: number) {
@@ -37,7 +37,8 @@ export function SalaryChartsPage() {
   const [timeRange, setTimeRange] = useState<TimeRange>('last12')
   const [customFrom, setCustomFrom] = useState('')
   const [customTo, setCustomTo] = useState('')
-  const [employer, setEmployer] = useState('')
+  const [selectedEmployers, setSelectedEmployers] = useState<string[]>([])
+  const [employersInited, setEmployersInited] = useState(false)
   const [aggMode, setAggMode] = useState<AggMode>('avg')
 
   useEffect(() => { fetchSalaries(); fetchDeposits(); fetchExpenses(); fetchFixedExpenses() }, [fetchSalaries, fetchDeposits, fetchExpenses, fetchFixedExpenses])
@@ -48,17 +49,31 @@ export function SalaryChartsPage() {
     return Array.from(set).sort()
   }, [salaries])
 
+  // Init selected employers to all when data loads
+  useEffect(() => {
+    if (!employersInited && employers.length > 0) {
+      setSelectedEmployers(employers)
+      setEmployersInited(true)
+    }
+  }, [employers, employersInited])
+
+  const employerOptions = useMemo(() =>
+    employers.map(emp => ({ value: emp, label: emp })),
+  [employers])
+
   // Filtered salaries based on time range + employer
   const filtered = useMemo(() => {
     let list = [...salaries]
     // employer filter
-    if (employer) list = list.filter(s => s.employer === employer)
+    if (selectedEmployers.length < employers.length) {
+      list = list.filter(s => selectedEmployers.includes(s.employer))
+    }
     // time range filter
     const minMonth = getMinMonth(timeRange, customFrom)
     const maxMonth = timeRange === 'custom' && customTo ? customTo : '9999-12-31'
     list = list.filter(s => s.month >= minMonth && s.month <= maxMonth)
     return list.sort((a, b) => a.month.localeCompare(b.month))
-  }, [salaries, employer, timeRange, customFrom, customTo])
+  }, [salaries, selectedEmployers, employers.length, timeRange, customFrom, customTo])
 
   const count = filtered.length
   const aggLabel = aggMode === 'avg' ? 'ממוצע' : 'סה"כ'
@@ -152,11 +167,11 @@ export function SalaryChartsPage() {
             </div>
             <div className="filter-group">
               <label className="filter-label">מעסיק</label>
-              <ReadOnlySelect
-                options={[{ value: '', label: 'הכל' }, ...employers.map(emp => ({ value: emp, label: emp }))]}
-                value={employer}
+              <FilterMultiSelect
+                options={employerOptions}
+                value={selectedEmployers}
                 placeholder="הכל"
-                onChange={setEmployer}
+                onChange={setSelectedEmployers}
               />
             </div>
             <div className="filter-group">

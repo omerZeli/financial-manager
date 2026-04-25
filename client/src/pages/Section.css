@@ -980,3 +980,24 @@
 .filter-group-wide .custom-select-item {
   white-space: nowrap;
 }
+
+/* Filter multi-select sizing */
+.filter-group .filter-multi-select {
+  min-width: 150px;
+}
+
+.filter-group .filter-multi-menu {
+  min-width: 100px;
+}
+
+.filter-group-wide .filter-multi-select {
+  min-width: 250px;
+}
+
+.filter-group-wide .filter-multi-menu {
+  min-width: 250px;
+}
+
+.filter-group-wide .filter-multi-item {
+  white-space: nowrap;
+}
