@@ -403,6 +403,109 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Charts filters */
+.charts-filters {
+  display: flex;
+  gap: 1.25rem;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem 1.25rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.filter-group .custom-select {
+  min-width: 120px;
+}
+
+.filter-group .custom-select-trigger {
+  padding: 7px 12px;
+  font-size: 12px;
+  margin-bottom: 0;
+}
+
+.filter-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.filter-tabs {
+  display: flex;
+  gap: 3px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 2px;
+}
+
+.filter-tab {
+  padding: 5px 12px;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text);
+  cursor: pointer;
+  font-family: var(--sans);
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+
+.filter-tab:hover {
+  background: var(--bg);
+  color: var(--text-h);
+}
+
+.filter-tab.active {
+  background: var(--accent-bg);
+  color: var(--accent);
+}
+
+.filter-select {
+  padding: 5px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 12px;
+  font-family: var(--sans);
+  color: var(--text-h);
+  background: var(--bg);
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.filter-select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-bg);
+}
+
+.custom-range-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.custom-range-field .date-input-wrap {
+  margin-bottom: 0;
+}
+
+.custom-range-field .date-input-display {
+  padding: 7px 12px;
+  font-size: 12px;
+  width: 110px;
+  min-width: 0;
+}
+
 /* Charts page */
 .charts-grid {
   display: grid;
@@ -463,6 +566,7 @@
   gap: 6px;
   height: 220px;
   padding-top: 24px;
+  direction: ltr;
 }
 
 .bar-group {

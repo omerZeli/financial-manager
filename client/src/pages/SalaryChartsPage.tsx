@@ -1,9 +1,11 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import { useSalary } from '../contexts/SalaryContext'
 import { useInvestmentDeposits } from '../contexts/InvestmentDepositsContext'
 import { useExpenses } from '../contexts/ExpensesContext'
 import { useFixedExpenses } from '../contexts/FixedExpensesContext'
+import DateInput from '../components/common/DateInput'
+import { ReadOnlySelect } from '../components/common/ReadOnlySelect'
 import './Section.css'
 
 function formatCurrency(n: number) {
@@ -15,31 +17,67 @@ function formatMonth(dateStr: string) {
   return d.toLocaleDateString('he-IL', { month: 'short', year: '2-digit' })
 }
 
+type TimeRange = 'last1' | 'last6' | 'last12' | 'custom'
+type AggMode = 'avg' | 'sum'
+
+function getMinMonth(range: TimeRange, customFrom: string): string {
+  if (range === 'custom') return customFrom
+  const now = new Date()
+  const months = range === 'last1' ? 1 : range === 'last6' ? 6 : 12
+  now.setMonth(now.getMonth() - months)
+  return now.toISOString().slice(0, 10)
+}
+
 export function SalaryChartsPage() {
   const { salaries, loading, fetchSalaries } = useSalary()
   const { deposits, loading: depLoading, fetchDeposits } = useInvestmentDeposits()
   const { expenses, loading: expLoading, fetchExpenses } = useExpenses()
   const { fixedExpenses, loading: fixLoading, fetchFixedExpenses } = useFixedExpenses()
 
+  const [timeRange, setTimeRange] = useState<TimeRange>('last12')
+  const [customFrom, setCustomFrom] = useState('')
+  const [customTo, setCustomTo] = useState('')
+  const [employer, setEmployer] = useState('')
+  const [aggMode, setAggMode] = useState<AggMode>('avg')
+
   useEffect(() => { fetchSalaries(); fetchDeposits(); fetchExpenses(); fetchFixedExpenses() }, [fetchSalaries, fetchDeposits, fetchExpenses, fetchFixedExpenses])
 
-  const sorted = [...salaries].sort((a, b) => a.month.localeCompare(b.month))
-  const last12 = sorted.slice(-12)
+  // Unique employers from salary data
+  const employers = useMemo(() => {
+    const set = new Set(salaries.map(s => s.employer))
+    return Array.from(set).sort()
+  }, [salaries])
 
-  const avgBruto = salaries.length ? salaries.reduce((s, r) => s + r.bruto, 0) / salaries.length : 0
-  const avgNeto = salaries.length ? salaries.reduce((s, r) => s + r.neto, 0) / salaries.length : 0
-  const avgDiff = avgBruto - avgNeto
+  // Filtered salaries based on time range + employer
+  const filtered = useMemo(() => {
+    let list = [...salaries]
+    // employer filter
+    if (employer) list = list.filter(s => s.employer === employer)
+    // time range filter
+    const minMonth = getMinMonth(timeRange, customFrom)
+    const maxMonth = timeRange === 'custom' && customTo ? customTo : '9999-12-31'
+    list = list.filter(s => s.month >= minMonth && s.month <= maxMonth)
+    return list.sort((a, b) => a.month.localeCompare(b.month))
+  }, [salaries, employer, timeRange, customFrom, customTo])
+
+  const count = filtered.length
+  const aggLabel = aggMode === 'avg' ? 'ממוצע' : 'סה"כ'
+  const agg = (total: number) => count ? (aggMode === 'avg' ? total / count : total) : 0
+
+  const totalBruto = filtered.reduce((s, r) => s + r.bruto, 0)
+  const totalNeto = filtered.reduce((s, r) => s + r.neto, 0)
+  const aggBruto = agg(totalBruto)
+  const aggNeto = agg(totalNeto)
+  const aggDiff = aggBruto - aggNeto
 
   // Breakdown of reductions
   const breakdown = useMemo(() => {
-    if (!salaries.length) return { investmentDeductions: 0, employerDeposits: 0, expenseDeductions: 0, other: 0 }
+    if (!filtered.length) return { investmentDeductions: 0, employerDeposits: 0, expenseDeductions: 0, other: 0 }
 
-    const salaryIds = new Set(salaries.map(s => s.id))
-    const salaryMap = new Map(salaries.map(s => [s.id, s]))
+    const salaryIds = new Set(filtered.map(s => s.id))
+    const salaryMap = new Map(filtered.map(s => [s.id, s]))
 
-    // Investment deposits linked to a salary
     const linkedDeposits = deposits.filter(d => d.salary_id && salaryIds.has(d.salary_id))
-    // Split: depositor matches employer → employer deposit, otherwise → employee deduction
     let employerTotal = 0
     let investmentTotal = 0
     for (const dep of linkedDeposits) {
@@ -51,23 +89,20 @@ export function SalaryChartsPage() {
       }
     }
 
-    // Regular expenses linked to a salary
     const linkedExpenses = expenses.filter(e => e.salary_id && salaryIds.has(e.salary_id))
     let expenseTotal = linkedExpenses.reduce((sum, e) => sum + e.amount, 0)
 
-    // Fixed expenses linked by employer — compute monthly amounts per salary
-    const employerSalaries = new Map<string, number>() // employer → count of salaries
-    for (const s of salaries) {
+    const employerSalaries = new Map<string, number>()
+    for (const s of filtered) {
       employerSalaries.set(s.employer, (employerSalaries.get(s.employer) || 0) + 1)
     }
     for (const fe of fixedExpenses) {
       if (fe.salary_employer) {
-        const count = employerSalaries.get(fe.salary_employer) || 0
-        if (count > 0) {
-          // Count how many months this fixed expense overlaps with salaries of that employer
-          const salariesForEmployer = salaries.filter(s => s.employer === fe.salary_employer)
+        const empCount = employerSalaries.get(fe.salary_employer) || 0
+        if (empCount > 0) {
+          const salariesForEmployer = filtered.filter(s => s.employer === fe.salary_employer)
           for (const s of salariesForEmployer) {
-            const salMonth = s.month // YYYY-MM-DD
+            const salMonth = s.month
             if (salMonth >= fe.start_date.slice(0, 7) && (!fe.end_date || salMonth <= fe.end_date.slice(0, 7))) {
               expenseTotal += fe.amount
             }
@@ -76,15 +111,15 @@ export function SalaryChartsPage() {
       }
     }
 
-    const avgInvestment = investmentTotal / salaries.length
-    const avgEmployer = employerTotal / salaries.length
-    const avgExpense = expenseTotal / salaries.length
-    const avgOther = Math.max(0, avgDiff - avgInvestment - avgEmployer - avgExpense)
+    return {
+      investmentDeductions: agg(investmentTotal),
+      employerDeposits: agg(employerTotal),
+      expenseDeductions: agg(expenseTotal),
+      other: Math.max(0, aggDiff - agg(investmentTotal) - agg(employerTotal) - agg(expenseTotal)),
+    }
+  }, [filtered, deposits, expenses, fixedExpenses, aggDiff, aggMode])
 
-    return { investmentDeductions: avgInvestment, employerDeposits: avgEmployer, expenseDeductions: avgExpense, other: avgOther }
-  }, [salaries, deposits, expenses, fixedExpenses, avgDiff])
-
-  const maxVal = last12.reduce((m, r) => Math.max(m, r.bruto, r.neto), 0) || 1
+  const maxVal = filtered.reduce((m, r) => Math.max(m, r.bruto, r.neto), 0) || 1
 
   return (
     <div className="section-page">
@@ -106,68 +141,115 @@ export function SalaryChartsPage() {
         <div className="section-empty">אין נתונים להצגה. הוסף משכורות בטבלה.</div>
       ) : (
         <div className="charts-grid">
-          <div className="summary-row">
-            <div className="summary-card">
-              <div className="label">ממוצע ברוטו</div>
-              <div className="value">{formatCurrency(avgBruto)}</div>
+          {/* Filters */}
+          <div className="charts-filters">
+            <div className="filter-group">
+              <label className="filter-label">תצוגה</label>
+              <div className="filter-tabs">
+                <button type="button" className={`filter-tab${aggMode === 'avg' ? ' active' : ''}`} onClick={() => setAggMode('avg')}>ממוצע חודשי</button>
+                <button type="button" className={`filter-tab${aggMode === 'sum' ? ' active' : ''}`} onClick={() => setAggMode('sum')}>סכום</button>
+              </div>
             </div>
-            <div className="summary-card">
-              <div className="label">ממוצע נטו</div>
-              <div className="value">{formatCurrency(avgNeto)}</div>
-              {avgBruto > 0 && <div className="sub-value">{((avgNeto / avgBruto) * 100).toFixed(1)}% מהברוטו</div>}
+            <div className="filter-group">
+              <label className="filter-label">מעסיק</label>
+              <ReadOnlySelect
+                options={[{ value: '', label: 'הכל' }, ...employers.map(emp => ({ value: emp, label: emp }))]}
+                value={employer}
+                placeholder="הכל"
+                onChange={setEmployer}
+              />
             </div>
-            <div className="summary-card">
-              <div className="label">ממוצע ניכויים</div>
-              <div className="value">{formatCurrency(avgDiff)}</div>
-              {avgBruto > 0 && <div className="sub-value">{((avgDiff / avgBruto) * 100).toFixed(1)}% מהברוטו</div>}
+            <div className="filter-group">
+              <label className="filter-label">טווח זמן</label>
+              <div className="filter-tabs">
+                <button type="button" className={`filter-tab${timeRange === 'last1' ? ' active' : ''}`} onClick={() => setTimeRange('last1')}>חודש אחרון</button>
+                <button type="button" className={`filter-tab${timeRange === 'last6' ? ' active' : ''}`} onClick={() => setTimeRange('last6')}>6 חודשים</button>
+                <button type="button" className={`filter-tab${timeRange === 'last12' ? ' active' : ''}`} onClick={() => setTimeRange('last12')}>שנה</button>
+                <button type="button" className={`filter-tab${timeRange === 'custom' ? ' active' : ''}`} onClick={() => setTimeRange('custom')}>מותאם</button>
+              </div>
             </div>
+            {timeRange === 'custom' && (
+              <div className="custom-range-field">
+                <label className="filter-label">מתאריך</label>
+                <DateInput value={customFrom} onChange={setCustomFrom} placeholder="מתאריך" />
+              </div>
+            )}
+            {timeRange === 'custom' && (
+              <div className="custom-range-field">
+                <label className="filter-label">עד תאריך</label>
+                <DateInput value={customTo} onChange={setCustomTo} placeholder="עד תאריך" />
+              </div>
+            )}
           </div>
 
-          <div className="summary-row">
-            <div className="summary-card">
-              <div className="label">ניכויים להשקעות</div>
-              <div className="value">{formatCurrency(breakdown.investmentDeductions)}</div>
-              {avgBruto > 0 && <div className="sub-value">{((breakdown.investmentDeductions / avgBruto) * 100).toFixed(1)}% מהברוטו</div>}
-            </div>
-            <div className="summary-card">
-              <div className="label">הפקדות מעסיק להשקעות</div>
-              <div className="value">{formatCurrency(breakdown.employerDeposits)}</div>
-              {avgBruto > 0 && <div className="sub-value">{((breakdown.employerDeposits / avgBruto) * 100).toFixed(1)}% מהברוטו</div>}
-            </div>
-            <div className="summary-card">
-              <div className="label">ניכויים להוצאות</div>
-              <div className="value">{formatCurrency(breakdown.expenseDeductions)}</div>
-              {avgBruto > 0 && <div className="sub-value">{((breakdown.expenseDeductions / avgBruto) * 100).toFixed(1)}% מהברוטו</div>}
-            </div>
-            <div className="summary-card">
-              <div className="label">ניכויים אחרים</div>
-              <div className="value">{formatCurrency(breakdown.other)}</div>
-              {avgBruto > 0 && <div className="sub-value">{(((avgDiff / avgBruto) * 100) - parseFloat(((breakdown.investmentDeductions / avgBruto) * 100).toFixed(1)) - parseFloat(((breakdown.employerDeposits / avgBruto) * 100).toFixed(1)) - parseFloat(((breakdown.expenseDeductions / avgBruto) * 100).toFixed(1))).toFixed(1)}% מהברוטו</div>}
-            </div>
-          </div>
-
-          <div className="chart-card">
-            <h3>ברוטו מול נטו - 12 חודשים אחרונים</h3>
-            <div className="bar-chart">
-              {last12.map(s => (
-                <div className="bar-group" key={s.id}>
-                  <div className="bar-pair">
-                    <div className="bar bruto" style={{ height: `${(s.bruto / maxVal) * 100}%` }}>
-                      <span className="bar-value">{s.bruto.toLocaleString('he-IL')}</span>
-                    </div>
-                    <div className="bar neto" style={{ height: `${(s.neto / maxVal) * 100}%` }}>
-                      <span className="bar-value">{s.neto.toLocaleString('he-IL')}</span>
-                    </div>
-                  </div>
-                  <span className="bar-label">{formatMonth(s.month)}</span>
+          {filtered.length === 0 ? (
+            <div className="section-empty">אין נתונים בטווח שנבחר.</div>
+          ) : (
+            <>
+              <div className="summary-row">
+                <div className="summary-card">
+                  <div className="label">{aggLabel} ברוטו</div>
+                  <div className="value">{formatCurrency(aggBruto)}</div>
                 </div>
-              ))}
-            </div>
-            <div className="chart-legend">
-              <span><span className="legend-dot bruto" /> ברוטו</span>
-              <span><span className="legend-dot neto" /> נטו</span>
-            </div>
-          </div>
+                <div className="summary-card">
+                  <div className="label">{aggLabel} נטו</div>
+                  <div className="value">{formatCurrency(aggNeto)}</div>
+                  {aggBruto > 0 && <div className="sub-value">{((aggNeto / aggBruto) * 100).toFixed(1)}% מהברוטו</div>}
+                </div>
+                <div className="summary-card">
+                  <div className="label">{aggLabel} ניכויים</div>
+                  <div className="value">{formatCurrency(aggDiff)}</div>
+                  {aggBruto > 0 && <div className="sub-value">{((aggDiff / aggBruto) * 100).toFixed(1)}% מהברוטו</div>}
+                </div>
+              </div>
+
+              <div className="summary-row">
+                <div className="summary-card">
+                  <div className="label">ניכויים להשקעות</div>
+                  <div className="value">{formatCurrency(breakdown.investmentDeductions)}</div>
+                  {aggBruto > 0 && <div className="sub-value">{((breakdown.investmentDeductions / aggBruto) * 100).toFixed(1)}% מהברוטו</div>}
+                </div>
+                <div className="summary-card">
+                  <div className="label">הפקדות מעסיק להשקעות</div>
+                  <div className="value">{formatCurrency(breakdown.employerDeposits)}</div>
+                  {aggBruto > 0 && <div className="sub-value">{((breakdown.employerDeposits / aggBruto) * 100).toFixed(1)}% מהברוטו</div>}
+                </div>
+                <div className="summary-card">
+                  <div className="label">ניכויים להוצאות</div>
+                  <div className="value">{formatCurrency(breakdown.expenseDeductions)}</div>
+                  {aggBruto > 0 && <div className="sub-value">{((breakdown.expenseDeductions / aggBruto) * 100).toFixed(1)}% מהברוטו</div>}
+                </div>
+                <div className="summary-card">
+                  <div className="label">ניכויים אחרים</div>
+                  <div className="value">{formatCurrency(breakdown.other)}</div>
+                  {aggBruto > 0 && <div className="sub-value">{((breakdown.other / aggBruto) * 100).toFixed(1)}% מהברוטו</div>}
+                </div>
+              </div>
+
+              <div className="chart-card">
+                <h3>ברוטו מול נטו</h3>
+                <div className="bar-chart">
+                  {filtered.map(s => (
+                    <div className="bar-group" key={s.id}>
+                      <div className="bar-pair">
+                        <div className="bar neto" style={{ height: `${(s.neto / maxVal) * 100}%` }}>
+                          <span className="bar-value">{s.neto.toLocaleString('he-IL')}</span>
+                        </div>
+                        <div className="bar bruto" style={{ height: `${(s.bruto / maxVal) * 100}%` }}>
+                          <span className="bar-value">{s.bruto.toLocaleString('he-IL')}</span>
+                        </div>
+                      </div>
+                      <span className="bar-label">{formatMonth(s.month)}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="chart-legend">
+                  <span><span className="legend-dot bruto" /> ברוטו</span>
+                  <span><span className="legend-dot neto" /> נטו</span>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       )}
     </div>
