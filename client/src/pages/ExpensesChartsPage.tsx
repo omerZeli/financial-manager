@@ -1,8 +1,11 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import { useExpenses } from '../contexts/ExpensesContext'
 import { useFixedExpenses } from '../contexts/FixedExpensesContext'
 import { usePaybacks } from '../contexts/PaybacksContext'
+import { useExpenseTypes } from '../contexts/ExpenseTypesContext'
+import { ReadOnlySelect } from '../components/common/ReadOnlySelect'
+import DateInput from '../components/common/DateInput'
 import './Section.css'
 
 function formatCurrency(n: number) {
@@ -25,14 +28,33 @@ const CATEGORY_COLORS = [
   '#65a30d',
 ]
 
+type TimeRange = 'last1' | 'last6' | 'last12' | 'custom'
+type AggMode = 'avg' | 'sum'
+
+function getMinDate(range: TimeRange, customFrom: string): string {
+  if (range === 'custom') return customFrom
+  const now = new Date()
+  const months = range === 'last1' ? 1 : range === 'last6' ? 6 : 12
+  now.setMonth(now.getMonth() - months)
+  return now.toISOString().slice(0, 10)
+}
+
 export function ExpensesChartsPage() {
   const { expenses, loading, fetchExpenses } = useExpenses()
   const { inflatedExpenses, loading: fixedLoading, fetchFixedExpenses } = useFixedExpenses()
   const { paybacks, loading: paybacksLoading, fetchPaybacks } = usePaybacks()
+  const { expenseTypes, fetchExpenseTypes } = useExpenseTypes()
+
+  const [timeRange, setTimeRange] = useState<TimeRange>('last12')
+  const [customFrom, setCustomFrom] = useState('')
+  const [customTo, setCustomTo] = useState('')
+  const [expenseType, setExpenseType] = useState('')
+  const [aggMode, setAggMode] = useState<AggMode>('sum')
 
   useEffect(() => { fetchExpenses() }, [fetchExpenses])
   useEffect(() => { fetchFixedExpenses() }, [fetchFixedExpenses])
   useEffect(() => { fetchPaybacks() }, [fetchPaybacks])
+  useEffect(() => { fetchExpenseTypes() }, [fetchExpenseTypes])
 
   // Build to_me payback totals per expense_id
   const toMeByExpense = useMemo(() => {
@@ -60,7 +82,7 @@ export function ExpensesChartsPage() {
       }))
   }, [paybacks])
 
-  const allExpenses = useMemo(() => {
+  const allExpensesRaw = useMemo(() => {
     const adjusted = expenses.map(exp => {
       const returned = toMeByExpense[exp.id] || 0
       return { ...exp, amount: exp.amount - returned }
@@ -68,27 +90,60 @@ export function ExpensesChartsPage() {
     return [...adjusted, ...inflatedExpenses, ...byMeExpenses]
   }, [expenses, inflatedExpenses, byMeExpenses, toMeByExpense])
 
-  const totalAmount = allExpenses.reduce((s, e) => s + e.amount, 0)
-  const avgAmount = allExpenses.length ? totalAmount / allExpenses.length : 0
+  // Expense type options for filter
+  const typeOptions = useMemo(() => [
+    { value: '', label: 'הכל' },
+    ...expenseTypes.map(et => ({ value: et.id, label: et.type_name })),
+  ], [expenseTypes])
+
+  // Categories for selected expense type
+  const selectedTypeCategories = useMemo(() => {
+    if (!expenseType) return null
+    const et = expenseTypes.find(t => t.id === expenseType)
+    return et ? new Set(et.categories) : null
+  }, [expenseType, expenseTypes])
+
+  // Filtered expenses
+  const filtered = useMemo(() => {
+    let list = allExpensesRaw
+    // expense type filter
+    if (selectedTypeCategories) {
+      list = list.filter(e => selectedTypeCategories.has(e.category))
+    }
+    // time range filter
+    const minDate = getMinDate(timeRange, customFrom)
+    const maxDate = timeRange === 'custom' && customTo ? customTo : '9999-12-31'
+    list = list.filter(e => e.date >= minDate && e.date <= maxDate)
+    return list
+  }, [allExpensesRaw, selectedTypeCategories, timeRange, customFrom, customTo])
+
+  const aggLabel = aggMode === 'avg' ? 'ממוצע' : 'סה"כ'
+
+  // Monthly totals for aggregation
+  const byMonth = useMemo(() => {
+    const map: Record<string, number> = {}
+    for (const e of filtered) {
+      const key = e.date.slice(0, 7)
+      map[key] = (map[key] || 0) + e.amount
+    }
+    return Object.entries(map).sort((a, b) => a[0].localeCompare(b[0]))
+  }, [filtered])
+
+  const monthCount = byMonth.length
+  const totalAmount = filtered.reduce((s, e) => s + e.amount, 0)
+  const aggTotal = monthCount ? (aggMode === 'avg' ? totalAmount / monthCount : totalAmount) : 0
+  const expenseCount = filtered.length
+  const aggCount = monthCount ? (aggMode === 'avg' ? expenseCount / monthCount : expenseCount) : 0
 
   // Group by category
-  const byCategory = allExpenses.reduce<Record<string, number>>((acc, e) => {
+  const byCategory = filtered.reduce<Record<string, number>>((acc, e) => {
     acc[e.category] = (acc[e.category] || 0) + e.amount
     return acc
   }, {})
   const categories = Object.entries(byCategory).sort((a, b) => b[1] - a[1])
   const maxCategory = categories.length ? categories[0][1] : 1
 
-  // Monthly totals (last 12 months)
-  const byMonth = allExpenses.reduce<Record<string, number>>((acc, e) => {
-    const key = e.date.slice(0, 7) // YYYY-MM
-    acc[key] = (acc[key] || 0) + e.amount
-    return acc
-  }, {})
-  const months = Object.entries(byMonth)
-    .sort((a, b) => a[0].localeCompare(b[0]))
-    .slice(-12)
-  const maxMonth = months.reduce((m, [, v]) => Math.max(m, v), 0) || 1
+  const maxMonth = byMonth.reduce((m, [, v]) => Math.max(m, v), 0) || 1
 
   return (
     <div className="section-page">
@@ -106,63 +161,111 @@ export function ExpensesChartsPage() {
 
       {(loading || fixedLoading || paybacksLoading) ? (
         <div className="section-empty">טוען...</div>
-      ) : allExpenses.length === 0 ? (
+      ) : allExpensesRaw.length === 0 ? (
         <div className="section-empty">אין נתונים להצגה. הוסף הוצאות בטבלה.</div>
       ) : (
         <div className="charts-grid">
-          <div className="summary-row">
-            <div className="summary-card">
-              <div className="label">סה"כ הוצאות</div>
-              <div className="value">{formatCurrency(totalAmount)}</div>
+          {/* Filters */}
+          <div className="charts-filters">
+            <div className="filter-group">
+              <label className="filter-label">תצוגה</label>
+              <div className="filter-tabs">
+                <button type="button" className={`filter-tab${aggMode === 'avg' ? ' active' : ''}`} onClick={() => setAggMode('avg')}>ממוצע חודשי</button>
+                <button type="button" className={`filter-tab${aggMode === 'sum' ? ' active' : ''}`} onClick={() => setAggMode('sum')}>סכום</button>
+              </div>
             </div>
-            <div className="summary-card">
-              <div className="label">ממוצע להוצאה</div>
-              <div className="value">{formatCurrency(avgAmount)}</div>
+            <div className="filter-group">
+              <label className="filter-label">סוג הוצאה</label>
+              <ReadOnlySelect
+                options={typeOptions}
+                value={expenseType}
+                placeholder="הכל"
+                onChange={setExpenseType}
+              />
             </div>
-            <div className="summary-card">
-              <div className="label">מספר הוצאות</div>
-              <div className="value">{allExpenses.length}</div>
+            <div className="filter-group">
+              <label className="filter-label">טווח זמן</label>
+              <div className="filter-tabs">
+                <button type="button" className={`filter-tab${timeRange === 'last1' ? ' active' : ''}`} onClick={() => setTimeRange('last1')}>חודש אחרון</button>
+                <button type="button" className={`filter-tab${timeRange === 'last6' ? ' active' : ''}`} onClick={() => setTimeRange('last6')}>6 חודשים</button>
+                <button type="button" className={`filter-tab${timeRange === 'last12' ? ' active' : ''}`} onClick={() => setTimeRange('last12')}>שנה</button>
+                <button type="button" className={`filter-tab${timeRange === 'custom' ? ' active' : ''}`} onClick={() => setTimeRange('custom')}>מותאם</button>
+              </div>
             </div>
+            {timeRange === 'custom' && (
+              <div className="custom-range-field">
+                <label className="filter-label">מתאריך</label>
+                <DateInput value={customFrom} onChange={setCustomFrom} placeholder="מתאריך" />
+              </div>
+            )}
+            {timeRange === 'custom' && (
+              <div className="custom-range-field">
+                <label className="filter-label">עד תאריך</label>
+                <DateInput value={customTo} onChange={setCustomTo} placeholder="עד תאריך" />
+              </div>
+            )}
           </div>
 
-          <div className="chart-card">
-            <h3>הוצאות לפי קטגוריה</h3>
-            <div className="h-bar-chart">
-              {categories.map(([cat, total], i) => (
-                <div className="h-bar-row" key={cat}>
-                  <span className="h-bar-label">{cat}</span>
-                  <div className="h-bar-track">
-                    <div
-                      className="h-bar-fill"
-                      style={{
-                        width: `${(total / maxCategory) * 100}%`,
-                        background: CATEGORY_COLORS[i % CATEGORY_COLORS.length],
-                      }}
-                    />
-                  </div>
-                  <span className="h-bar-value">{formatCurrency(total)}</span>
+          {filtered.length === 0 ? (
+            <div className="section-empty">אין נתונים בטווח שנבחר.</div>
+          ) : (
+            <>
+              <div className="summary-row">
+                <div className="summary-card">
+                  <div className="label">{aggLabel} הוצאות</div>
+                  <div className="value">{formatCurrency(aggTotal)}</div>
                 </div>
-              ))}
-            </div>
-          </div>
+                <div className="summary-card">
+                  <div className="label">{aggLabel} להוצאה</div>
+                  <div className="value">{formatCurrency(expenseCount ? totalAmount / expenseCount : 0)}</div>
+                </div>
+                <div className="summary-card">
+                  <div className="label">{aggLabel} מספר הוצאות</div>
+                  <div className="value">{Math.round(aggCount)}</div>
+                </div>
+              </div>
 
-          <div className="chart-card">
-            <h3>הוצאות חודשיות - 12 חודשים אחרונים</h3>
-            <div className="bar-chart">
-              {months.map(([m, total]) => (
-                <div className="bar-group" key={m}>
-                  <div className="bar-pair">
-                    <div
-                      className="bar expense-bar"
-                      style={{ height: `${(total / maxMonth) * 100}%` }}
-                      title={formatCurrency(total)}
-                    />
-                  </div>
-                  <span className="bar-label">{formatMonth(m + '-01')}</span>
+              <div className="chart-card">
+                <h3>הוצאות לפי קטגוריה</h3>
+                <div className="h-bar-chart">
+                  {categories.map(([cat, total], i) => (
+                    <div className="h-bar-row" key={cat}>
+                      <span className="h-bar-label">{cat}</span>
+                      <div className="h-bar-track">
+                        <div
+                          className="h-bar-fill"
+                          style={{
+                            width: `${(total / maxCategory) * 100}%`,
+                            background: CATEGORY_COLORS[i % CATEGORY_COLORS.length],
+                          }}
+                        />
+                      </div>
+                      <span className="h-bar-value">{formatCurrency(total)}</span>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </div>
+              </div>
+
+              <div className="chart-card">
+                <h3>הוצאות חודשיות</h3>
+                <div className="bar-chart">
+                  {byMonth.map(([m, total]) => (
+                    <div className="bar-group" key={m}>
+                      <div className="bar-pair">
+                        <div
+                          className="bar expense-bar"
+                          style={{ height: `${(total / maxMonth) * 100}%` }}
+                        >
+                          <span className="bar-value">{total.toLocaleString('he-IL')}</span>
+                        </div>
+                      </div>
+                      <span className="bar-label">{formatMonth(m + '-01')}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
         </div>
       )}
     </div>
