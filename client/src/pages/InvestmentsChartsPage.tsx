@@ -201,7 +201,7 @@ export function InvestmentsChartsPage() {
             <div className="summary-card">
               <div className="label">תשואה שנתית ממוצעת</div>
               <div className={`value ${avgYearlyReturn >= 0 ? 'positive-return' : 'negative-return'}`}>
-                {formatPercent(avgYearlyReturn)}
+                {formatCurrency(avgYearlyReturn * totalDeposited)} ({formatPercent(avgYearlyReturn)})
               </div>
             </div>
           </div>
