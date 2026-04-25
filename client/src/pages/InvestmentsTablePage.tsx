@@ -105,6 +105,17 @@ export function InvestmentsTablePage() {
   const resetDepositForm = () => { setDepChannel(''); setDepAmount(''); setDepDate(''); setDepDepositor(''); setDepDeductedFromSalary(false); setDepSelectedSalaryId('') }
   const resetValueForm = () => { setValChannel(''); setValValue(''); setValPath(''); setValDate('') }
 
+  // Pinned depositor options: "אני" + unique employer names
+  const pinnedDepositors = useMemo(() => {
+    const employers = [...new Set(salaries.map(s => s.employer))].sort()
+    return ['אני', ...employers]
+  }, [salaries])
+
+  // Whether the selected depositor is a pinned (hard) option
+  const isPinnedDepositor = useMemo(() => {
+    return pinnedDepositors.includes(depDepositor)
+  }, [pinnedDepositors, depDepositor])
+
   // Recent salaries (last 6 months)
   const recentSalaries = useMemo(() => {
     const now = new Date()
@@ -113,24 +124,31 @@ export function InvestmentsTablePage() {
     return salaries.filter(s => s.month >= cutoff)
   }, [salaries])
 
+  // Filtered salary options based on depositor
   const salaryOptions = useMemo(() => {
-    return recentSalaries.map(s => {
+    const filtered = depDepositor && depDepositor !== 'אני'
+      ? recentSalaries.filter(s => s.employer === depDepositor)
+      : recentSalaries
+    return filtered.map(s => {
       const d = new Date(s.month + 'T00:00:00')
       const monthLabel = d.toLocaleDateString('he-IL', { month: 'long', year: 'numeric' })
       return { value: s.id, label: `${monthLabel} - ${s.employer}` }
     })
-  }, [recentSalaries])
+  }, [recentSalaries, depDepositor])
 
-  // Auto-select salary for deposit when date changes (previous month's salary)
+  // Auto-select salary for deposit when date/depositor changes (previous month's salary)
   useEffect(() => {
     if (!depDeductedFromSalary || !depDate) { setDepSelectedSalaryId(''); return }
     const d = new Date(depDate + 'T00:00:00')
     const prev = new Date(d.getFullYear(), d.getMonth() - 1, 1)
     const prevMonth = `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, '0')}`
-    const matching = recentSalaries.filter(s => s.month.slice(0, 7) === prevMonth)
+    let matching = recentSalaries.filter(s => s.month.slice(0, 7) === prevMonth)
+    if (depDepositor && depDepositor !== 'אני') {
+      matching = matching.filter(s => s.employer === depDepositor)
+    }
     if (matching.length === 1) setDepSelectedSalaryId(matching[0].id)
     else setDepSelectedSalaryId('')
-  }, [depDeductedFromSalary, depDate, recentSalaries])
+  }, [depDeductedFromSalary, depDate, depDepositor, recentSalaries])
 
   const openValueFormForChannel = (channelId: string) => {
     const ch = channels.find(c => c.id === channelId)
@@ -486,9 +504,10 @@ export function InvestmentsTablePage() {
               <label>מי הפקיד</label>
               <CustomSelect
                 options={depositorOptions}
+                pinnedOptions={pinnedDepositors}
                 value={depDepositor}
                 placeholder="הכנס מפקיד"
-                onChange={setDepDepositor}
+                onChange={(val) => { setDepDepositor(val); setDepDeductedFromSalary(false); setDepSelectedSalaryId('') }}
                 onAddOption={addDepositor}
                 onRemoveOption={removeDepositor}
                 loading={depositorLoading}
@@ -497,19 +516,21 @@ export function InvestmentsTablePage() {
               <label>תאריך</label>
               <DateInput value={depDate} onChange={setDepDate} required />
 
-              <div className="toggle-row">
-                <label className="toggle-label" htmlFor="dep-salary-deduct">נוכה מהמשכורת?</label>
-                <button
-                  type="button"
-                  id="dep-salary-deduct"
-                  role="switch"
-                  aria-checked={depDeductedFromSalary}
-                  className={`toggle-switch${depDeductedFromSalary ? ' active' : ''}`}
-                  onClick={() => { setDepDeductedFromSalary(prev => !prev); setDepSelectedSalaryId('') }}
-                >
-                  <span className="toggle-knob" />
-                </button>
-              </div>
+              {isPinnedDepositor && depDepositor && (
+                <div className="toggle-row">
+                  <label className="toggle-label" htmlFor="dep-salary-deduct">נוכה מהמשכורת?</label>
+                  <button
+                    type="button"
+                    id="dep-salary-deduct"
+                    role="switch"
+                    aria-checked={depDeductedFromSalary}
+                    className={`toggle-switch${depDeductedFromSalary ? ' active' : ''}`}
+                    onClick={() => { setDepDeductedFromSalary(prev => !prev); setDepSelectedSalaryId('') }}
+                  >
+                    <span className="toggle-knob" />
+                  </button>
+                </div>
+              )}
 
               {depDeductedFromSalary && (
                 <>

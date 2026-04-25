@@ -4,6 +4,7 @@ import './CustomSelect.css'
 
 interface CustomSelectProps {
   options: DropdownOption[]
+  pinnedOptions?: string[]
   value: string
   placeholder: string
   onChange: (value: string) => void
@@ -14,6 +15,7 @@ interface CustomSelectProps {
 
 export function CustomSelect({
   options,
+  pinnedOptions = [],
   value,
   placeholder,
   onChange,
@@ -29,10 +31,15 @@ export function CustomSelect({
   const searchRef = useRef<HTMLInputElement>(null)
   const addInputRef = useRef<HTMLInputElement>(null)
 
-  const selected = options.find((o) => o.label === value)
+  const pinnedSet = new Set(pinnedOptions)
+  const allOptions: (DropdownOption & { pinned?: boolean })[] = [
+    ...pinnedOptions.map(label => ({ id: `__pinned__${label}`, label, pinned: true })),
+    ...options.filter(o => !pinnedSet.has(o.label)),
+  ]
+  const selected = allOptions.find((o) => o.label === value)
   const filtered = search
-    ? options.filter((o) => o.label.includes(search))
-    : options
+    ? allOptions.filter((o) => o.label.includes(search))
+    : allOptions
 
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
@@ -117,16 +124,18 @@ export function CustomSelect({
                   onClick={() => { onChange(option.label); setSearch(''); setOpen(false) }}
                 >
                   <span>{option.label}</span>
-                  <button
-                    type="button"
-                    className="custom-select-remove"
-                    onClick={(e) => handleRemove(e, option.id)}
-                    aria-label={`הסרת ${option.label}`}
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
-                    </svg>
-                  </button>
+                  {!('pinned' in option && option.pinned) && (
+                    <button
+                      type="button"
+                      className="custom-select-remove"
+                      onClick={(e) => handleRemove(e, option.id)}
+                      aria-label={`הסרת ${option.label}`}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                      </svg>
+                    </button>
+                  )}
                 </div>
               ))}
               {filtered.length === 0 && (
