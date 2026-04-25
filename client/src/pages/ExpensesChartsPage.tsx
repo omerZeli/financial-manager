@@ -262,27 +262,6 @@ export function ExpensesChartsPage() {
               </div>
 
               <div className="chart-card">
-                <h3>הוצאות לפי קטגוריה</h3>
-                <div className="h-bar-chart">
-                  {categories.map(([cat, total], i) => (
-                    <div className="h-bar-row" key={cat}>
-                      <span className="h-bar-label">{cat}</span>
-                      <div className="h-bar-track">
-                        <div
-                          className="h-bar-fill"
-                          style={{
-                            width: `${(total / maxCategory) * 100}%`,
-                            background: CATEGORY_COLORS[i % CATEGORY_COLORS.length],
-                          }}
-                        />
-                      </div>
-                      <span className="h-bar-value">{formatCurrency(total)}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="chart-card">
                 <h3>הוצאות חודשיות</h3>
                 <div className="bar-chart">
                   {byMonth.map(([m, total]) => (
@@ -296,6 +275,29 @@ export function ExpensesChartsPage() {
                         </div>
                       </div>
                       <span className="bar-label">{formatMonth(m + '-01')}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="chart-card">
+                <h3>הוצאות לפי קטגוריה</h3>
+                <div className="h-bar-chart">
+                  {categories.map(([cat, total], i) => (
+                    <div className="h-bar-row" key={cat}>
+                      <span className="h-bar-label">{cat}</span>
+                      <div className="h-bar-track">
+                        <div
+                          className="h-bar-fill"
+                          style={{
+                            width: `${(total / maxCategory) * 100}%`,
+                            background: CATEGORY_COLORS[i % CATEGORY_COLORS.length],
+                          }}
+                        >
+                          <span className="h-bar-pct">{((total / totalAmount) * 100).toFixed(1)}%</span>
+                        </div>
+                      </div>
+                      <span className="h-bar-value">{formatCurrency(total)}</span>
                     </div>
                   ))}
                 </div>
