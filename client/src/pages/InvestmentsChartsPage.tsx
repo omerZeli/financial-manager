@@ -47,6 +47,7 @@ export function InvestmentsChartsPage() {
   const [customTo, setCustomTo] = useState('')
   const [selectedChannels, setSelectedChannels] = useState<string[]>([])
   const [channelsInited, setChannelsInited] = useState(false)
+  const [groupBy, setGroupBy] = useState<'channel' | 'path' | 'depositor'>('channel')
 
   useEffect(() => { fetchChannels() }, [fetchChannels])
   useEffect(() => { fetchDeposits() }, [fetchDeposits])
@@ -136,9 +137,59 @@ export function InvestmentsChartsPage() {
     ? Math.pow(1 + totalReturnPercent, 12 / investmentDuration.months) - 1
     : 0
 
-  const maxValue = summaries.reduce((m, c) => Math.max(m, c.currentValue, c.totalDeposits), 0) || 1
-
   const isLoading = chLoading || depLoading || valLoading
+
+  // Chart data grouped by selected dimension
+  const chartEntries = useMemo(() => {
+    if (groupBy === 'channel') {
+      return summaries
+        .filter(ch => ch.currentValue > 0)
+        .sort((a, b) => b.currentValue - a.currentValue)
+        .map(ch => ({ label: ch.name, value: ch.currentValue }))
+    }
+
+    if (groupBy === 'path') {
+      const byPath: Record<string, number> = {}
+      for (const ch of summaries) {
+        if (ch.currentValue <= 0) continue
+        const path = ch.investment_path || 'ללא מסלול'
+        byPath[path] = (byPath[path] || 0) + ch.currentValue
+      }
+      return Object.entries(byPath)
+        .sort((a, b) => b[1] - a[1])
+        .map(([label, value]) => ({ label, value }))
+    }
+
+    // groupBy === 'depositor'
+    const byDepositor: Record<string, number> = {}
+    for (const ch of summaries) {
+      if (ch.currentValue <= 0) continue
+      // Calculate each depositor's share of this channel's deposits
+      const chDeposits = filteredDeposits.filter(d => d.channel_id === ch.id && !d.is_withdrawal)
+      const totalChDeposits = chDeposits.reduce((s, d) => s + d.amount, 0)
+      if (totalChDeposits <= 0) continue
+      const depositorTotals: Record<string, number> = {}
+      for (const d of chDeposits) {
+        depositorTotals[d.depositor] = (depositorTotals[d.depositor] || 0) + d.amount
+      }
+      for (const [depositor, depTotal] of Object.entries(depositorTotals)) {
+        const share = (depTotal / totalChDeposits) * ch.currentValue
+        byDepositor[depositor] = (byDepositor[depositor] || 0) + share
+      }
+    }
+    return Object.entries(byDepositor)
+      .sort((a, b) => b[1] - a[1])
+      .map(([label, value]) => ({ label, value }))
+  }, [groupBy, summaries, filteredDeposits])
+
+  const chartTotal = chartEntries.reduce((s, e) => s + e.value, 0)
+  const chartMax = chartEntries.length > 0 ? chartEntries[0].value : 1
+
+  const groupByLabels: Record<string, string> = {
+    channel: 'אפיק',
+    path: 'מסלול השקעה',
+    depositor: 'מפקיד',
+  }
 
   return (
     <div className="section-page">
@@ -224,52 +275,32 @@ export function InvestmentsChartsPage() {
           </div>
 
           <div className="chart-card">
-            <h3>הפקדות מול שווי נוכחי - לפי אפיק</h3>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+              <h3 style={{ margin: 0 }}>התפלגות השקעות לפי {groupByLabels[groupBy]}</h3>
+              <div className="filter-tabs" style={{ width: 'auto' }}>
+                <button type="button" className={`filter-tab${groupBy === 'channel' ? ' active' : ''}`} onClick={() => setGroupBy('channel')}>אפיק</button>
+                <button type="button" className={`filter-tab${groupBy === 'path' ? ' active' : ''}`} onClick={() => setGroupBy('path')}>מסלול השקעה</button>
+                <button type="button" className={`filter-tab${groupBy === 'depositor' ? ' active' : ''}`} onClick={() => setGroupBy('depositor')}>מפקיד</button>
+              </div>
+            </div>
             <div className="h-bar-chart">
-              {summaries.map((ch, i) => (
-                <div className="h-bar-row" key={ch.id}>
-                  <span className="h-bar-label">{ch.name}</span>
+              {chartEntries.map((entry, i) => (
+                <div className="h-bar-row" key={entry.label}>
+                  <span className="h-bar-label">{entry.label}</span>
                   <div className="h-bar-track">
                     <div
                       className="h-bar-fill"
                       style={{
-                        width: `${(ch.currentValue / maxValue) * 100}%`,
+                        width: `${(entry.value / chartMax) * 100}%`,
                         background: CHANNEL_COLORS[i % CHANNEL_COLORS.length],
                       }}
-                    />
+                    >
+                      <span className="h-bar-pct">{((entry.value / chartTotal) * 100).toFixed(1)}%</span>
+                    </div>
                   </div>
-                  <span className="h-bar-value">{formatCurrency(ch.currentValue)}</span>
+                  <span className="h-bar-value">{formatCurrency(entry.value)}</span>
                 </div>
               ))}
-            </div>
-          </div>
-
-          <div className="chart-card">
-            <h3>תשואה לפי אפיק</h3>
-            <div className="h-bar-chart">
-              {summaries
-                .filter(ch => ch.currentValue > 0)
-                .sort((a, b) => b.returnPercent - a.returnPercent)
-                .map((ch, i) => {
-                  const maxPct = Math.max(...summaries.filter(c => c.currentValue > 0).map(c => Math.abs(c.returnPercent)), 0.01)
-                  return (
-                    <div className="h-bar-row" key={ch.id}>
-                      <span className="h-bar-label">{ch.name}</span>
-                      <div className="h-bar-track">
-                        <div
-                          className="h-bar-fill"
-                          style={{
-                            width: `${(Math.abs(ch.returnPercent) / maxPct) * 100}%`,
-                            background: ch.returnPercent >= 0 ? '#059669' : '#dc2626',
-                          }}
-                        />
-                      </div>
-                      <span className={`h-bar-value ${ch.returnPercent >= 0 ? 'positive-return' : 'negative-return'}`}>
-                        {formatPercent(ch.returnPercent)}
-                      </span>
-                    </div>
-                  )
-                })}
             </div>
           </div>
         </div>
