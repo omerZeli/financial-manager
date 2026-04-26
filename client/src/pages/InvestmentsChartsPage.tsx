@@ -191,6 +191,47 @@ export function InvestmentsChartsPage() {
     depositor: 'מפקיד',
   }
 
+  // Return over time: at each value-update date, compute total return %
+  const returnOverTime = useMemo(() => {
+    if (filteredValues.length === 0) return []
+
+    const channelSet = new Set(filteredChannels.map(ch => ch.id))
+
+    // Collect unique dates from filtered value updates
+    const uniqueDates = [...new Set(filteredValues.map(v => v.date))].sort()
+
+    // All deposits (unfiltered by time) for selected channels — we need deposits before each date
+    const channelDeposits = deposits.filter(d => channelSet.has(d.channel_id))
+
+    // All value updates (unfiltered by time) for selected channels — we need latest value per channel at each date
+    const channelValues = valueUpdates.filter(v => channelSet.has(v.channel_id))
+
+    const points: { date: string; returnPct: number }[] = []
+
+    for (const date of uniqueDates) {
+      // Total net deposits up to and including this date across all selected channels
+      const totalDepositsToDate = channelDeposits
+        .filter(d => d.date <= date)
+        .reduce((s, d) => s + (d.is_withdrawal ? -d.amount : d.amount), 0)
+
+      if (totalDepositsToDate <= 0) continue
+
+      // Total value: for each selected channel, find its latest value update on or before this date
+      let totalValue = 0
+      for (const ch of filteredChannels) {
+        const latest = channelValues
+          .filter(v => v.channel_id === ch.id && v.date <= date)
+          .sort((a, b) => b.date.localeCompare(a.date))[0]
+        if (latest) totalValue += latest.value
+      }
+
+      const pct = ((totalValue - totalDepositsToDate) / totalDepositsToDate) * 100
+      points.push({ date, returnPct: pct })
+    }
+
+    return points
+  }, [filteredValues, filteredChannels, deposits, valueUpdates])
+
   return (
     <div className="section-page">
       <div className="section-header">
@@ -273,6 +314,100 @@ export function InvestmentsChartsPage() {
               </div>
             </div>
           </div>
+
+          {returnOverTime.length >= 2 && (() => {
+            const minPct = Math.min(...returnOverTime.map(p => p.returnPct))
+            const maxPct = Math.max(...returnOverTime.map(p => p.returnPct))
+            const rawRange = maxPct - minPct || 1
+
+            // Pick a nice step size: 0.5, 1, 2, 5, 10, 20, 50...
+            const niceSteps = [0.5, 1, 2, 5, 10, 20, 50]
+            const idealStep = rawRange / 5
+            const step = niceSteps.find(s => s >= idealStep) ?? Math.ceil(idealStep / 10) * 10
+
+            // Round min/max to step boundaries
+            const yMin = Math.floor(minPct / step) * step - step
+            const yMax = Math.ceil(maxPct / step) * step + step
+            const yRange = yMax - yMin
+
+            const svgW = 800
+            const svgH = 240
+            const padL = 60
+            const padR = 40
+            const padT = 28
+            const padB = 32
+            const chartW = svgW - padL - padR
+            const chartH = svgH - padT - padB
+
+            const dataInset = 12
+            const toX = (i: number) => padL + dataInset + (i / (returnOverTime.length - 1)) * (chartW - dataInset)
+            const toY = (pct: number) => padT + (1 - (pct - yMin) / yRange) * chartH
+
+            const pathD = returnOverTime
+              .map((p, i) => `${i === 0 ? 'M' : 'L'}${toX(i).toFixed(1)},${toY(p.returnPct).toFixed(1)}`)
+              .join(' ')
+
+            // Y-axis gridlines at nice step intervals
+            const gridLines: { pct: number; y: number }[] = []
+            for (let v = yMin; v <= yMax; v += step) {
+              gridLines.push({ pct: v, y: toY(v) })
+            }
+
+            // Format grid label: show decimal only if step is 0.5
+            const fmtGrid = (v: number) => (step < 1 ? v.toFixed(1) : v.toFixed(0)) + '%'
+
+            // X-axis labels — pick ~6 evenly spaced
+            const labelCount = Math.min(6, returnOverTime.length)
+            const labelIndices = Array.from({ length: labelCount }, (_, i) =>
+              Math.round((i / (labelCount - 1)) * (returnOverTime.length - 1))
+            )
+
+            // Zero line
+            const zeroY = yMin <= 0 && yMax >= 0 ? toY(0) : null
+
+            return (
+              <div className="chart-card">
+                <h3>תשואה כוללת לאורך זמן</h3>
+                <svg viewBox={`0 0 ${svgW} ${svgH}`} className="line-chart-svg">
+                  {/* Grid lines */}
+                  {gridLines.map((g, i) => (
+                    <g key={i}>
+                      <line x1={padL} x2={svgW - padR} y1={g.y} y2={g.y} stroke="var(--border-light)" strokeWidth="1" />
+                      <text x={padL - 8} y={g.y + 4} textAnchor="end" fontSize="11" fill="var(--text)" fontFamily="var(--sans)" direction="ltr">
+                        {fmtGrid(g.pct)}
+                      </text>
+                    </g>
+                  ))}
+                  {/* Zero line */}
+                  {zeroY !== null && (
+                    <line x1={padL} x2={svgW - padR} y1={zeroY} y2={zeroY} stroke="var(--border)" strokeWidth="1" strokeDasharray="4 3" />
+                  )}
+                  {/* Line */}
+                  <path d={pathD} fill="none" stroke="var(--accent)" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
+                  {/* Dots + labels */}
+                  {returnOverTime.map((p, i) => (
+                    <g key={i}>
+                      <circle cx={toX(i)} cy={toY(p.returnPct)} r="3.5" fill="var(--accent)" />
+                      <text x={toX(i)} y={toY(p.returnPct) - 10} textAnchor="middle" fontSize="10" fontWeight="600" fill="var(--text-h)" fontFamily="var(--sans)" direction="ltr">
+                        {p.returnPct.toFixed(1)}%
+                      </text>
+                    </g>
+                  ))}
+                  {/* X-axis labels */}
+                  {labelIndices.map(i => {
+                    const p = returnOverTime[i]
+                    const d = new Date(p.date + 'T00:00:00')
+                    const label = d.toLocaleDateString('he-IL', { month: 'short', year: '2-digit' })
+                    return (
+                      <text key={i} x={toX(i)} y={svgH - 4} textAnchor="middle" fontSize="11" fill="var(--text)" fontFamily="var(--sans)">
+                        {label}
+                      </text>
+                    )
+                  })}
+                </svg>
+              </div>
+            )
+          })()}
 
           <div className="chart-card">
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>

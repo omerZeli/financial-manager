@@ -1001,3 +1001,10 @@
 .filter-group-wide .filter-multi-item {
   white-space: nowrap;
 }
+
+/* Line chart */
+.line-chart-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
