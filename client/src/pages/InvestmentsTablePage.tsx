@@ -224,6 +224,24 @@ export function InvestmentsTablePage() {
 
   const isLoading = chLoading || depLoading || valLoading
 
+  // Minimum allowed date per channel: the latest existing activity date + must be on or after
+  const channelMinDate = useMemo(() => {
+    const map: Record<string, string> = {}
+    for (const ch of channels) {
+      const dates: string[] = []
+      for (const d of deposits) {
+        if (d.channel_id === ch.id) dates.push(d.date)
+      }
+      for (const v of valueUpdates) {
+        if (v.channel_id === ch.id) dates.push(v.date)
+      }
+      if (dates.length > 0) {
+        map[ch.id] = dates.sort((a, b) => b.localeCompare(a))[0]
+      }
+    }
+    return map
+  }, [channels, deposits, valueUpdates])
+
   return (
     <div className="section-page">
       <div className="section-header">
@@ -553,6 +571,9 @@ export function InvestmentsTablePage() {
 
               <label>תאריך</label>
               <DateInput value={depDate} onChange={setDepDate} required />
+              {depChannel && depDate && channelMinDate[depChannel] && depDate < channelMinDate[depChannel] && (
+                <div className="auth-error" style={{ marginBottom: 8, marginTop: -4 }}>לא ניתן כרונולוגית להזין תאריך מוקדם מ {formatDate(channelMinDate[depChannel])}</div>
+              )}
 
               {isPinnedDepositor && depDepositor && (
                 <div className="toggle-row">
@@ -583,7 +604,7 @@ export function InvestmentsTablePage() {
               )}
 
               <div className="modal-actions">
-                <button type="submit" className="btn-primary" disabled={depSaving || !depChannel || !depDepositor || (depDeductedFromSalary && !depSelectedSalaryId)}>
+                <button type="submit" className="btn-primary" disabled={depSaving || !depChannel || !depDepositor || (depDeductedFromSalary && !depSelectedSalaryId) || (!!depChannel && !!depDate && !!channelMinDate[depChannel] && depDate < channelMinDate[depChannel])}>
                   {depSaving ? 'שומר...' : 'שמור'}
                 </button>
                 <button type="button" className="btn-cancel" onClick={() => { setModal(null); resetDepositForm() }}>ביטול</button>
@@ -609,9 +630,12 @@ export function InvestmentsTablePage() {
 
               <label>תאריך עדכון</label>
               <DateInput value={valDate} onChange={setValDate} required />
+              {valChannel && valDate && channelMinDate[valChannel] && valDate < channelMinDate[valChannel] && (
+                <div className="auth-error" style={{ marginBottom: 8, marginTop: -4 }}>לא ניתן כרונולוגית להזין תאריך מוקדם מ {formatDate(channelMinDate[valChannel])}</div>
+              )}
 
               <div className="modal-actions">
-                <button type="submit" className="btn-primary" disabled={valSaving || !valChannel}>
+                <button type="submit" className="btn-primary" disabled={valSaving || !valChannel || (!!valChannel && !!valDate && !!channelMinDate[valChannel] && valDate < channelMinDate[valChannel])}>
                   {valSaving ? 'שומר...' : 'שמור'}
                 </button>
                 <button type="button" className="btn-cancel" onClick={() => { setModal(null); resetValueForm() }}>ביטול</button>
@@ -641,9 +665,12 @@ export function InvestmentsTablePage() {
 
               <label>תאריך</label>
               <DateInput value={wdDate} onChange={setWdDate} required />
+              {wdChannel && wdDate && channelMinDate[wdChannel] && wdDate < channelMinDate[wdChannel] && (
+                <div className="auth-error" style={{ marginBottom: 8, marginTop: -4 }}>לא ניתן כרונולוגית להזין תאריך מוקדם מ {formatDate(channelMinDate[wdChannel])}</div>
+              )}
 
               <div className="modal-actions">
-                <button type="submit" className="btn-primary" disabled={wdSaving || !wdChannel}>
+                <button type="submit" className="btn-primary" disabled={wdSaving || !wdChannel || (!!wdChannel && !!wdDate && !!channelMinDate[wdChannel] && wdDate < channelMinDate[wdChannel])}>
                   {wdSaving ? 'שומר...' : 'שמור'}
                 </button>
                 <button type="button" className="btn-cancel" onClick={() => { setModal(null); resetWithdrawalForm() }}>ביטול</button>
