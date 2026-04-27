@@ -191,32 +191,48 @@ export function InvestmentsChartsPage() {
     depositor: 'מפקיד',
   }
 
-  // Return over time: at each value-update date, compute total return %
+  // Return over time: compute total return % at the 15th of each month, max 12 points
   const returnOverTime = useMemo(() => {
     if (filteredValues.length === 0) return []
 
     const channelSet = new Set(filteredChannels.map(ch => ch.id))
 
-    // Collect unique dates from filtered value updates
-    const uniqueDates = [...new Set(filteredValues.map(v => v.date))].sort()
-
-    // All deposits (unfiltered by time) for selected channels — we need deposits before each date
+    // All deposits and value updates for selected channels (unfiltered by time)
     const channelDeposits = deposits.filter(d => channelSet.has(d.channel_id))
-
-    // All value updates (unfiltered by time) for selected channels — we need latest value per channel at each date
     const channelValues = valueUpdates.filter(v => channelSet.has(v.channel_id))
+
+    // Determine date range from filtered value updates
+    const sortedDates = [...new Set(filteredValues.map(v => v.date))].sort()
+    const firstDate = sortedDates[0]
+    const lastDate = sortedDates[sortedDates.length - 1]
+    const firstD = new Date(firstDate + 'T00:00:00')
+    const lastD = new Date(lastDate + 'T00:00:00')
+
+    // Build list of 15th-of-month dates spanning the range
+    const monthlyDates: string[] = []
+    const cursor = new Date(firstD.getFullYear(), firstD.getMonth(), 15)
+    if (cursor < firstD) cursor.setMonth(cursor.getMonth() + 1)
+    while (cursor <= lastD) {
+      const y = cursor.getFullYear()
+      const m = String(cursor.getMonth() + 1).padStart(2, '0')
+      monthlyDates.push(`${y}-${m}-15`)
+      cursor.setMonth(cursor.getMonth() + 1)
+    }
+
+    // If no 15th falls in range, use the actual value-update dates (capped at 12)
+    const sampledDates = monthlyDates.length > 0
+      ? monthlyDates.slice(-12)
+      : sortedDates.slice(-12)
 
     const points: { date: string; returnPct: number }[] = []
 
-    for (const date of uniqueDates) {
-      // Total net deposits up to and including this date across all selected channels
+    for (const date of sampledDates) {
       const totalDepositsToDate = channelDeposits
         .filter(d => d.date <= date)
         .reduce((s, d) => s + (d.is_withdrawal ? -d.amount : d.amount), 0)
 
       if (totalDepositsToDate <= 0) continue
 
-      // Total value: for each selected channel, find its latest value update on or before this date
       let totalValue = 0
       for (const ch of filteredChannels) {
         const latest = channelValues
