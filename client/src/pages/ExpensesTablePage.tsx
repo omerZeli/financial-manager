@@ -8,6 +8,7 @@ import { useSalary } from '../contexts/SalaryContext'
 import { useDropdownOptions } from '../hooks/useDropdownOptions'
 import { CustomSelect } from '../components/common/CustomSelect'
 import { ReadOnlySelect } from '../components/common/ReadOnlySelect'
+import { AutocompleteInput } from '../components/common/AutocompleteInput'
 import { NumberInput } from '../components/common/NumberInput'
 import { MultiSelect } from '../components/common/MultiSelect'
 import { ConfirmDialog } from '../components/common/ConfirmDialog'
@@ -215,6 +216,12 @@ export function ExpensesTablePage() {
 
   // Expense type helpers
   const resetExpenseTypeForm = () => { setEtTypeName(''); setEtCategories([]) }
+
+  const expenseNameSuggestions = useMemo(() => {
+    const set = new Set<string>()
+    for (const e of expenses) set.add(e.name)
+    return Array.from(set).sort((a, b) => a.localeCompare(b))
+  }, [expenses])
 
   const allCategoryLabels = useMemo(() => {
     const set = new Set<string>()
@@ -583,7 +590,13 @@ export function ExpensesTablePage() {
             <h2>הוסף הוצאה רגילה</h2>
             <form onSubmit={handleExpenseSubmit}>
               <label>שם הוצאה</label>
-              <input type="text" placeholder="הכנס שם הוצאה" value={name} onChange={e => setName(e.target.value)} required />
+              <AutocompleteInput
+                suggestions={expenseNameSuggestions}
+                value={name}
+                onChange={setName}
+                placeholder="הכנס שם הוצאה"
+                required
+              />
 
               <label>קטגוריה</label>
               <CustomSelect
