@@ -594,6 +594,10 @@ export function ExpensesTablePage() {
                 suggestions={expenseNameSuggestions}
                 value={name}
                 onChange={setName}
+                onSelect={(val) => {
+                  const prev = expenses.find(e => e.name === val)
+                  if (prev) setCategory(prev.category)
+                }}
                 placeholder="הכנס שם הוצאה"
                 required
               />

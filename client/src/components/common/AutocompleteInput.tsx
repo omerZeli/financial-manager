@@ -5,6 +5,7 @@ interface AutocompleteInputProps {
   suggestions: string[]
   value: string
   onChange: (value: string) => void
+  onSelect?: (value: string) => void
   placeholder?: string
   required?: boolean
 }
@@ -13,6 +14,7 @@ export function AutocompleteInput({
   suggestions,
   value,
   onChange,
+  onSelect,
   placeholder,
   required,
 }: AutocompleteInputProps) {
@@ -41,6 +43,7 @@ export function AutocompleteInput({
 
   const pick = (val: string) => {
     onChange(val)
+    onSelect?.(val)
     setOpen(false)
   }
 
