@@ -65,7 +65,7 @@ export function ExpensesTablePage() {
   const [fixedSalaryEmployer, setFixedSalaryEmployer] = useState('')
 
   // Payback form
-  const [pbDirection, setPbDirection] = useState<'by_me' | 'to_me'>('by_me')
+  const [pbDirection, setPbDirection] = useState<'by_me' | 'to_me'>('to_me')
   const [pbName, setPbName] = useState('')
   const [pbCategory, setPbCategory] = useState('')
   const [pbAmount, setPbAmount] = useState('')
@@ -149,7 +149,7 @@ export function ExpensesTablePage() {
 
   const resetExpenseForm = () => { setName(''); setCategory(''); setAmount(''); setDate(''); setDeductedFromSalary(false); setSelectedSalaryId('') }
   const resetFixedForm = () => { setFixedName(''); setFixedCategory(''); setFixedAmount(''); setFixedStartDate(''); setHasEndDate(false); setFixedEndDate(''); setFixedDeductedFromSalary(false); setFixedSalaryEmployer('') }
-  const resetPaybackForm = () => { setPbDirection('by_me'); setPbName(''); setPbCategory(''); setPbAmount(''); setPbDate(''); setPbPerson(''); setPbExpenseId('') }
+  const resetPaybackForm = () => { setPbDirection('to_me'); setPbName(''); setPbCategory(''); setPbAmount(''); setPbDate(''); setPbPerson(''); setPbExpenseId('') }
 
   // Recent salaries (last 6 months)
   const recentSalaries = useMemo(() => {
@@ -752,17 +752,17 @@ export function ExpensesTablePage() {
               <div className="direction-toggle">
                 <button
                   type="button"
-                  className={`direction-btn${pbDirection === 'by_me' ? ' active' : ''}`}
-                  onClick={() => { setPbDirection('by_me'); setPbExpenseId('') }}
-                >
-                  שילמתי לאחר
-                </button>
-                <button
-                  type="button"
                   className={`direction-btn${pbDirection === 'to_me' ? ' active' : ''}`}
                   onClick={() => { setPbDirection('to_me'); setPbName(''); setPbCategory('') }}
                 >
                   שילמו לי
+                </button>
+                <button
+                  type="button"
+                  className={`direction-btn${pbDirection === 'by_me' ? ' active' : ''}`}
+                  onClick={() => { setPbDirection('by_me'); setPbExpenseId('') }}
+                >
+                  שילמתי לאחר
                 </button>
               </div>
 
@@ -785,19 +785,22 @@ export function ExpensesTablePage() {
               ) : (
                 <>
                   <label>הוצאה מקורית</label>
-                  <select
-                    className="form-select"
+                  <ReadOnlySelect
+                    options={expenses.map(exp => ({
+                      value: exp.id,
+                      label: `${exp.name} - ${formatCurrency(exp.amount)} (${formatDate(exp.date)})`
+                    }))}
                     value={pbExpenseId}
-                    onChange={e => setPbExpenseId(e.target.value)}
-                    required
-                  >
-                    <option value="">בחר הוצאה</option>
-                    {expenses.map(exp => (
-                      <option key={exp.id} value={exp.id}>
-                        {exp.name} - {formatCurrency(exp.amount)} ({formatDate(exp.date)})
-                      </option>
-                    ))}
-                  </select>
+                    placeholder="חפש הוצאה"
+                    onChange={(val) => {
+                      setPbExpenseId(val)
+                      const exp = expenses.find(e => e.id === val)
+                      if (exp) {
+                        setPbDate(exp.date)
+                        setPbAmount(String(exp.amount))
+                      }
+                    }}
+                  />
                 </>
               )}
 
