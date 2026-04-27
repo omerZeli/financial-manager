@@ -38,6 +38,7 @@ export function InvestmentsTablePage() {
   const { valueUpdates, loading: valLoading, fetchValueUpdates, addValueUpdate, deleteValueUpdate, removeByChannelId: removeValuesByChannel } = useInvestmentValues()
   const { options: companyOptions, loading: companyLoading, addOption: addCompany, removeOption: removeCompany } = useDropdownOptions('investment_company')
   const { options: depositorOptions, loading: depositorLoading, addOption: addDepositor, removeOption: removeDepositor } = useDropdownOptions('investment_depositor')
+  const { options: pathOptions, loading: pathLoading, addOption: addPath, removeOption: removePath } = useDropdownOptions('investment_path')
   const { salaries, fetchSalaries } = useSalary()
 
   const [modal, setModal] = useState<ModalType>(null)
@@ -483,7 +484,15 @@ export function InvestmentsTablePage() {
               />
 
               <label>מסלול השקעה</label>
-              <input type="text" placeholder="הכנס מסלול השקעה" value={chPath} onChange={e => setChPath(e.target.value)} required />
+              <CustomSelect
+                options={pathOptions}
+                value={chPath}
+                placeholder="הכנס מסלול השקעה"
+                onChange={setChPath}
+                onAddOption={addPath}
+                onRemoveOption={removePath}
+                loading={pathLoading}
+              />
 
               <div className="toggle-row">
                 <label className="toggle-label" htmlFor="is-pension">אפיק פנסיוני?</label>
@@ -594,7 +603,15 @@ export function InvestmentsTablePage() {
               <NumberInput placeholder="הכנס שווי" value={valValue} onChange={setValValue} required />
 
               <label>מסלול השקעה</label>
-              <input type="text" placeholder="הכנס מסלול השקעה" value={valPath} onChange={e => setValPath(e.target.value)} required />
+              <CustomSelect
+                options={pathOptions}
+                value={valPath}
+                placeholder="הכנס מסלול השקעה"
+                onChange={setValPath}
+                onAddOption={addPath}
+                onRemoveOption={removePath}
+                loading={pathLoading}
+              />
 
               <label>תאריך עדכון</label>
               <DateInput value={valDate} onChange={setValDate} required />
