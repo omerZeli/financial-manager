@@ -24,7 +24,7 @@ export function AutocompleteInput({
   const listRef = useRef<HTMLDivElement>(null)
 
   const filtered = value
-    ? suggestions.filter(s => s !== value && s.includes(value))
+    ? suggestions.filter(s => s !== value && s.startsWith(value))
     : []
 
   useEffect(() => {
