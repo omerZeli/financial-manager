@@ -174,11 +174,22 @@ The expenses section supports two types of expenses, managed via a **FAB type pi
 
 ### Investments Section
 
-The investments section tracks investment channels, deposits, withdrawals, and value updates. It uses the **FAB type picker** pattern with four actions.
+The investments section tracks investment channels, deposits, withdrawals, and value updates. It uses the **FAB type picker** pattern with three actions and an **Event Sourcing / Checkpoint** architecture for computing balances and returns.
+
+#### Event Sourcing Architecture (`src/lib/computeChannelSummary.ts`)
+- All deposits, withdrawals, and value updates are treated as **immutable events** in an event ledger.
+- There is **no chronological input restriction** — users can add retroactive events at any past date.
+- Channel summaries (balance, invested capital, return) are computed **on-the-fly** by replaying all events sorted chronologically:
+  - **Deposit** → adds to running balance and invested capital.
+  - **Withdrawal** (`is_withdrawal = true`) → subtracts from running balance and invested capital.
+  - **Value Update** → acts as a **checkpoint** that hard-overrides the running balance. The delta between the running balance before the checkpoint and the new value is accumulated as profit/loss.
+- On same-date events, deposits/withdrawals are processed before value updates so checkpoints capture the balance after that day's cash flows.
+- Both the table page (`channelSummaries`) and charts page (`summaries`, `returnOverTime`) use `computeChannelSummary` for all calculations.
 
 #### FAB Type Picker
-- Clicking the + FAB opens a popup menu with four options: create channel, deposit, withdrawal, update value.
+- Clicking the + FAB opens a popup menu with three options: create channel, deposit, withdrawal.
 - Each option opens its own dedicated form modal.
+- The "update value" action is accessible via the pencil icon on each channel row in the channels summary tab.
 
 #### Investment Channels (`investment_channels` table)
 - Fields: `name`, `company`, `investment_path`, `is_pension` (boolean)
@@ -195,7 +206,7 @@ The investments section tracks investment channels, deposits, withdrawals, and v
 #### Investment Withdrawals
 - Withdrawals are recorded as deposit rows with `is_withdrawal = true`.
 - The withdrawal form has three fields: channel (ReadOnlySelect), amount, and date. No depositor field (always "אני").
-- On submit, two records are created: (1) a deposit row with `is_withdrawal = true`, and (2) a value update that reduces the channel's latest value by the withdrawal amount.
+- On submit, only a single deposit record with `is_withdrawal = true` is created. The recalculation engine handles the balance impact automatically — no separate value update is needed.
 - In the deposits tab, withdrawals show a red "משיכה" badge and a negative amount.
 - In channel summaries and charts, withdrawals are subtracted from total deposits.
 - The context exposes `addWithdrawal` for creating withdrawal records.
@@ -207,7 +218,7 @@ The investments section tracks investment channels, deposits, withdrawals, and v
 
 #### Sub-Tabs
 - The investments table page has three sub-tabs: **"אפיקי השקעה"** (channels summary), **"הפקדות"** (deposits list), and **"עדכוני ערך"** (value updates list).
-- The channels tab shows a computed summary per channel: name, company, total deposits (net of withdrawals), current value (latest value update), last update date, absolute return, return percentage.
+- The channels tab shows a computed summary per channel: name, company, total deposits (net of withdrawals), current value, last update date, absolute return, return percentage — all computed via the event sourcing engine.
 - The deposits tab shows all deposit and withdrawal records with columns: channel name, type (הפקדה/משיכה), amount, depositor, date.
 - The value updates tab shows all value update records with columns: channel name, value, date. Each row has an **edit button** (pencil icon) that opens an edit modal with value and date fields, and a **delete button** (trash icon) with confirmation dialog.
 - The context exposes `updateValueUpdate` for editing value updates.
@@ -216,6 +227,7 @@ The investments section tracks investment channels, deposits, withdrawals, and v
 - Summary cards: total deposited, total current value, total return (absolute + percentage).
 - Horizontal bar chart: current value per channel.
 - Horizontal bar chart: return percentage per channel (green for positive, red for negative).
+- Return over time line chart uses the event sourcing engine to compute return % at each sampled date.
 
 ### Expense Types
 

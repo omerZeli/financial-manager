@@ -5,6 +5,7 @@ import { useInvestmentDeposits } from '../contexts/InvestmentDepositsContext'
 import { useInvestmentValues } from '../contexts/InvestmentValuesContext'
 import { FilterMultiSelect } from '../components/common/FilterMultiSelect'
 import DateInput from '../components/common/DateInput'
+import { computeChannelSummary } from '../lib/computeChannelSummary'
 import './Section.css'
 
 function formatCurrency(n: number) {
@@ -99,14 +100,8 @@ export function InvestmentsChartsPage() {
 
   const summaries = useMemo(() => {
     return filteredChannels.map(ch => {
-      const chDeposits = filteredDeposits.filter(d => d.channel_id === ch.id)
-      const totalDeposits = chDeposits.reduce((s, d) => s + (d.is_withdrawal ? -d.amount : d.amount), 0)
-      // For current value, use the latest value update within the filtered range
-      const chValues = filteredValues.filter(v => v.channel_id === ch.id).sort((a, b) => b.date.localeCompare(a.date))
-      const currentValue = chValues.length > 0 ? chValues[0].value : 0
-      const returnAbsolute = currentValue - totalDeposits
-      const returnPercent = totalDeposits > 0 ? returnAbsolute / totalDeposits : 0
-      return { ...ch, totalDeposits, currentValue, returnAbsolute, returnPercent }
+      const summary = computeChannelSummary(ch.id, filteredDeposits, filteredValues)
+      return { ...ch, ...summary }
     })
   }, [filteredChannels, filteredDeposits, filteredValues])
 
@@ -193,33 +188,41 @@ export function InvestmentsChartsPage() {
 
   // Return over time: compute total return % at the 15th of each month, max 12 points
   const returnOverTime = useMemo(() => {
-    if (filteredValues.length === 0) return []
-
     const channelSet = new Set(filteredChannels.map(ch => ch.id))
 
     // All deposits and value updates for selected channels (unfiltered by time)
     const channelDeposits = deposits.filter(d => channelSet.has(d.channel_id))
     const channelValues = valueUpdates.filter(v => channelSet.has(v.channel_id))
 
-    // Determine date range from filtered value updates
-    const sortedDates = [...new Set(filteredValues.map(v => v.date))].sort()
+    // All events within the filtered range (deposits + value updates)
+    const allFilteredDates = [
+      ...filteredDeposits.map(d => d.date),
+      ...filteredValues.map(v => v.date),
+    ]
+    if (allFilteredDates.length === 0) return []
+
+    // Determine date range from all filtered events
+    const sortedDates = [...new Set(allFilteredDates)].sort()
     const firstDate = sortedDates[0]
-    const lastDate = sortedDates[sortedDates.length - 1]
     const firstD = new Date(firstDate + 'T00:00:00')
-    const lastD = new Date(lastDate + 'T00:00:00')
+    // Extend sampling to today (or custom filter end), not just the last event date
+    const todayStr = new Date().toISOString().slice(0, 10)
+    const endDateStr = timeRange === 'custom' && customTo ? customTo : todayStr
+    const endD = new Date(endDateStr + 'T00:00:00')
+    const endMonthEnd = new Date(endD.getFullYear(), endD.getMonth() + 1, 0)
 
     // Build list of 15th-of-month dates spanning the range
     const monthlyDates: string[] = []
     const cursor = new Date(firstD.getFullYear(), firstD.getMonth(), 15)
     if (cursor < firstD) cursor.setMonth(cursor.getMonth() + 1)
-    while (cursor <= lastD) {
+    while (cursor <= endMonthEnd) {
       const y = cursor.getFullYear()
       const m = String(cursor.getMonth() + 1).padStart(2, '0')
       monthlyDates.push(`${y}-${m}-15`)
       cursor.setMonth(cursor.getMonth() + 1)
     }
 
-    // If no 15th falls in range, use the actual value-update dates (capped at 12)
+    // If no 15th falls in range, use the actual event dates (capped at 12)
     const sampledDates = monthlyDates.length > 0
       ? monthlyDates.slice(-12)
       : sortedDates.slice(-12)
@@ -227,26 +230,27 @@ export function InvestmentsChartsPage() {
     const points: { date: string; returnPct: number }[] = []
 
     for (const date of sampledDates) {
-      const totalDepositsToDate = channelDeposits
-        .filter(d => d.date <= date)
-        .reduce((s, d) => s + (d.is_withdrawal ? -d.amount : d.amount), 0)
+      // Use the event sourcing engine with events up to this date
+      const depositsToDate = channelDeposits.filter(d => d.date <= date)
+      const valuesToDate = channelValues.filter(v => v.date <= date)
 
-      if (totalDepositsToDate <= 0) continue
-
+      let totalInvested = 0
       let totalValue = 0
+
       for (const ch of filteredChannels) {
-        const latest = channelValues
-          .filter(v => v.channel_id === ch.id && v.date <= date)
-          .sort((a, b) => b.date.localeCompare(a.date))[0]
-        if (latest) totalValue += latest.value
+        const summary = computeChannelSummary(ch.id, depositsToDate, valuesToDate)
+        totalInvested += summary.totalDeposits
+        totalValue += summary.currentValue
       }
 
-      const pct = ((totalValue - totalDepositsToDate) / totalDepositsToDate) * 100
+      if (totalInvested <= 0) continue
+
+      const pct = ((totalValue - totalInvested) / totalInvested) * 100
       points.push({ date, returnPct: pct })
     }
 
     return points
-  }, [filteredValues, filteredChannels, deposits, valueUpdates])
+  }, [filteredDeposits, filteredValues, filteredChannels, deposits, valueUpdates, timeRange, customTo])
 
   return (
     <div className="section-page">

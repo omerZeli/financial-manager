@@ -10,6 +10,7 @@ import { ReadOnlySelect } from '../components/common/ReadOnlySelect'
 import { NumberInput } from '../components/common/NumberInput'
 import { ConfirmDialog } from '../components/common/ConfirmDialog'
 import DateInput from '../components/common/DateInput'
+import { computeChannelSummary } from '../lib/computeChannelSummary'
 import './Section.css'
 
 function formatDate(dateStr: string) {
@@ -93,18 +94,11 @@ export function InvestmentsTablePage() {
     return () => document.removeEventListener('mousedown', handler)
   }, [modal])
 
-  // Computed channel summary data
+  // Computed channel summary data (event sourcing recalculation)
   const channelSummaries = useMemo(() => {
     return channels.map(ch => {
-      const chDeposits = deposits.filter(d => d.channel_id === ch.id)
-      const totalDeposits = chDeposits.reduce((s, d) => s + (d.is_withdrawal ? -d.amount : d.amount), 0)
-      const chValues = valueUpdates.filter(v => v.channel_id === ch.id).sort((a, b) => b.date.localeCompare(a.date))
-      const latestValue = chValues.length > 0 ? chValues[0] : null
-      const currentValue = latestValue ? latestValue.value : 0
-      const lastUpdated = latestValue ? latestValue.date : null
-      const returnAbsolute = currentValue - totalDeposits
-      const returnPercent = totalDeposits > 0 ? returnAbsolute / totalDeposits : 0
-      return { ...ch, totalDeposits, currentValue, lastUpdated, returnAbsolute, returnPercent }
+      const summary = computeChannelSummary(ch.id, deposits, valueUpdates)
+      return { ...ch, ...summary }
     })
   }, [channels, deposits, valueUpdates])
 
@@ -212,35 +206,12 @@ export function InvestmentsTablePage() {
     const amount = Number(wdAmount)
     // Add withdrawal record (deposit with is_withdrawal=true)
     await addWithdrawal({ channel_id: wdChannel, amount, date: wdDate })
-    // Compute new value: latest value minus withdrawal amount
-    const chValues = valueUpdates.filter(v => v.channel_id === wdChannel).sort((a, b) => b.date.localeCompare(a.date))
-    const latestValue = chValues.length > 0 ? chValues[0].value : 0
-    const newValue = latestValue - amount
-    await addValueUpdate({ channel_id: wdChannel, value: newValue, date: wdDate })
     setWdSaving(false)
     setModal(null)
     resetWithdrawalForm()
   }
 
   const isLoading = chLoading || depLoading || valLoading
-
-  // Minimum allowed date per channel: the latest existing activity date + must be on or after
-  const channelMinDate = useMemo(() => {
-    const map: Record<string, string> = {}
-    for (const ch of channels) {
-      const dates: string[] = []
-      for (const d of deposits) {
-        if (d.channel_id === ch.id) dates.push(d.date)
-      }
-      for (const v of valueUpdates) {
-        if (v.channel_id === ch.id) dates.push(v.date)
-      }
-      if (dates.length > 0) {
-        map[ch.id] = dates.sort((a, b) => b.localeCompare(a))[0]
-      }
-    }
-    return map
-  }, [channels, deposits, valueUpdates])
 
   return (
     <div className="section-page">
@@ -571,9 +542,6 @@ export function InvestmentsTablePage() {
 
               <label>תאריך</label>
               <DateInput value={depDate} onChange={setDepDate} required />
-              {depChannel && depDate && channelMinDate[depChannel] && depDate < channelMinDate[depChannel] && (
-                <div className="auth-error" style={{ marginBottom: 8, marginTop: -4 }}>לא ניתן כרונולוגית להזין תאריך מוקדם מ {formatDate(channelMinDate[depChannel])}</div>
-              )}
 
               {isPinnedDepositor && depDepositor && (
                 <div className="toggle-row">
@@ -604,7 +572,7 @@ export function InvestmentsTablePage() {
               )}
 
               <div className="modal-actions">
-                <button type="submit" className="btn-primary" disabled={depSaving || !depChannel || !depDepositor || (depDeductedFromSalary && !depSelectedSalaryId) || (!!depChannel && !!depDate && !!channelMinDate[depChannel] && depDate < channelMinDate[depChannel])}>
+                <button type="submit" className="btn-primary" disabled={depSaving || !depChannel || !depDepositor || (depDeductedFromSalary && !depSelectedSalaryId)}>
                   {depSaving ? 'שומר...' : 'שמור'}
                 </button>
                 <button type="button" className="btn-cancel" onClick={() => { setModal(null); resetDepositForm() }}>ביטול</button>
@@ -630,12 +598,9 @@ export function InvestmentsTablePage() {
 
               <label>תאריך עדכון</label>
               <DateInput value={valDate} onChange={setValDate} required />
-              {valChannel && valDate && channelMinDate[valChannel] && valDate < channelMinDate[valChannel] && (
-                <div className="auth-error" style={{ marginBottom: 8, marginTop: -4 }}>לא ניתן כרונולוגית להזין תאריך מוקדם מ {formatDate(channelMinDate[valChannel])}</div>
-              )}
 
               <div className="modal-actions">
-                <button type="submit" className="btn-primary" disabled={valSaving || !valChannel || (!!valChannel && !!valDate && !!channelMinDate[valChannel] && valDate < channelMinDate[valChannel])}>
+                <button type="submit" className="btn-primary" disabled={valSaving || !valChannel}>
                   {valSaving ? 'שומר...' : 'שמור'}
                 </button>
                 <button type="button" className="btn-cancel" onClick={() => { setModal(null); resetValueForm() }}>ביטול</button>
@@ -665,12 +630,9 @@ export function InvestmentsTablePage() {
 
               <label>תאריך</label>
               <DateInput value={wdDate} onChange={setWdDate} required />
-              {wdChannel && wdDate && channelMinDate[wdChannel] && wdDate < channelMinDate[wdChannel] && (
-                <div className="auth-error" style={{ marginBottom: 8, marginTop: -4 }}>לא ניתן כרונולוגית להזין תאריך מוקדם מ {formatDate(channelMinDate[wdChannel])}</div>
-              )}
 
               <div className="modal-actions">
-                <button type="submit" className="btn-primary" disabled={wdSaving || !wdChannel || (!!wdChannel && !!wdDate && !!channelMinDate[wdChannel] && wdDate < channelMinDate[wdChannel])}>
+                <button type="submit" className="btn-primary" disabled={wdSaving || !wdChannel}>
                   {wdSaving ? 'שומר...' : 'שמור'}
                 </button>
                 <button type="button" className="btn-cancel" onClick={() => { setModal(null); resetWithdrawalForm() }}>ביטול</button>
