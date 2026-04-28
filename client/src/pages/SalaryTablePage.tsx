@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { NavLink } from 'react-router-dom'
 import { useSalary } from '../contexts/SalaryContext'
 import { NumberInput } from '../components/common/NumberInput'
@@ -28,6 +28,13 @@ const salaryColumns: ColumnDef[] = [
 export function SalaryTablePage() {
   const { salaries, loading, fetchSalaries, addSalary, deleteSalary } = useSalary()
   const { options: employerOptions, loading: employerLoading, addOption: addEmployer, removeOption: removeEmployer } = useDropdownOptions('employer')
+
+  // Sort employer options by total neto salary
+  const sortedEmployerOptions = useMemo(() => {
+    const totals: Record<string, number> = {}
+    for (const s of salaries) totals[s.employer] = (totals[s.employer] || 0) + s.neto
+    return [...employerOptions].sort((a, b) => (totals[b.label] || 0) - (totals[a.label] || 0))
+  }, [employerOptions, salaries])
 
   const getSalaryValue = useCallback((item: typeof salaries[0], key: string) => {
     if (key === 'month') return item.month
@@ -149,7 +156,7 @@ export function SalaryTablePage() {
 
               <label>מעסיק</label>
               <CustomSelect
-                options={employerOptions}
+                options={sortedEmployerOptions}
                 value={employer}
                 placeholder="בחר מעסיק"
                 onChange={setEmployer}

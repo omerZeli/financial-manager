@@ -97,6 +97,41 @@ export function ExpensesTablePage() {
   useEffect(() => { fetchExpenseTypes() }, [fetchExpenseTypes])
   useEffect(() => { fetchSalaries() }, [fetchSalaries])
 
+  // Sort category options by total expense amount (regular + inflated)
+  const sortedCategoryOptions = useMemo(() => {
+    const totals: Record<string, number> = {}
+    for (const e of expenses) totals[e.category] = (totals[e.category] || 0) + e.amount
+    for (const ie of inflatedExpenses) totals[ie.category] = (totals[ie.category] || 0) + ie.amount
+    return [...categoryOptions].sort((a, b) => (totals[b.label] || 0) - (totals[a.label] || 0))
+  }, [categoryOptions, expenses, inflatedExpenses])
+
+  // Sort fixed category options by total fixed expense amount
+  const sortedFixedCategoryOptions = useMemo(() => {
+    const totals: Record<string, number> = {}
+    for (const fe of fixedExpenses) totals[fe.category] = (totals[fe.category] || 0) + fe.amount
+    for (const ie of inflatedExpenses) totals[ie.category] = (totals[ie.category] || 0) + ie.amount
+    return [...fixedCategoryOptions].sort((a, b) => (totals[b.label] || 0) - (totals[a.label] || 0))
+  }, [fixedCategoryOptions, fixedExpenses, inflatedExpenses])
+
+  // Sort person options by total payback amount
+  const sortedPersonOptions = useMemo(() => {
+    const totals: Record<string, number> = {}
+    for (const pb of paybacks) totals[pb.person] = (totals[pb.person] || 0) + pb.amount
+    return [...personOptions].sort((a, b) => (totals[b.label] || 0) - (totals[a.label] || 0))
+  }, [personOptions, paybacks])
+
+  // Sort expense type options by total expense amount for that type
+  const sortedExpenseTypeOptions = useMemo(() => {
+    const catTotals: Record<string, number> = {}
+    for (const e of expenses) catTotals[e.category] = (catTotals[e.category] || 0) + e.amount
+    for (const ie of inflatedExpenses) catTotals[ie.category] = (catTotals[ie.category] || 0) + ie.amount
+    const typeTotals: Record<string, number> = {}
+    for (const et of expenseTypes) {
+      typeTotals[et.type_name] = et.categories.reduce((sum, cat) => sum + (catTotals[cat] || 0), 0)
+    }
+    return [...expenseTypeOptions].sort((a, b) => (typeTotals[b.label] || 0) - (typeTotals[a.label] || 0))
+  }, [expenseTypeOptions, expenses, inflatedExpenses, expenseTypes])
+
   // Build a map of "to_me" payback totals per expense_id
   const toMeByExpense = useMemo(() => {
     const map: Record<string, number> = {}
@@ -168,7 +203,7 @@ export function ExpensesTablePage() {
       }
     })
 
-    return [...regularOpts, ...fixedOpts]
+    return [...regularOpts, ...fixedOpts].sort((a, b) => b._date.localeCompare(a._date))
   }, [expenses, fixedExpenses, toMeByExpense, toMeByFixed])
 
   // Merge real + inflated + by_me paybacks, adjust amounts for to_me paybacks
@@ -326,11 +361,13 @@ export function ExpensesTablePage() {
   }, [salaries])
 
   const salaryOptions = useMemo(() => {
-    return recentSalaries.map(s => {
-      const d = new Date(s.month + 'T00:00:00')
-      const monthLabel = d.toLocaleDateString('he-IL', { month: 'long', year: 'numeric' })
-      return { value: s.id, label: `${monthLabel} - ${s.employer}` }
-    })
+    return [...recentSalaries]
+      .sort((a, b) => b.neto - a.neto)
+      .map(s => {
+        const d = new Date(s.month + 'T00:00:00')
+        const monthLabel = d.toLocaleDateString('he-IL', { month: 'long', year: 'numeric' })
+        return { value: s.id, label: `${monthLabel} - ${s.employer}` }
+      })
   }, [recentSalaries])
 
   // Auto-select salary for regular expense when date changes (previous month's salary)
@@ -344,10 +381,14 @@ export function ExpensesTablePage() {
     else setSelectedSalaryId('')
   }, [deductedFromSalary, date, recentSalaries])
 
-  // Unique employer options from salaries
+  // Unique employer options from salaries, sorted by total neto
   const employerOptions = useMemo(() => {
+    const totals: Record<string, number> = {}
+    for (const s of salaries) totals[s.employer] = (totals[s.employer] || 0) + s.neto
     const unique = [...new Set(salaries.map(s => s.employer))]
-    return unique.map(e => ({ value: e, label: e }))
+    return unique
+      .sort((a, b) => (totals[b] || 0) - (totals[a] || 0))
+      .map(e => ({ value: e, label: e }))
   }, [salaries])
 
   // Auto-select employer when there's only one
@@ -384,17 +425,20 @@ export function ExpensesTablePage() {
   const resetExpenseTypeForm = () => { setEtTypeName(''); setEtCategories([]) }
 
   const expenseNameSuggestions = useMemo(() => {
-    const set = new Set<string>()
-    for (const e of expenses) set.add(e.name)
-    return Array.from(set).sort((a, b) => a.localeCompare(b))
+    const totals: Record<string, number> = {}
+    for (const e of expenses) totals[e.name] = (totals[e.name] || 0) + e.amount
+    return Object.keys(totals).sort((a, b) => totals[b] - totals[a])
   }, [expenses])
 
   const allCategoryLabels = useMemo(() => {
+    const totals: Record<string, number> = {}
+    for (const e of expenses) totals[e.category] = (totals[e.category] || 0) + e.amount
+    for (const ie of inflatedExpenses) totals[ie.category] = (totals[ie.category] || 0) + ie.amount
     const set = new Set<string>()
     for (const o of categoryOptions) set.add(o.label)
     for (const o of fixedCategoryOptions) set.add(o.label)
-    return Array.from(set).sort((a, b) => a.localeCompare(b))
-  }, [categoryOptions, fixedCategoryOptions])
+    return Array.from(set).sort((a, b) => (totals[b] || 0) - (totals[a] || 0))
+  }, [categoryOptions, fixedCategoryOptions, expenses, inflatedExpenses])
 
   const existingType = useMemo(() => expenseTypes.find(et => et.type_name === etTypeName), [expenseTypes, etTypeName])
 
@@ -775,7 +819,7 @@ export function ExpensesTablePage() {
 
               <label>קטגוריה</label>
               <CustomSelect
-                options={categoryOptions}
+                options={sortedCategoryOptions}
                 value={category}
                 placeholder="הכנס קטגוריה"
                 onChange={setCategory}
@@ -839,7 +883,7 @@ export function ExpensesTablePage() {
 
               <label>קטגוריה</label>
               <CustomSelect
-                options={fixedCategoryOptions}
+                options={sortedFixedCategoryOptions}
                 value={fixedCategory}
                 placeholder="הכנס קטגוריה"
                 onChange={setFixedCategory}
@@ -944,7 +988,7 @@ export function ExpensesTablePage() {
 
                   <label>קטגוריה</label>
                   <CustomSelect
-                    options={categoryOptions}
+                    options={sortedCategoryOptions}
                     value={pbCategory}
                     placeholder="הכנס קטגוריה"
                     onChange={setPbCategory}
@@ -996,7 +1040,7 @@ export function ExpensesTablePage() {
                 {pbDirection === 'by_me' ? 'למי שילמתי' : 'מי שילם לי'}
               </label>
               <CustomSelect
-                options={personOptions}
+                options={sortedPersonOptions}
                 value={pbPerson}
                 placeholder="הכנס שם"
                 onChange={setPbPerson}
@@ -1050,7 +1094,7 @@ export function ExpensesTablePage() {
             <form onSubmit={handleExpenseTypeSubmit}>
               <label>סוג</label>
               <CustomSelect
-                options={expenseTypeOptions}
+                options={sortedExpenseTypeOptions}
                 value={etTypeName}
                 placeholder="הכנס סוג הוצאות"
                 onChange={setEtTypeName}

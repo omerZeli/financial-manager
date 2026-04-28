@@ -54,10 +54,17 @@ export function InvestmentsChartsPage() {
   useEffect(() => { fetchDeposits() }, [fetchDeposits])
   useEffect(() => { fetchValueUpdates() }, [fetchValueUpdates])
 
-  // Channel filter options
-  const channelOptions = useMemo(() =>
-    channels.map(ch => ({ value: ch.id, label: `${ch.name} - ${ch.company}` })),
-  [channels])
+  // Channel filter options, sorted by current value
+  const channelOptions = useMemo(() => {
+    const summaryMap: Record<string, number> = {}
+    for (const ch of channels) {
+      const summary = computeChannelSummary(ch.id, deposits, valueUpdates)
+      summaryMap[ch.id] = summary.currentValue
+    }
+    return [...channels]
+      .sort((a, b) => (summaryMap[b.id] || 0) - (summaryMap[a.id] || 0))
+      .map(ch => ({ value: ch.id, label: `${ch.name} - ${ch.company}` }))
+  }, [channels, deposits, valueUpdates])
 
   // Init selected channels to all when data loads
   useEffect(() => {

@@ -301,3 +301,24 @@ Expense types allow users to group expense categories into named types for use i
 - The shared `CustomSelect` component (`components/common/CustomSelect.tsx`) supports adding and removing options inline, as well as searching/filtering.
 - Use the `useDropdownOptions` hook (`hooks/useDropdownOptions.ts`) to fetch, add, and remove options for a given category.
 - When adding a new dropdown field, create a new category string and wire it through the hook and `CustomSelect` with `onAddOption`/`onRemoveOption` props.
+
+## Dropdown Option Sorting
+- All select/dropdown options across the app are **sorted by their associated total monetary value**, descending (highest first).
+- Each page computes a `useMemo`-based sorted copy of the options array before passing it to the select component. The `useDropdownOptions` hook itself still stores options alphabetically — sorting by money is done at the page level where financial data is available.
+- Sorting rules per dropdown:
+  - **employer** (Salary page): total neto salary per employer.
+  - **expense_category** (Expenses page): total expense amount (regular + inflated) per category.
+  - **fixed_expense_category** (Expenses page): total fixed expense amount (including inflated) per category.
+  - **payback_person** (Expenses page): total payback amount per person.
+  - **expense_type** (Expenses page + charts): total expense amount across the type's categories.
+  - **expense name suggestions** (AutocompleteInput): total expense amount per name.
+  - **allCategoryLabels** (MultiSelect in expense type form): total expense amount (regular + inflated) per category.
+  - **investment_company** (Investments page): total current value per company.
+  - **investment_path** (Investments page): total current value per path.
+  - **investment_depositor** (Investments page): total deposited (non-withdrawal) per depositor.
+  - **investment channel** (ReadOnlySelect in deposit/withdrawal forms): total deposits per channel.
+  - **salary** (ReadOnlySelect in salary deduction toggles): neto amount.
+  - **employer** (ReadOnlySelect in fixed expense salary deduction): total neto per employer.
+  - **Charts filter dropdowns** (FilterMultiSelect): same monetary logic as their table-page counterparts.
+- **Exception:** The payback "to_me" expense dropdown (`paybackExpenseOptions`) is sorted by **date descending** (most recent first), not by remaining amount, since users typically look for recent expenses to link paybacks to.
+- When adding a new dropdown, always sort its options by the relevant monetary total at the page level.

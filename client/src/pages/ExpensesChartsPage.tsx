@@ -140,11 +140,20 @@ export function ExpensesChartsPage() {
     return set
   }, [expenseTypes])
 
-  // Expense type options for filter
-  const typeOptions = useMemo(() => [
-    ...expenseTypes.map(et => ({ value: et.id, label: et.type_name })),
-    ...(expenseTypes.length > 0 ? [{ value: '__others__', label: 'אחר' }] : []),
-  ], [expenseTypes])
+  // Expense type options for filter, sorted by total expense amount
+  const typeOptions = useMemo(() => {
+    const catTotals: Record<string, number> = {}
+    for (const e of allExpensesRaw) catTotals[e.category] = (catTotals[e.category] || 0) + e.amount
+    const typeTotals: Record<string, number> = {}
+    for (const et of expenseTypes) {
+      typeTotals[et.id] = et.categories.reduce((sum, cat) => sum + (catTotals[cat] || 0), 0)
+    }
+    const sorted = [...expenseTypes].sort((a, b) => (typeTotals[b.id] || 0) - (typeTotals[a.id] || 0))
+    return [
+      ...sorted.map(et => ({ value: et.id, label: et.type_name })),
+      ...(expenseTypes.length > 0 ? [{ value: '__others__', label: 'אחר' }] : []),
+    ]
+  }, [expenseTypes, allExpensesRaw])
 
   // Init selected types to all when data loads
   useEffect(() => {

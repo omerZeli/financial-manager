@@ -105,6 +105,36 @@ export function InvestmentsTablePage() {
     })
   }, [channels, deposits, valueUpdates])
 
+  // Sort company options by total current value per company
+  const sortedCompanyOptions = useMemo(() => {
+    const totals: Record<string, number> = {}
+    for (const cs of channelSummaries) totals[cs.company] = (totals[cs.company] || 0) + cs.currentValue
+    return [...companyOptions].sort((a, b) => (totals[b.label] || 0) - (totals[a.label] || 0))
+  }, [companyOptions, channelSummaries])
+
+  // Sort path options by total current value per path
+  const sortedPathOptions = useMemo(() => {
+    const totals: Record<string, number> = {}
+    for (const cs of channelSummaries) totals[cs.investment_path] = (totals[cs.investment_path] || 0) + cs.currentValue
+    return [...pathOptions].sort((a, b) => (totals[b.label] || 0) - (totals[a.label] || 0))
+  }, [pathOptions, channelSummaries])
+
+  // Sort depositor options by total deposited per depositor
+  const sortedDepositorOptions = useMemo(() => {
+    const totals: Record<string, number> = {}
+    for (const d of deposits) {
+      if (!d.is_withdrawal) totals[d.depositor] = (totals[d.depositor] || 0) + d.amount
+    }
+    return [...depositorOptions].sort((a, b) => (totals[b.label] || 0) - (totals[a.label] || 0))
+  }, [depositorOptions, deposits])
+
+  // Sort channel options for ReadOnlySelect by total deposits
+  const sortedChannelSelectOptions = useMemo(() => {
+    return channelSummaries
+      .sort((a, b) => b.totalDeposits - a.totalDeposits)
+      .map(ch => ({ value: ch.id, label: `${ch.name} - ${ch.company}` }))
+  }, [channelSummaries])
+
   // Column definitions for each sub-tab
   const channelCols: ColumnDef[] = useMemo(() => [
     { key: 'name', type: 'string', label: 'שם' },
@@ -200,11 +230,13 @@ export function InvestmentsTablePage() {
     const filtered = depDepositor && depDepositor !== 'אני'
       ? recentSalaries.filter(s => s.employer === depDepositor)
       : recentSalaries
-    return filtered.map(s => {
-      const d = new Date(s.month + 'T00:00:00')
-      const monthLabel = d.toLocaleDateString('he-IL', { month: 'long', year: 'numeric' })
-      return { value: s.id, label: `${monthLabel} - ${s.employer}` }
-    })
+    return [...filtered]
+      .sort((a, b) => b.neto - a.neto)
+      .map(s => {
+        const d = new Date(s.month + 'T00:00:00')
+        const monthLabel = d.toLocaleDateString('he-IL', { month: 'long', year: 'numeric' })
+        return { value: s.id, label: `${monthLabel} - ${s.employer}` }
+      })
   }, [recentSalaries, depDepositor])
 
   // Auto-select salary for deposit when date/depositor changes (previous month's salary)
@@ -547,7 +579,7 @@ export function InvestmentsTablePage() {
 
               <label>חברה</label>
               <CustomSelect
-                options={companyOptions}
+                options={sortedCompanyOptions}
                 value={chCompany}
                 placeholder="הכנס חברה"
                 onChange={setChCompany}
@@ -558,7 +590,7 @@ export function InvestmentsTablePage() {
 
               <label>מסלול השקעה</label>
               <CustomSelect
-                options={pathOptions}
+                options={sortedPathOptions}
                 value={chPath}
                 placeholder="הכנס מסלול השקעה"
                 onChange={setChPath}
@@ -601,7 +633,7 @@ export function InvestmentsTablePage() {
             <form onSubmit={handleDepositSubmit}>
               <label>אפיק</label>
               <ReadOnlySelect
-                options={channels.map(ch => ({ value: ch.id, label: `${ch.name} - ${ch.company}` }))}
+                options={sortedChannelSelectOptions}
                 value={depChannel}
                 placeholder="בחר אפיק"
                 onChange={setDepChannel}
@@ -612,7 +644,7 @@ export function InvestmentsTablePage() {
 
               <label>מי הפקיד</label>
               <CustomSelect
-                options={depositorOptions}
+                options={sortedDepositorOptions}
                 pinnedOptions={pinnedDepositors}
                 value={depDepositor}
                 placeholder="הכנס מפקיד"
@@ -677,7 +709,7 @@ export function InvestmentsTablePage() {
 
               <label>מסלול השקעה</label>
               <CustomSelect
-                options={pathOptions}
+                options={sortedPathOptions}
                 value={valPath}
                 placeholder="הכנס מסלול השקעה"
                 onChange={setValPath}
@@ -709,7 +741,7 @@ export function InvestmentsTablePage() {
             <form onSubmit={handleWithdrawalSubmit}>
               <label>אפיק</label>
               <ReadOnlySelect
-                options={channels.map(ch => ({ value: ch.id, label: `${ch.name} - ${ch.company}` }))}
+                options={sortedChannelSelectOptions}
                 value={wdChannel}
                 placeholder="בחר אפיק"
                 onChange={setWdChannel}

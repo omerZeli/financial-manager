@@ -57,9 +57,13 @@ export function SalaryChartsPage() {
     }
   }, [employers, employersInited])
 
-  const employerOptions = useMemo(() =>
-    employers.map(emp => ({ value: emp, label: emp })),
-  [employers])
+  const employerOptions = useMemo(() => {
+    const totals: Record<string, number> = {}
+    for (const s of salaries) totals[s.employer] = (totals[s.employer] || 0) + s.neto
+    return employers
+      .sort((a, b) => (totals[b] || 0) - (totals[a] || 0))
+      .map(emp => ({ value: emp, label: emp }))
+  }, [employers, salaries])
 
   // Filtered salaries based on time range + employer
   const filtered = useMemo(() => {
