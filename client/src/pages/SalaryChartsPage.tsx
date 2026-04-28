@@ -6,6 +6,7 @@ import { useExpenses } from '../contexts/ExpensesContext'
 import { useFixedExpenses } from '../contexts/FixedExpensesContext'
 import DateInput from '../components/common/DateInput'
 import { FilterMultiSelect } from '../components/common/FilterMultiSelect'
+import { ChartFilterPopover } from '../components/common/ChartFilterPopover'
 import './Section.css'
 
 function formatCurrency(n: number) {
@@ -140,17 +141,74 @@ export function SalaryChartsPage() {
 
   const maxVal = filtered.reduce((m, r) => Math.max(m, r.bruto, r.neto), 0) || 1
 
+  const hasActiveFilters = useMemo(() => {
+    if (aggMode !== 'avg') return true
+    if (selectedEmployers.length > 0 && selectedEmployers.length < employers.length) return true
+    if (timeRange !== 'last12') return true
+    if (customFrom || customTo) return true
+    return false
+  }, [aggMode, selectedEmployers, employers.length, timeRange, customFrom, customTo])
+
+  const clearFilters = () => {
+    setAggMode('avg')
+    setSelectedEmployers(employers)
+    setTimeRange('last12')
+    setCustomFrom('')
+    setCustomTo('')
+  }
+
   return (
     <div className="section-page">
       <div className="section-header">
         <h1>משכורת</h1>
-        <div className="section-tabs">
-          <NavLink to="/salary" end className={({ isActive }) => `section-tab${isActive ? ' active' : ''}`}>
-            טבלה
-          </NavLink>
-          <NavLink to="/salary/charts" className={({ isActive }) => `section-tab${isActive ? ' active' : ''}`}>
-            גרפים
-          </NavLink>
+        <div className="section-header-actions">
+          {!loading && !depLoading && !expLoading && !fixLoading && salaries.length > 0 && (
+            <ChartFilterPopover hasActive={hasActiveFilters} onClear={clearFilters}>
+              <div className="filter-popover-field">
+                <div className="filter-popover-label">תצוגה</div>
+                <div className="filter-tabs">
+                  <button type="button" className={`filter-tab${aggMode === 'avg' ? ' active' : ''}`} onClick={() => setAggMode('avg')}>ממוצע חודשי</button>
+                  <button type="button" className={`filter-tab${aggMode === 'sum' ? ' active' : ''}`} onClick={() => setAggMode('sum')}>סכום</button>
+                </div>
+              </div>
+              <div className="filter-popover-field">
+                <div className="filter-popover-label">מעסיק</div>
+                <FilterMultiSelect
+                  options={employerOptions}
+                  value={selectedEmployers}
+                  placeholder="הכל"
+                  onChange={setSelectedEmployers}
+                />
+              </div>
+              <div className="filter-popover-field">
+                <div className="filter-popover-label">טווח זמן</div>
+                <div className="filter-tabs">
+                  <button type="button" className={`filter-tab${timeRange === 'last1' ? ' active' : ''}`} onClick={() => setTimeRange('last1')}>חודש אחרון</button>
+                  <button type="button" className={`filter-tab${timeRange === 'last6' ? ' active' : ''}`} onClick={() => setTimeRange('last6')}>6 חודשים</button>
+                  <button type="button" className={`filter-tab${timeRange === 'last12' ? ' active' : ''}`} onClick={() => setTimeRange('last12')}>שנה</button>
+                  <button type="button" className={`filter-tab${timeRange === 'custom' ? ' active' : ''}`} onClick={() => setTimeRange('custom')}>מותאם</button>
+                </div>
+              </div>
+              {timeRange === 'custom' && (
+                <div className="filter-popover-field">
+                  <div className="filter-popover-label">טווח מותאם</div>
+                  <div className="custom-range-row">
+                    <DateInput value={customFrom} onChange={setCustomFrom} placeholder="מתאריך" />
+                    <span className="range-sep">-</span>
+                    <DateInput value={customTo} onChange={setCustomTo} placeholder="עד תאריך" />
+                  </div>
+                </div>
+              )}
+            </ChartFilterPopover>
+          )}
+          <div className="section-tabs">
+            <NavLink to="/salary" end className={({ isActive }) => `section-tab${isActive ? ' active' : ''}`}>
+              טבלה
+            </NavLink>
+            <NavLink to="/salary/charts" className={({ isActive }) => `section-tab${isActive ? ' active' : ''}`}>
+              גרפים
+            </NavLink>
+          </div>
         </div>
       </div>
 
@@ -160,46 +218,6 @@ export function SalaryChartsPage() {
         <div className="section-empty">אין נתונים להצגה. הוסף משכורות בטבלה.</div>
       ) : (
         <div className="charts-grid">
-          {/* Filters */}
-          <div className="charts-filters">
-            <div className="filter-group">
-              <label className="filter-label">תצוגה</label>
-              <div className="filter-tabs">
-                <button type="button" className={`filter-tab${aggMode === 'avg' ? ' active' : ''}`} onClick={() => setAggMode('avg')}>ממוצע חודשי</button>
-                <button type="button" className={`filter-tab${aggMode === 'sum' ? ' active' : ''}`} onClick={() => setAggMode('sum')}>סכום</button>
-              </div>
-            </div>
-            <div className="filter-group">
-              <label className="filter-label">מעסיק</label>
-              <FilterMultiSelect
-                options={employerOptions}
-                value={selectedEmployers}
-                placeholder="הכל"
-                onChange={setSelectedEmployers}
-              />
-            </div>
-            <div className="filter-group">
-              <label className="filter-label">טווח זמן</label>
-              <div className="filter-tabs">
-                <button type="button" className={`filter-tab${timeRange === 'last1' ? ' active' : ''}`} onClick={() => setTimeRange('last1')}>חודש אחרון</button>
-                <button type="button" className={`filter-tab${timeRange === 'last6' ? ' active' : ''}`} onClick={() => setTimeRange('last6')}>6 חודשים</button>
-                <button type="button" className={`filter-tab${timeRange === 'last12' ? ' active' : ''}`} onClick={() => setTimeRange('last12')}>שנה</button>
-                <button type="button" className={`filter-tab${timeRange === 'custom' ? ' active' : ''}`} onClick={() => setTimeRange('custom')}>מותאם</button>
-              </div>
-            </div>
-            {timeRange === 'custom' && (
-              <div className="custom-range-field">
-                <label className="filter-label">מתאריך</label>
-                <DateInput value={customFrom} onChange={setCustomFrom} placeholder="מתאריך" />
-              </div>
-            )}
-            {timeRange === 'custom' && (
-              <div className="custom-range-field">
-                <label className="filter-label">עד תאריך</label>
-                <DateInput value={customTo} onChange={setCustomTo} placeholder="עד תאריך" />
-              </div>
-            )}
-          </div>
 
           {filtered.length === 0 ? (
             <div className="section-empty">אין נתונים בטווח שנבחר.</div>

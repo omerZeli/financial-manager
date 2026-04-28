@@ -1,0 +1,49 @@
+.chart-filter-popover {
+  min-width: 340px;
+}
+
+.chart-filter-popover .filter-popover-fields {
+  gap: 14px;
+}
+
+.chart-filter-popover .filter-popover-field .filter-tabs {
+  width: 100%;
+}
+
+.chart-filter-popover .filter-popover-field .filter-multi-select {
+  min-width: 0;
+  width: 100%;
+}
+
+.chart-filter-popover .filter-popover-field .filter-multi-trigger {
+  padding: 8px 12px;
+  font-size: 13px;
+}
+
+.chart-filter-popover .filter-popover-field .filter-multi-menu {
+  min-width: 100%;
+}
+
+.chart-filter-popover .custom-range-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.chart-filter-popover .custom-range-row .date-input-wrap {
+  margin-bottom: 0;
+  flex: 1;
+  min-width: 0;
+}
+
+.chart-filter-popover .custom-range-row .date-input-display {
+  padding: 8px 12px 8px 34px;
+  font-size: 13px;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.chart-filter-popover .custom-range-row .date-input-picker-btn {
+  left: 6px;
+}

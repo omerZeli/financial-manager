@@ -4,6 +4,7 @@ import { useInvestmentChannels } from '../contexts/InvestmentChannelsContext'
 import { useInvestmentDeposits } from '../contexts/InvestmentDepositsContext'
 import { useInvestmentValues } from '../contexts/InvestmentValuesContext'
 import { FilterMultiSelect } from '../components/common/FilterMultiSelect'
+import { ChartFilterPopover } from '../components/common/ChartFilterPopover'
 import DateInput from '../components/common/DateInput'
 import { computeChannelSummary } from '../lib/computeChannelSummary'
 import './Section.css'
@@ -141,6 +142,20 @@ export function InvestmentsChartsPage() {
 
   const isLoading = chLoading || depLoading || valLoading
 
+  const hasActiveFilters = useMemo(() => {
+    if (selectedChannels.length > 0 && selectedChannels.length < channelOptions.length) return true
+    if (timeRange !== 'all') return true
+    if (customFrom || customTo) return true
+    return false
+  }, [selectedChannels, channelOptions.length, timeRange, customFrom, customTo])
+
+  const clearFilters = () => {
+    setSelectedChannels(channelOptions.map(o => o.value))
+    setTimeRange('all')
+    setCustomFrom('')
+    setCustomTo('')
+  }
+
   // Chart data grouped by selected dimension
   const chartEntries = useMemo(() => {
     if (groupBy === 'channel') {
@@ -263,13 +278,47 @@ export function InvestmentsChartsPage() {
     <div className="section-page">
       <div className="section-header">
         <h1>השקעות</h1>
-        <div className="section-tabs">
-          <NavLink to="/investments" end className={({ isActive }) => `section-tab${isActive ? ' active' : ''}`}>
-            טבלה
-          </NavLink>
-          <NavLink to="/investments/charts" className={({ isActive }) => `section-tab${isActive ? ' active' : ''}`}>
-            גרפים
-          </NavLink>
+        <div className="section-header-actions">
+          {!isLoading && channels.length > 0 && (
+            <ChartFilterPopover hasActive={hasActiveFilters} onClear={clearFilters}>
+              <div className="filter-popover-field">
+                <div className="filter-popover-label">אפיק השקעה</div>
+                <FilterMultiSelect
+                  options={channelOptions}
+                  value={selectedChannels}
+                  placeholder="הכל"
+                  onChange={setSelectedChannels}
+                />
+              </div>
+              <div className="filter-popover-field">
+                <div className="filter-popover-label">טווח זמן</div>
+                <div className="filter-tabs">
+                  <button type="button" className={`filter-tab${timeRange === 'last6' ? ' active' : ''}`} onClick={() => setTimeRange('last6')}>6 חודשים</button>
+                  <button type="button" className={`filter-tab${timeRange === 'last12' ? ' active' : ''}`} onClick={() => setTimeRange('last12')}>שנה</button>
+                  <button type="button" className={`filter-tab${timeRange === 'all' ? ' active' : ''}`} onClick={() => setTimeRange('all')}>הכל</button>
+                  <button type="button" className={`filter-tab${timeRange === 'custom' ? ' active' : ''}`} onClick={() => setTimeRange('custom')}>מותאם</button>
+                </div>
+              </div>
+              {timeRange === 'custom' && (
+                <div className="filter-popover-field">
+                  <div className="filter-popover-label">טווח מותאם</div>
+                  <div className="custom-range-row">
+                    <DateInput value={customFrom} onChange={setCustomFrom} placeholder="מתאריך" />
+                    <span className="range-sep">-</span>
+                    <DateInput value={customTo} onChange={setCustomTo} placeholder="עד תאריך" />
+                  </div>
+                </div>
+              )}
+            </ChartFilterPopover>
+          )}
+          <div className="section-tabs">
+            <NavLink to="/investments" end className={({ isActive }) => `section-tab${isActive ? ' active' : ''}`}>
+              טבלה
+            </NavLink>
+            <NavLink to="/investments/charts" className={({ isActive }) => `section-tab${isActive ? ' active' : ''}`}>
+              גרפים
+            </NavLink>
+          </div>
         </div>
       </div>
 
@@ -279,39 +328,6 @@ export function InvestmentsChartsPage() {
         <div className="section-empty">אין נתונים להצגה. הוסף אפיקי השקעה בטבלה.</div>
       ) : (
         <div className="charts-grid">
-          {/* Filters */}
-          <div className="charts-filters">
-            <div className="filter-group filter-group-wide">
-              <label className="filter-label">אפיק השקעה</label>
-              <FilterMultiSelect
-                options={channelOptions}
-                value={selectedChannels}
-                placeholder="הכל"
-                onChange={setSelectedChannels}
-              />
-            </div>
-            <div className="filter-group">
-              <label className="filter-label">טווח זמן</label>
-              <div className="filter-tabs">
-                <button type="button" className={`filter-tab${timeRange === 'last6' ? ' active' : ''}`} onClick={() => setTimeRange('last6')}>6 חודשים</button>
-                <button type="button" className={`filter-tab${timeRange === 'last12' ? ' active' : ''}`} onClick={() => setTimeRange('last12')}>שנה</button>
-                <button type="button" className={`filter-tab${timeRange === 'all' ? ' active' : ''}`} onClick={() => setTimeRange('all')}>הכל</button>
-                <button type="button" className={`filter-tab${timeRange === 'custom' ? ' active' : ''}`} onClick={() => setTimeRange('custom')}>מותאם</button>
-              </div>
-            </div>
-            {timeRange === 'custom' && (
-              <div className="custom-range-field">
-                <label className="filter-label">מתאריך</label>
-                <DateInput value={customFrom} onChange={setCustomFrom} placeholder="מתאריך" />
-              </div>
-            )}
-            {timeRange === 'custom' && (
-              <div className="custom-range-field">
-                <label className="filter-label">עד תאריך</label>
-                <DateInput value={customTo} onChange={setCustomTo} placeholder="עד תאריך" />
-              </div>
-            )}
-          </div>
 
           <div className="summary-row">
             <div className="summary-card">
