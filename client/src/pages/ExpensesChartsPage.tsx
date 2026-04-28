@@ -53,7 +53,7 @@ export function ExpensesChartsPage() {
   const [customTo, setCustomTo] = useState('')
   const [selectedTypes, setSelectedTypes] = useState<string[]>([])
   const [typesInited, setTypesInited] = useState(false)
-  const [aggMode, setAggMode] = useState<AggMode>('sum')
+  const [aggMode, setAggMode] = useState<AggMode>('avg')
 
   useEffect(() => { fetchExpenses() }, [fetchExpenses])
   useEffect(() => { fetchFixedExpenses() }, [fetchFixedExpenses])
@@ -243,7 +243,7 @@ export function ExpensesChartsPage() {
   const maxMonth = byMonth.reduce((m, [, v]) => Math.max(m, v), 0) || 1
 
   const hasActiveFilters = useMemo(() => {
-    if (aggMode !== 'sum') return true
+    if (aggMode !== 'avg') return true
     if (selectedTypes.length > 0 && selectedTypes.length < typeOptions.length) return true
     if (timeRange !== 'last12') return true
     if (customFrom || customTo) return true
@@ -251,7 +251,7 @@ export function ExpensesChartsPage() {
   }, [aggMode, selectedTypes, typeOptions.length, timeRange, customFrom, customTo])
 
   const clearFilters = () => {
-    setAggMode('sum')
+    setAggMode('avg')
     setSelectedTypes(typeOptions.map(o => o.value))
     setTimeRange('last12')
     setCustomFrom('')

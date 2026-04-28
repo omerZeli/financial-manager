@@ -1122,12 +1122,6 @@ export function ExpensesTablePage() {
                 </>
               )}
 
-              <label>סכום</label>
-              <NumberInput placeholder="הכנס סכום" value={pbAmount} onChange={setPbAmount} required />
-
-              <label>תאריך</label>
-              <DateInput value={pbDate} onChange={setPbDate} required />
-
               <label>
                 {pbDirection === 'by_me' ? 'למי שילמתי' : 'מי שילם לי'}
               </label>
@@ -1140,6 +1134,12 @@ export function ExpensesTablePage() {
                 onRemoveOption={removePerson}
                 loading={personLoading}
               />
+
+              <label>סכום</label>
+              <NumberInput placeholder="הכנס סכום" value={pbAmount} onChange={setPbAmount} required />
+
+              <label>תאריך</label>
+              <DateInput value={pbDate} onChange={setPbDate} required />
 
               <div className="modal-actions">
                 <button
