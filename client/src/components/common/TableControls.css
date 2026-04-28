@@ -1,0 +1,209 @@
+/* Sortable table header */
+.sortable-th {
+  cursor: pointer;
+  user-select: none;
+  transition: color 0.15s;
+}
+
+.sortable-th:hover {
+  color: var(--accent);
+}
+
+.sortable-th.active {
+  color: var(--accent);
+}
+
+.sortable-th-content {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.sort-icon {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  transform: translateY(1px);
+}
+
+/* Filter popover wrapper */
+.filter-popover-wrap {
+  position: relative;
+}
+
+/* Filter toggle button */
+.filter-toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  cursor: pointer;
+  color: var(--text);
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  position: relative;
+}
+
+.filter-toggle-btn:hover {
+  background: var(--bg-subtle);
+  color: var(--text-h);
+}
+
+.filter-toggle-btn.active {
+  background: var(--accent-bg);
+  color: var(--accent);
+  border-color: var(--accent-border);
+}
+
+.filter-toggle-btn.has-filters::after {
+  content: '';
+  position: absolute;
+  top: -3px;
+  left: -3px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+/* Popover dropdown */
+.filter-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  min-width: 320px;
+  max-height: calc(100svh - 160px);
+  overflow-y: auto;
+  z-index: 30;
+  animation: filter-popover-in 0.15s ease-out;
+}
+
+@keyframes filter-popover-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.filter-popover-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px 8px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.filter-popover-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.filter-popover-clear {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 2px 4px;
+  font-family: var(--sans);
+  border-radius: 4px;
+  transition: background 0.15s;
+}
+
+.filter-popover-clear:hover {
+  background: var(--accent-bg);
+}
+
+/* Filter fields */
+.filter-popover-fields {
+  padding: 10px 16px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.filter-popover-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.filter-popover-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.filter-popover-field .filter-multi-select {
+  min-width: 0;
+  width: 100%;
+}
+
+.filter-popover-field .filter-multi-trigger {
+  padding: 8px 12px;
+  font-size: 13px;
+}
+
+.filter-popover-field .filter-multi-menu {
+  min-width: 100%;
+}
+
+/* Number & date range inside popover */
+.filter-popover-range {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  
+}
+
+.filter-popover-range input {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  padding: 8px 12px !important;
+  font-size: 13px !important;
+  margin-bottom: 0 !important;
+  box-sizing: border-box;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: var(--sans);
+  color: var(--text-h);
+  transition: border-color 0.15s;
+  text-align: right;
+}
+
+.filter-popover-range input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-bg);
+}
+
+.filter-popover-range .date-input-wrap {
+  margin-bottom: 0;
+  flex: 1;
+  min-width: 0;
+}
+
+.filter-popover-range .date-input-display {
+  padding: 8px 12px 8px 34px;
+  font-size: 13px;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.filter-popover-range .date-input-picker-btn {
+  left: 6px;
+}
+
+.range-sep {
+  color: var(--text);
+  font-size: 13px;
+  flex-shrink: 0;
+}

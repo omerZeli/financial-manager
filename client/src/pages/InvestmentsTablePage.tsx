@@ -1,14 +1,16 @@
-import { useEffect, useState, useRef, useMemo } from 'react'
+import { useEffect, useState, useRef, useMemo, useCallback } from 'react'
 import { NavLink } from 'react-router-dom'
 import { useInvestmentChannels } from '../contexts/InvestmentChannelsContext'
 import { useInvestmentDeposits } from '../contexts/InvestmentDepositsContext'
 import { useInvestmentValues } from '../contexts/InvestmentValuesContext'
 import { useSalary } from '../contexts/SalaryContext'
 import { useDropdownOptions } from '../hooks/useDropdownOptions'
+import { useTableControls, type ColumnDef } from '../hooks/useTableControls'
 import { CustomSelect } from '../components/common/CustomSelect'
 import { ReadOnlySelect } from '../components/common/ReadOnlySelect'
 import { NumberInput } from '../components/common/NumberInput'
 import { ConfirmDialog } from '../components/common/ConfirmDialog'
+import { SortableTh, FilterPopover } from '../components/common/TableControls'
 import DateInput from '../components/common/DateInput'
 import { computeChannelSummary } from '../lib/computeChannelSummary'
 import './Section.css'
@@ -102,6 +104,72 @@ export function InvestmentsTablePage() {
       return { ...ch, ...summary }
     })
   }, [channels, deposits, valueUpdates])
+
+  // Column definitions for each sub-tab
+  const channelCols: ColumnDef[] = useMemo(() => [
+    { key: 'name', type: 'string', label: 'שם' },
+    { key: 'company', type: 'string', label: 'חברה' },
+    { key: 'investment_path', type: 'string', label: 'מסלול' },
+    { key: 'totalDeposits', type: 'number', label: 'סה"כ הפקדות' },
+    { key: 'currentValue', type: 'number', label: 'שווי נוכחי' },
+    { key: 'lastUpdated', type: 'date', label: 'עדכון אחרון' },
+    { key: 'returnAbsolute', type: 'number', label: 'תשואה' },
+    { key: 'returnPercent', type: 'number', label: 'תשואה %' },
+  ], [])
+
+  const depositCols: ColumnDef[] = useMemo(() => [
+    { key: 'channel', type: 'string', label: 'אפיק' },
+    { key: 'type', type: 'string', label: 'סוג' },
+    { key: 'amount', type: 'number', label: 'סכום' },
+    { key: 'depositor', type: 'string', label: 'מבצע' },
+    { key: 'date', type: 'date', label: 'תאריך' },
+  ], [])
+
+  const valueCols: ColumnDef[] = useMemo(() => [
+    { key: 'channel', type: 'string', label: 'אפיק' },
+    { key: 'value', type: 'number', label: 'שווי' },
+    { key: 'date', type: 'date', label: 'תאריך' },
+  ], [])
+
+  const getChannelValue = useCallback((item: (typeof channelSummaries)[0], key: string) => {
+    if (key === 'name') return item.name
+    if (key === 'company') return item.company
+    if (key === 'investment_path') return item.investment_path
+    if (key === 'totalDeposits') return item.totalDeposits
+    if (key === 'currentValue') return item.currentValue
+    if (key === 'lastUpdated') return item.lastUpdated || ''
+    if (key === 'returnAbsolute') return item.returnAbsolute
+    if (key === 'returnPercent') return item.returnPercent
+    return null
+  }, [])
+
+  const getDepositValue = useCallback((item: (typeof deposits)[0], key: string) => {
+    if (key === 'channel') {
+      const ch = channels.find(c => c.id === item.channel_id)
+      return ch ? `${ch.name} - ${ch.company}` : 'אפיק שנמחק'
+    }
+    if (key === 'type') return item.is_withdrawal ? 'משיכה' : 'הפקדה'
+    if (key === 'amount') return item.amount
+    if (key === 'depositor') return item.depositor
+    if (key === 'date') return item.date
+    return null
+  }, [channels])
+
+  const getValueUpdateValue = useCallback((item: (typeof valueUpdates)[0], key: string) => {
+    if (key === 'channel') {
+      const ch = channels.find(c => c.id === item.channel_id)
+      return ch ? `${ch.name} - ${ch.company}` : 'אפיק שנמחק'
+    }
+    if (key === 'value') return item.value
+    if (key === 'date') return item.date
+    return null
+  }, [channels])
+
+  const channelTable = useTableControls(channelSummaries, channelCols, 'name', 'asc', getChannelValue)
+  const depositTable = useTableControls(deposits, depositCols, 'date', 'desc', getDepositValue)
+  const valueTable = useTableControls(valueUpdates, valueCols, 'date', 'desc', getValueUpdateValue)
+
+  const activeTableCtrl = activeTab === 'channels' ? channelTable : activeTab === 'deposits' ? depositTable : valueTable
 
   const resetChannelForm = () => { setChName(''); setChCompany(''); setChPath(''); setChIsPension(false) }
   const resetDepositForm = () => { setDepChannel(''); setDepAmount(''); setDepDate(''); setDepDepositor(''); setDepDeductedFromSalary(false); setDepSelectedSalaryId('') }
@@ -218,13 +286,18 @@ export function InvestmentsTablePage() {
     <div className="section-page">
       <div className="section-header">
         <h1>השקעות</h1>
-        <div className="section-tabs">
-          <NavLink to="/investments" end className={({ isActive }) => `section-tab${isActive ? ' active' : ''}`}>
-            טבלה
-          </NavLink>
-          <NavLink to="/investments/charts" className={({ isActive }) => `section-tab${isActive ? ' active' : ''}`}>
-            גרפים
-          </NavLink>
+        <div className="section-header-actions">
+          {!isLoading && (
+            <FilterPopover columns={activeTab === 'channels' ? channelCols : activeTab === 'deposits' ? depositCols : valueCols} filters={activeTableCtrl.filters} stringOptions={activeTableCtrl.stringOptions} onStringFilter={activeTableCtrl.setStringFilter} onNumberFilter={activeTableCtrl.setNumberFilter} onDateFilter={activeTableCtrl.setDateFilter} onClear={activeTableCtrl.clearFilters} hasActive={activeTableCtrl.hasActiveFilters} />
+          )}
+          <div className="section-tabs">
+            <NavLink to="/investments" end className={({ isActive }) => `section-tab${isActive ? ' active' : ''}`}>
+              טבלה
+            </NavLink>
+            <NavLink to="/investments/charts" className={({ isActive }) => `section-tab${isActive ? ' active' : ''}`}>
+              גרפים
+            </NavLink>
+          </div>
         </div>
       </div>
 
@@ -247,137 +320,137 @@ export function InvestmentsTablePage() {
         channelSummaries.length === 0 ? (
           <div className="section-empty">אין אפיקי השקעה עדיין. לחץ על + כדי להוסיף.</div>
         ) : (
-          <div className="section-table-wrap">
-            <table className="section-table">
-              <thead>
-                <tr>
-                  <th>שם</th>
-                  <th>חברה</th>
-                  <th>מסלול</th>
-                  <th>סה"כ הפקדות</th>
-                  <th>שווי נוכחי</th>
-                  <th>עדכון אחרון</th>
-                  <th>תשואה</th>
-                  <th>תשואה %</th>
-                  <th className="col-actions"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {channelSummaries.map(ch => (
-                  <tr key={ch.id}>
-                    <td>
-                      {ch.name}
-                      {ch.is_pension && <span className="pension-badge">פנסיה</span>}
-                    </td>
-                    <td>{ch.company}</td>
-                    <td>{ch.investment_path}</td>
-                    <td className="num-cell">{formatCurrency(ch.totalDeposits)}</td>
-                    <td className="num-cell">{ch.lastUpdated ? formatCurrency(ch.currentValue) : '-'}</td>
-                    <td>{ch.lastUpdated ? formatDate(ch.lastUpdated) : '-'}</td>
-                    <td className={`num-cell ${ch.returnAbsolute >= 0 ? 'positive-return' : 'negative-return'}`}>
-                      {ch.lastUpdated ? formatCurrency(ch.returnAbsolute) : '-'}
-                    </td>
-                    <td className={`num-cell ${ch.returnPercent >= 0 ? 'positive-return' : 'negative-return'}`}>
-                      {ch.lastUpdated ? formatPercent(ch.returnPercent) : '-'}
-                    </td>
-                    <td className="col-actions actions-group">
-                      <button className="edit-btn" onClick={() => openValueFormForChannel(ch.id)} title="עדכון שווי">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" /><path d="m15 5 4 4" />
-                        </svg>
-                      </button>
-                      <button className="delete-btn" onClick={() => { setPendingDeleteId(ch.id); setPendingDeleteType('channel') }} title="מחק">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
-                        </svg>
-                      </button>
-                    </td>
+            <div className="section-table-wrap">
+              <table className="section-table">
+                <thead>
+                  <tr>
+                    <SortableTh label="שם" colKey="name" sortKey={channelTable.sortKey} sortDir={channelTable.sortDir} onSort={channelTable.toggleSort} />
+                    <SortableTh label="חברה" colKey="company" sortKey={channelTable.sortKey} sortDir={channelTable.sortDir} onSort={channelTable.toggleSort} />
+                    <SortableTh label="מסלול" colKey="investment_path" sortKey={channelTable.sortKey} sortDir={channelTable.sortDir} onSort={channelTable.toggleSort} />
+                    <SortableTh label='סה"כ הפקדות' colKey="totalDeposits" sortKey={channelTable.sortKey} sortDir={channelTable.sortDir} onSort={channelTable.toggleSort} />
+                    <SortableTh label="שווי נוכחי" colKey="currentValue" sortKey={channelTable.sortKey} sortDir={channelTable.sortDir} onSort={channelTable.toggleSort} />
+                    <SortableTh label="עדכון אחרון" colKey="lastUpdated" sortKey={channelTable.sortKey} sortDir={channelTable.sortDir} onSort={channelTable.toggleSort} />
+                    <SortableTh label="תשואה" colKey="returnAbsolute" sortKey={channelTable.sortKey} sortDir={channelTable.sortDir} onSort={channelTable.toggleSort} />
+                    <SortableTh label="תשואה %" colKey="returnPercent" sortKey={channelTable.sortKey} sortDir={channelTable.sortDir} onSort={channelTable.toggleSort} />
+                    <th className="col-actions"></th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {channelTable.processed.map(ch => (
+                    <tr key={ch.id}>
+                      <td>
+                        {ch.name}
+                        {ch.is_pension && <span className="pension-badge">פנסיה</span>}
+                      </td>
+                      <td>{ch.company}</td>
+                      <td>{ch.investment_path}</td>
+                      <td className="num-cell">{formatCurrency(ch.totalDeposits)}</td>
+                      <td className="num-cell">{ch.lastUpdated ? formatCurrency(ch.currentValue) : '-'}</td>
+                      <td>{ch.lastUpdated ? formatDate(ch.lastUpdated) : '-'}</td>
+                      <td className={`num-cell ${ch.returnAbsolute >= 0 ? 'positive-return' : 'negative-return'}`}>
+                        {ch.lastUpdated ? formatCurrency(ch.returnAbsolute) : '-'}
+                      </td>
+                      <td className={`num-cell ${ch.returnPercent >= 0 ? 'positive-return' : 'negative-return'}`}>
+                        {ch.lastUpdated ? formatPercent(ch.returnPercent) : '-'}
+                      </td>
+                      <td className="col-actions actions-group">
+                        <button className="edit-btn" onClick={() => openValueFormForChannel(ch.id)} title="עדכון שווי">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" /><path d="m15 5 4 4" />
+                          </svg>
+                        </button>
+                        <button className="delete-btn" onClick={() => { setPendingDeleteId(ch.id); setPendingDeleteType('channel') }} title="מחק">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                          </svg>
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
         )
       ) : activeTab === 'deposits' ? (
         /* Deposits tab */
         deposits.length === 0 ? (
           <div className="section-empty">אין הפקדות ומשיכות עדיין. לחץ על + כדי להוסיף.</div>
         ) : (
-          <div className="section-table-wrap">
-            <table className="section-table">
-              <thead>
-                <tr>
-                  <th>אפיק</th>
-                  <th>סוג</th>
-                  <th>סכום</th>
-                  <th>מבצע</th>
-                  <th>תאריך</th>
-                  <th className="col-actions"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {deposits.map(dep => {
-                  const ch = channels.find(c => c.id === dep.channel_id)
-                  return (
-                    <tr key={dep.id}>
-                      <td>{ch ? `${ch.name} - ${ch.company}` : 'אפיק שנמחק'}</td>
-                      <td>{dep.is_withdrawal
-                        ? <span className="direction-badge by_me">משיכה</span>
-                        : <span className="direction-badge to_me">הפקדה</span>
-                      }</td>
-                      <td className="num-cell">{formatCurrency(dep.amount)}</td>
-                      <td>{dep.depositor}</td>
-                      <td>{formatDate(dep.date)}</td>
-                      <td className="col-actions">
-                        <button className="delete-btn" onClick={() => { setPendingDeleteId(dep.id); setPendingDeleteType('deposit') }} title="מחק">
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
-                          </svg>
-                        </button>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
+            <div className="section-table-wrap">
+              <table className="section-table">
+                <thead>
+                  <tr>
+                    <SortableTh label="אפיק" colKey="channel" sortKey={depositTable.sortKey} sortDir={depositTable.sortDir} onSort={depositTable.toggleSort} />
+                    <SortableTh label="סוג" colKey="type" sortKey={depositTable.sortKey} sortDir={depositTable.sortDir} onSort={depositTable.toggleSort} />
+                    <SortableTh label="סכום" colKey="amount" sortKey={depositTable.sortKey} sortDir={depositTable.sortDir} onSort={depositTable.toggleSort} />
+                    <SortableTh label="מבצע" colKey="depositor" sortKey={depositTable.sortKey} sortDir={depositTable.sortDir} onSort={depositTable.toggleSort} />
+                    <SortableTh label="תאריך" colKey="date" sortKey={depositTable.sortKey} sortDir={depositTable.sortDir} onSort={depositTable.toggleSort} />
+                    <th className="col-actions"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {depositTable.processed.map(dep => {
+                    const ch = channels.find(c => c.id === dep.channel_id)
+                    return (
+                      <tr key={dep.id}>
+                        <td>{ch ? `${ch.name} - ${ch.company}` : 'אפיק שנמחק'}</td>
+                        <td>{dep.is_withdrawal
+                          ? <span className="direction-badge by_me">משיכה</span>
+                          : <span className="direction-badge to_me">הפקדה</span>
+                        }</td>
+                        <td className="num-cell">{formatCurrency(dep.amount)}</td>
+                        <td>{dep.depositor}</td>
+                        <td>{formatDate(dep.date)}</td>
+                        <td className="col-actions">
+                          <button className="delete-btn" onClick={() => { setPendingDeleteId(dep.id); setPendingDeleteType('deposit') }} title="מחק">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                            </svg>
+                          </button>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
         )
       ) : activeTab === 'values' ? (
         /* Value updates tab */
         valueUpdates.length === 0 ? (
           <div className="section-empty">אין עדכוני ערך עדיין. לחץ על + כדי להוסיף.</div>
         ) : (
-          <div className="section-table-wrap">
-            <table className="section-table">
-              <thead>
-                <tr>
-                  <th>אפיק</th>
-                  <th>שווי</th>
-                  <th>תאריך</th>
-                  <th className="col-actions"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {valueUpdates.map(vu => {
-                  const ch = channels.find(c => c.id === vu.channel_id)
-                  return (
-                    <tr key={vu.id}>
-                      <td>{ch ? `${ch.name} - ${ch.company}` : 'אפיק שנמחק'}</td>
-                      <td className="num-cell">{formatCurrency(vu.value)}</td>
-                      <td>{formatDate(vu.date)}</td>
-                      <td className="col-actions">
-                        <button className="delete-btn" onClick={() => { setPendingDeleteId(vu.id); setPendingDeleteType('value') }} title="מחק">
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
-                          </svg>
-                        </button>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
+            <div className="section-table-wrap">
+              <table className="section-table">
+                <thead>
+                  <tr>
+                    <SortableTh label="אפיק" colKey="channel" sortKey={valueTable.sortKey} sortDir={valueTable.sortDir} onSort={valueTable.toggleSort} />
+                    <SortableTh label="שווי" colKey="value" sortKey={valueTable.sortKey} sortDir={valueTable.sortDir} onSort={valueTable.toggleSort} />
+                    <SortableTh label="תאריך" colKey="date" sortKey={valueTable.sortKey} sortDir={valueTable.sortDir} onSort={valueTable.toggleSort} />
+                    <th className="col-actions"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {valueTable.processed.map(vu => {
+                    const ch = channels.find(c => c.id === vu.channel_id)
+                    return (
+                      <tr key={vu.id}>
+                        <td>{ch ? `${ch.name} - ${ch.company}` : 'אפיק שנמחק'}</td>
+                        <td className="num-cell">{formatCurrency(vu.value)}</td>
+                        <td>{formatDate(vu.date)}</td>
+                        <td className="col-actions">
+                          <button className="delete-btn" onClick={() => { setPendingDeleteId(vu.id); setPendingDeleteType('value') }} title="מחק">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                            </svg>
+                          </button>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
         )
       ) : null}
 

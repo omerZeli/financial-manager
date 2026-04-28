@@ -1,9 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { NavLink } from 'react-router-dom'
 import { useSalary } from '../contexts/SalaryContext'
 import { NumberInput } from '../components/common/NumberInput'
 import { CustomSelect } from '../components/common/CustomSelect'
 import { ConfirmDialog } from '../components/common/ConfirmDialog'
+import { SortableTh, FilterPopover } from '../components/common/TableControls'
+import { useTableControls, type ColumnDef } from '../hooks/useTableControls'
 import { useDropdownOptions } from '../hooks/useDropdownOptions'
 import './Section.css'
 
@@ -16,9 +18,26 @@ function formatCurrency(n: number) {
   return n.toLocaleString('he-IL', { style: 'currency', currency: 'ILS', minimumFractionDigits: 0 })
 }
 
+const salaryColumns: ColumnDef[] = [
+  { key: 'month', type: 'date', label: 'חודש' },
+  { key: 'employer', type: 'string', label: 'מעסיק' },
+  { key: 'bruto', type: 'number', label: 'ברוטו' },
+  { key: 'neto', type: 'number', label: 'נטו' },
+]
+
 export function SalaryTablePage() {
   const { salaries, loading, fetchSalaries, addSalary, deleteSalary } = useSalary()
   const { options: employerOptions, loading: employerLoading, addOption: addEmployer, removeOption: removeEmployer } = useDropdownOptions('employer')
+
+  const getSalaryValue = useCallback((item: typeof salaries[0], key: string) => {
+    if (key === 'month') return item.month
+    if (key === 'employer') return item.employer
+    if (key === 'bruto') return item.bruto
+    if (key === 'neto') return item.neto
+    return null
+  }, [])
+
+  const table = useTableControls(salaries, salaryColumns, 'month', 'desc', getSalaryValue)
   const [showModal, setShowModal] = useState(false)
   const [month, setMonth] = useState('')
   const [employer, setEmployer] = useState('')
@@ -53,13 +72,18 @@ export function SalaryTablePage() {
     <div className="section-page">
       <div className="section-header">
         <h1>משכורת</h1>
-        <div className="section-tabs">
-          <NavLink to="/salary" end className={({ isActive }) => `section-tab${isActive ? ' active' : ''}`}>
-            טבלה
-          </NavLink>
-          <NavLink to="/salary/charts" className={({ isActive }) => `section-tab${isActive ? ' active' : ''}`}>
-            גרפים
-          </NavLink>
+        <div className="section-header-actions">
+          {salaries.length > 0 && (
+            <FilterPopover columns={salaryColumns} filters={table.filters} stringOptions={table.stringOptions} onStringFilter={table.setStringFilter} onNumberFilter={table.setNumberFilter} onDateFilter={table.setDateFilter} onClear={table.clearFilters} hasActive={table.hasActiveFilters} />
+          )}
+          <div className="section-tabs">
+            <NavLink to="/salary" end className={({ isActive }) => `section-tab${isActive ? ' active' : ''}`}>
+              טבלה
+            </NavLink>
+            <NavLink to="/salary/charts" className={({ isActive }) => `section-tab${isActive ? ' active' : ''}`}>
+              גרפים
+            </NavLink>
+          </div>
         </div>
       </div>
 
@@ -69,35 +93,35 @@ export function SalaryTablePage() {
         <div className="section-empty">אין נתוני משכורת עדיין. לחץ על + כדי להוסיף.</div>
       ) : (
         <div className="section-table-wrap">
-          <table className="section-table">
-            <thead>
-              <tr>
-                <th>חודש</th>
-                <th>מעסיק</th>
-                <th>ברוטו</th>
-                <th>נטו</th>
-                <th className="col-actions"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {salaries.map(s => (
-                <tr key={s.id}>
-                  <td>{formatMonth(s.month)}</td>
-                  <td>{s.employer}</td>
-                  <td className="num-cell">{formatCurrency(s.bruto)}</td>
-                  <td className="num-cell">{formatCurrency(s.neto)}</td>
-                  <td className="col-actions">
-                    <button className="delete-btn" onClick={() => setPendingDeleteId(s.id)} title="מחק">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
-                      </svg>
-                    </button>
-                  </td>
+            <table className="section-table">
+              <thead>
+                <tr>
+                  <SortableTh label="חודש" colKey="month" sortKey={table.sortKey} sortDir={table.sortDir} onSort={table.toggleSort} />
+                  <SortableTh label="מעסיק" colKey="employer" sortKey={table.sortKey} sortDir={table.sortDir} onSort={table.toggleSort} />
+                  <SortableTh label="ברוטו" colKey="bruto" sortKey={table.sortKey} sortDir={table.sortDir} onSort={table.toggleSort} />
+                  <SortableTh label="נטו" colKey="neto" sortKey={table.sortKey} sortDir={table.sortDir} onSort={table.toggleSort} />
+                  <th className="col-actions"></th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {table.processed.map(s => (
+                  <tr key={s.id}>
+                    <td>{formatMonth(s.month)}</td>
+                    <td>{s.employer}</td>
+                    <td className="num-cell">{formatCurrency(s.bruto)}</td>
+                    <td className="num-cell">{formatCurrency(s.neto)}</td>
+                    <td className="col-actions">
+                      <button className="delete-btn" onClick={() => setPendingDeleteId(s.id)} title="מחק">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                        </svg>
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
       )}
 
       <button className="section-fab" onClick={() => setShowModal(true)} title="הוסף משכורת">+</button>

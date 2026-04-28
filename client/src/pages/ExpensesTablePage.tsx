@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useMemo } from 'react'
+import { useEffect, useState, useRef, useMemo, useCallback } from 'react'
 import { NavLink } from 'react-router-dom'
 import { useExpenses } from '../contexts/ExpensesContext'
 import { useFixedExpenses } from '../contexts/FixedExpensesContext'
@@ -6,12 +6,14 @@ import { usePaybacks } from '../contexts/PaybacksContext'
 import { useExpenseTypes } from '../contexts/ExpenseTypesContext'
 import { useSalary } from '../contexts/SalaryContext'
 import { useDropdownOptions } from '../hooks/useDropdownOptions'
+import { useTableControls, type ColumnDef } from '../hooks/useTableControls'
 import { CustomSelect } from '../components/common/CustomSelect'
 import { ReadOnlySelect } from '../components/common/ReadOnlySelect'
 import { AutocompleteInput } from '../components/common/AutocompleteInput'
 import { NumberInput } from '../components/common/NumberInput'
 import { MultiSelect } from '../components/common/MultiSelect'
 import { ConfirmDialog } from '../components/common/ConfirmDialog'
+import { SortableTh, FilterPopover } from '../components/common/TableControls'
 import DateInput from '../components/common/DateInput'
 import './Section.css'
 
@@ -211,6 +213,94 @@ export function ExpensesTablePage() {
     return merged.sort((a, b) => b.date.localeCompare(a.date))
   }, [expenses, inflatedExpenses, byMeAsExpenses, toMeByExpense, toMeByFixed])
 
+  // Column definitions for each sub-tab
+  const allExpCols: ColumnDef[] = useMemo(() => [
+    { key: 'name', type: 'string', label: 'שם הוצאה' },
+    { key: 'category', type: 'string', label: 'קטגוריה' },
+    { key: 'amount', type: 'number', label: 'סכום' },
+    { key: 'date', type: 'date', label: 'תאריך' },
+  ], [])
+
+  const regularExpCols: ColumnDef[] = useMemo(() => [
+    { key: 'name', type: 'string', label: 'שם הוצאה' },
+    { key: 'category', type: 'string', label: 'קטגוריה' },
+    { key: 'amount', type: 'number', label: 'סכום' },
+    { key: 'date', type: 'date', label: 'תאריך' },
+  ], [])
+
+  const fixedExpCols: ColumnDef[] = useMemo(() => [
+    { key: 'name', type: 'string', label: 'שם הוצאה' },
+    { key: 'category', type: 'string', label: 'קטגוריה' },
+    { key: 'amount', type: 'number', label: 'סכום' },
+    { key: 'start_date', type: 'date', label: 'תאריך התחלה' },
+    { key: 'end_date', type: 'date', label: 'תאריך סיום' },
+  ], [])
+
+  const paybackCols: ColumnDef[] = useMemo(() => [
+    { key: 'direction', type: 'string', label: 'כיוון' },
+    { key: 'details', type: 'string', label: 'פרטים' },
+    { key: 'category', type: 'string', label: 'קטגוריה' },
+    { key: 'amount', type: 'number', label: 'סכום' },
+    { key: 'date', type: 'date', label: 'תאריך' },
+    { key: 'person', type: 'string', label: 'אדם' },
+  ], [])
+
+  const getAllExpValue = useCallback((item: (typeof allExpenses)[0], key: string) => {
+    if (key === 'name') return item.name
+    if (key === 'category') return item.category
+    if (key === 'amount') return item.amount
+    if (key === 'date') return item.date
+    return null
+  }, [])
+
+  const getRegularExpValue = useCallback((item: (typeof expenses)[0], key: string) => {
+    if (key === 'name') return item.name
+    if (key === 'category') return item.category
+    if (key === 'amount') return item.amount
+    if (key === 'date') return item.date
+    return null
+  }, [])
+
+  const getFixedExpValue = useCallback((item: (typeof fixedExpenses)[0], key: string) => {
+    if (key === 'name') return item.name
+    if (key === 'category') return item.category
+    if (key === 'amount') return item.amount
+    if (key === 'start_date') return item.start_date
+    if (key === 'end_date') return item.end_date || ''
+    return null
+  }, [])
+
+  const getPaybackDetails = useCallback((pb: (typeof paybacks)[0]) => {
+    if (pb.direction === 'by_me') return pb.name || ''
+    const linkedExp = pb.expense_id ? expenses.find(e => e.id === pb.expense_id) : null
+    const linkedFixed = pb.fixed_expense_id ? fixedExpenses.find(e => e.id === pb.fixed_expense_id) : null
+    return linkedExp ? linkedExp.name : linkedFixed ? `${linkedFixed.name} (קבועה)` : 'הוצאה שנמחקה'
+  }, [expenses, fixedExpenses])
+
+  const getPaybackCategory = useCallback((pb: (typeof paybacks)[0]) => {
+    if (pb.direction === 'by_me') return pb.category || ''
+    const linkedExp = pb.expense_id ? expenses.find(e => e.id === pb.expense_id) : null
+    const linkedFixed = pb.fixed_expense_id ? fixedExpenses.find(e => e.id === pb.fixed_expense_id) : null
+    return linkedExp ? linkedExp.category : linkedFixed ? linkedFixed.category : '-'
+  }, [expenses, fixedExpenses])
+
+  const getPaybackValue = useCallback((item: (typeof paybacks)[0], key: string) => {
+    if (key === 'direction') return item.direction === 'by_me' ? 'שילמתי' : 'קיבלתי'
+    if (key === 'details') return getPaybackDetails(item)
+    if (key === 'category') return getPaybackCategory(item)
+    if (key === 'amount') return item.amount
+    if (key === 'date') return item.date
+    if (key === 'person') return item.person
+    return null
+  }, [getPaybackDetails, getPaybackCategory])
+
+  const allExpTable = useTableControls(allExpenses, allExpCols, 'date', 'desc', getAllExpValue)
+  const regularExpTable = useTableControls(expenses, regularExpCols, 'date', 'desc', getRegularExpValue)
+  const fixedExpTable = useTableControls(fixedExpenses, fixedExpCols, 'start_date', 'desc', getFixedExpValue)
+  const paybackTable = useTableControls(paybacks, paybackCols, 'date', 'desc', getPaybackValue)
+
+  const activeTable = activeTab === 'all' ? allExpTable : activeTab === 'regular' ? regularExpTable : activeTab === 'fixed' ? fixedExpTable : paybackTable
+
   // Close picker on outside click
   useEffect(() => {
     if (modal !== 'picker') return
@@ -390,13 +480,18 @@ export function ExpensesTablePage() {
     <div className="section-page">
       <div className="section-header">
         <h1>הוצאות</h1>
-        <div className="section-tabs">
-          <NavLink to="/expenses" end className={({ isActive }) => `section-tab${isActive ? ' active' : ''}`}>
-            טבלה
-          </NavLink>
-          <NavLink to="/expenses/charts" className={({ isActive }) => `section-tab${isActive ? ' active' : ''}`}>
-            גרפים
-          </NavLink>
+        <div className="section-header-actions">
+          {!isLoading && (
+            <FilterPopover columns={activeTab === 'all' ? allExpCols : activeTab === 'regular' ? regularExpCols : activeTab === 'fixed' ? fixedExpCols : paybackCols} filters={activeTable.filters} stringOptions={activeTable.stringOptions} onStringFilter={activeTable.setStringFilter} onNumberFilter={activeTable.setNumberFilter} onDateFilter={activeTable.setDateFilter} onClear={activeTable.clearFilters} hasActive={activeTable.hasActiveFilters} />
+          )}
+          <div className="section-tabs">
+            <NavLink to="/expenses" end className={({ isActive }) => `section-tab${isActive ? ' active' : ''}`}>
+              טבלה
+            </NavLink>
+            <NavLink to="/expenses/charts" className={({ isActive }) => `section-tab${isActive ? ' active' : ''}`}>
+              גרפים
+            </NavLink>
+          </div>
         </div>
       </div>
 
@@ -422,158 +517,158 @@ export function ExpensesTablePage() {
         allExpenses.length === 0 ? (
           <div className="section-empty">אין הוצאות עדיין. לחץ על + כדי להוסיף.</div>
         ) : (
-          <div className="section-table-wrap">
-            <table className="section-table">
-              <thead>
-                <tr>
-                  <th>שם הוצאה</th>
-                  <th>קטגוריה</th>
-                  <th>סכום</th>
-                  <th>תאריך</th>
-                </tr>
-              </thead>
-              <tbody>
-                {allExpenses.map(exp => (
-                    <tr key={exp.id}>
-                      <td>{exp.name}</td>
-                      <td>{exp.category}</td>
-                      <td className="num-cell">{formatCurrency(exp.amount)}</td>
-                      <td>{formatDate(exp.date)}</td>
-                    </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+            <div className="section-table-wrap">
+              <table className="section-table">
+                <thead>
+                  <tr>
+                    <SortableTh label="שם הוצאה" colKey="name" sortKey={allExpTable.sortKey} sortDir={allExpTable.sortDir} onSort={allExpTable.toggleSort} />
+                    <SortableTh label="קטגוריה" colKey="category" sortKey={allExpTable.sortKey} sortDir={allExpTable.sortDir} onSort={allExpTable.toggleSort} />
+                    <SortableTh label="סכום" colKey="amount" sortKey={allExpTable.sortKey} sortDir={allExpTable.sortDir} onSort={allExpTable.toggleSort} />
+                    <SortableTh label="תאריך" colKey="date" sortKey={allExpTable.sortKey} sortDir={allExpTable.sortDir} onSort={allExpTable.toggleSort} />
+                  </tr>
+                </thead>
+                <tbody>
+                  {allExpTable.processed.map(exp => (
+                      <tr key={exp.id}>
+                        <td>{exp.name}</td>
+                        <td>{exp.category}</td>
+                        <td className="num-cell">{formatCurrency(exp.amount)}</td>
+                        <td>{formatDate(exp.date)}</td>
+                      </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
         )
       ) : activeTab === 'regular' ? (
         expenses.length === 0 ? (
           <div className="section-empty">אין הוצאות רגילות עדיין. לחץ על + כדי להוסיף.</div>
         ) : (
-          <div className="section-table-wrap">
-            <table className="section-table">
-              <thead>
-                <tr>
-                  <th>שם הוצאה</th>
-                  <th>קטגוריה</th>
-                  <th>סכום</th>
-                  <th>תאריך</th>
-                  <th className="col-actions"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {expenses.map(exp => (
-                  <tr key={exp.id}>
-                    <td>{exp.name}</td>
-                    <td>{exp.category}</td>
-                    <td className="num-cell">{formatCurrency(exp.amount)}</td>
-                    <td>{formatDate(exp.date)}</td>
-                    <td className="col-actions">
-                      <button className="delete-btn" onClick={() => { setPendingDeleteId(exp.id); setPendingDeleteType('expense') }} title="מחק">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
-                        </svg>
-                      </button>
-                    </td>
+            <div className="section-table-wrap">
+              <table className="section-table">
+                <thead>
+                  <tr>
+                    <SortableTh label="שם הוצאה" colKey="name" sortKey={regularExpTable.sortKey} sortDir={regularExpTable.sortDir} onSort={regularExpTable.toggleSort} />
+                    <SortableTh label="קטגוריה" colKey="category" sortKey={regularExpTable.sortKey} sortDir={regularExpTable.sortDir} onSort={regularExpTable.toggleSort} />
+                    <SortableTh label="סכום" colKey="amount" sortKey={regularExpTable.sortKey} sortDir={regularExpTable.sortDir} onSort={regularExpTable.toggleSort} />
+                    <SortableTh label="תאריך" colKey="date" sortKey={regularExpTable.sortKey} sortDir={regularExpTable.sortDir} onSort={regularExpTable.toggleSort} />
+                    <th className="col-actions"></th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {regularExpTable.processed.map(exp => (
+                    <tr key={exp.id}>
+                      <td>{exp.name}</td>
+                      <td>{exp.category}</td>
+                      <td className="num-cell">{formatCurrency(exp.amount)}</td>
+                      <td>{formatDate(exp.date)}</td>
+                      <td className="col-actions">
+                        <button className="delete-btn" onClick={() => { setPendingDeleteId(exp.id); setPendingDeleteType('expense') }} title="מחק">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                          </svg>
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
         )
       ) : activeTab === 'fixed' ? (
         fixedExpenses.length === 0 ? (
           <div className="section-empty">אין הוצאות קבועות עדיין. לחץ על + כדי להוסיף.</div>
         ) : (
-          <div className="section-table-wrap">
-            <table className="section-table">
-              <thead>
-                <tr>
-                  <th>שם הוצאה</th>
-                  <th>קטגוריה</th>
-                  <th>סכום</th>
-                  <th>תאריך התחלה</th>
-                  <th>תאריך סיום</th>
-                  <th className="col-actions"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {fixedExpenses.map(exp => (
-                  <tr key={exp.id}>
-                    <td>{exp.name}</td>
-                    <td>{exp.category}</td>
-                    <td className="num-cell">{formatCurrency(exp.amount)}</td>
-                    <td>{formatDate(exp.start_date)}</td>
-                    <td>{exp.end_date ? formatDate(exp.end_date) : '-'}</td>
-                    <td className="col-actions actions-group">
-                      <button className="edit-btn" onClick={() => openEditFixed(exp.id)} title="ערוך">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" /><path d="m15 5 4 4" />
-                        </svg>
-                      </button>
-                      <button className="delete-btn" onClick={() => { setPendingDeleteId(exp.id); setPendingDeleteType('fixed') }} title="מחק">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
-                        </svg>
-                      </button>
-                    </td>
+            <div className="section-table-wrap">
+              <table className="section-table">
+                <thead>
+                  <tr>
+                    <SortableTh label="שם הוצאה" colKey="name" sortKey={fixedExpTable.sortKey} sortDir={fixedExpTable.sortDir} onSort={fixedExpTable.toggleSort} />
+                    <SortableTh label="קטגוריה" colKey="category" sortKey={fixedExpTable.sortKey} sortDir={fixedExpTable.sortDir} onSort={fixedExpTable.toggleSort} />
+                    <SortableTh label="סכום" colKey="amount" sortKey={fixedExpTable.sortKey} sortDir={fixedExpTable.sortDir} onSort={fixedExpTable.toggleSort} />
+                    <SortableTh label="תאריך התחלה" colKey="start_date" sortKey={fixedExpTable.sortKey} sortDir={fixedExpTable.sortDir} onSort={fixedExpTable.toggleSort} />
+                    <SortableTh label="תאריך סיום" colKey="end_date" sortKey={fixedExpTable.sortKey} sortDir={fixedExpTable.sortDir} onSort={fixedExpTable.toggleSort} />
+                    <th className="col-actions"></th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {fixedExpTable.processed.map(exp => (
+                    <tr key={exp.id}>
+                      <td>{exp.name}</td>
+                      <td>{exp.category}</td>
+                      <td className="num-cell">{formatCurrency(exp.amount)}</td>
+                      <td>{formatDate(exp.start_date)}</td>
+                      <td>{exp.end_date ? formatDate(exp.end_date) : '-'}</td>
+                      <td className="col-actions actions-group">
+                        <button className="edit-btn" onClick={() => openEditFixed(exp.id)} title="ערוך">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" /><path d="m15 5 4 4" />
+                          </svg>
+                        </button>
+                        <button className="delete-btn" onClick={() => { setPendingDeleteId(exp.id); setPendingDeleteType('fixed') }} title="מחק">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                          </svg>
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
         )
       ) : (
         /* Paybacks tab */
         paybacks.length === 0 ? (
           <div className="section-empty">אין העברות עדיין. לחץ על + כדי להוסיף.</div>
         ) : (
-          <div className="section-table-wrap">
-            <table className="section-table">
-              <thead>
-                <tr>
-                  <th>כיוון</th>
-                  <th>פרטים</th>
-                  <th>קטגוריה</th>
-                  <th>סכום</th>
-                  <th>תאריך</th>
-                  <th>אדם</th>
-                  <th className="col-actions"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {paybacks.map(pb => {
-                  const linkedExp = pb.direction === 'to_me' && pb.expense_id ? expenses.find(e => e.id === pb.expense_id) : null
-                  const linkedFixed = pb.direction === 'to_me' && pb.fixed_expense_id ? fixedExpenses.find(e => e.id === pb.fixed_expense_id) : null
-                  return (
-                  <tr key={pb.id}>
-                    <td>
-                      <span className={`direction-badge ${pb.direction}`}>
-                        {pb.direction === 'by_me' ? 'שילמתי' : 'קיבלתי'}
-                      </span>
-                    </td>
-                    <td>
-                      {pb.direction === 'by_me'
-                        ? pb.name
-                        : linkedExp ? linkedExp.name : linkedFixed ? `${linkedFixed.name} (קבועה)` : 'הוצאה שנמחקה'
-                      }
-                    </td>
-                    <td>{pb.direction === 'by_me' ? pb.category : (linkedExp ? linkedExp.category : linkedFixed ? linkedFixed.category : '-')}</td>
-                    <td className="num-cell">{formatCurrency(pb.amount)}</td>
-                    <td>{formatDate(pb.date)}</td>
-                    <td>{pb.person}</td>
-                    <td className="col-actions">
-                      <button className="delete-btn" onClick={() => { setPendingDeleteId(pb.id); setPendingDeleteType('payback') }} title="מחק">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
-                        </svg>
-                      </button>
-                    </td>
+            <div className="section-table-wrap">
+              <table className="section-table">
+                <thead>
+                  <tr>
+                    <SortableTh label="כיוון" colKey="direction" sortKey={paybackTable.sortKey} sortDir={paybackTable.sortDir} onSort={paybackTable.toggleSort} />
+                    <SortableTh label="פרטים" colKey="details" sortKey={paybackTable.sortKey} sortDir={paybackTable.sortDir} onSort={paybackTable.toggleSort} />
+                    <SortableTh label="קטגוריה" colKey="category" sortKey={paybackTable.sortKey} sortDir={paybackTable.sortDir} onSort={paybackTable.toggleSort} />
+                    <SortableTh label="סכום" colKey="amount" sortKey={paybackTable.sortKey} sortDir={paybackTable.sortDir} onSort={paybackTable.toggleSort} />
+                    <SortableTh label="תאריך" colKey="date" sortKey={paybackTable.sortKey} sortDir={paybackTable.sortDir} onSort={paybackTable.toggleSort} />
+                    <SortableTh label="אדם" colKey="person" sortKey={paybackTable.sortKey} sortDir={paybackTable.sortDir} onSort={paybackTable.toggleSort} />
+                    <th className="col-actions"></th>
                   </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {paybackTable.processed.map(pb => {
+                    const linkedExp = pb.direction === 'to_me' && pb.expense_id ? expenses.find(e => e.id === pb.expense_id) : null
+                    const linkedFixed = pb.direction === 'to_me' && pb.fixed_expense_id ? fixedExpenses.find(e => e.id === pb.fixed_expense_id) : null
+                    return (
+                    <tr key={pb.id}>
+                      <td>
+                        <span className={`direction-badge ${pb.direction}`}>
+                          {pb.direction === 'by_me' ? 'שילמתי' : 'קיבלתי'}
+                        </span>
+                      </td>
+                      <td>
+                        {pb.direction === 'by_me'
+                          ? pb.name
+                          : linkedExp ? linkedExp.name : linkedFixed ? `${linkedFixed.name} (קבועה)` : 'הוצאה שנמחקה'
+                        }
+                      </td>
+                      <td>{pb.direction === 'by_me' ? pb.category : (linkedExp ? linkedExp.category : linkedFixed ? linkedFixed.category : '-')}</td>
+                      <td className="num-cell">{formatCurrency(pb.amount)}</td>
+                      <td>{formatDate(pb.date)}</td>
+                      <td>{pb.person}</td>
+                      <td className="col-actions">
+                        <button className="delete-btn" onClick={() => { setPendingDeleteId(pb.id); setPendingDeleteType('payback') }} title="מחק">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                          </svg>
+                        </button>
+                      </td>
+                    </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
         )
       )}
 
