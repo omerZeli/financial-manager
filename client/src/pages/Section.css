@@ -1,7 +1,7 @@
 /* Section layout */
 .section-page {
   padding: 1.5rem;
-  max-width: 1200px;
+  max-width: 960px;
   margin: 0 auto;
   width: 100%;
 }
@@ -16,12 +16,6 @@
 .section-header h1 {
   font-size: 22px;
   margin: 0;
-}
-
-.section-header-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
 }
 
 /* Tab switcher */
@@ -726,7 +720,8 @@
   height: 22px;
   background: var(--bg-subtle);
   border-radius: 4px;
-  overflow: hidden;
+  display: flex;
+  align-items: center;
 }
 
 .h-bar-fill {
@@ -738,6 +733,7 @@
   align-items: center;
   padding-right: 6px;
   overflow: hidden;
+  flex-shrink: 0;
 }
 
 .h-bar-pct {
@@ -745,6 +741,16 @@
   font-weight: 600;
   color: #fff;
   white-space: nowrap;
+  direction: ltr;
+}
+
+.h-bar-pct-out {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  margin-right: 6px;
+  flex-shrink: 0;
   direction: ltr;
 }
 

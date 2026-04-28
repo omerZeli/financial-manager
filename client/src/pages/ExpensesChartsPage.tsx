@@ -6,7 +6,6 @@ import { usePaybacks } from '../contexts/PaybacksContext'
 import { useExpenseTypes } from '../contexts/ExpenseTypesContext'
 import { useSalary } from '../contexts/SalaryContext'
 import { FilterMultiSelect } from '../components/common/FilterMultiSelect'
-import { ChartFilterPopover } from '../components/common/ChartFilterPopover'
 import DateInput from '../components/common/DateInput'
 import './Section.css'
 
@@ -53,7 +52,7 @@ export function ExpensesChartsPage() {
   const [customTo, setCustomTo] = useState('')
   const [selectedTypes, setSelectedTypes] = useState<string[]>([])
   const [typesInited, setTypesInited] = useState(false)
-  const [aggMode, setAggMode] = useState<AggMode>('avg')
+  const [aggMode, setAggMode] = useState<AggMode>('sum')
 
   useEffect(() => { fetchExpenses() }, [fetchExpenses])
   useEffect(() => { fetchFixedExpenses() }, [fetchFixedExpenses])
@@ -67,19 +66,6 @@ export function ExpensesChartsPage() {
     for (const pb of paybacks) {
       if (pb.direction === 'to_me' && pb.expense_id) {
         map[pb.expense_id] = (map[pb.expense_id] || 0) + pb.amount
-      }
-    }
-    return map
-  }, [paybacks])
-
-  // Build to_me payback data per fixed_expense_id
-  const toMeByFixed = useMemo(() => {
-    const map: Record<string, { total: number; items: { amount: number; date: string }[] }> = {}
-    for (const pb of paybacks) {
-      if (pb.direction === 'to_me' && pb.fixed_expense_id) {
-        if (!map[pb.fixed_expense_id]) map[pb.fixed_expense_id] = { total: 0, items: [] }
-        map[pb.fixed_expense_id].total += pb.amount
-        map[pb.fixed_expense_id].items.push({ amount: pb.amount, date: pb.date })
       }
     }
     return map
@@ -114,23 +100,10 @@ export function ExpensesChartsPage() {
     })
     const inflated = inflatedExpenses.map(ie => {
       const fixedId = ie.id.substring(0, ie.id.lastIndexOf('_'))
-      return { ...ie, amount: ie.amount, _salaryDeducted: salaryDeductedFixedIds.has(fixedId), _fixed: true }
+      return { ...ie, _salaryDeducted: salaryDeductedFixedIds.has(fixedId), _fixed: true }
     })
-
-    // Apply fixed expense paybacks to the last inflated expense before each payback date
-    for (const [fixedId, data] of Object.entries(toMeByFixed)) {
-      for (const pb of data.items) {
-        const candidates = inflated
-          .filter(ie => ie.id.startsWith(fixedId + '_') && ie.date <= pb.date)
-          .sort((a, b) => b.date.localeCompare(a.date))
-        if (candidates.length > 0) {
-          candidates[0].amount -= pb.amount
-        }
-      }
-    }
-
-    return [...adjusted, ...inflated.filter(ie => ie.amount !== 0), ...byMeExpenses]
-  }, [expenses, inflatedExpenses, byMeExpenses, toMeByExpense, toMeByFixed, salaryDeductedFixedIds])
+    return [...adjusted, ...inflated, ...byMeExpenses]
+  }, [expenses, inflatedExpenses, byMeExpenses, toMeByExpense, salaryDeductedFixedIds])
 
   // All categories covered by any expense type
   const allTypedCategories = useMemo(() => {
@@ -141,20 +114,11 @@ export function ExpensesChartsPage() {
     return set
   }, [expenseTypes])
 
-  // Expense type options for filter, sorted by total expense amount
-  const typeOptions = useMemo(() => {
-    const catTotals: Record<string, number> = {}
-    for (const e of allExpensesRaw) catTotals[e.category] = (catTotals[e.category] || 0) + e.amount
-    const typeTotals: Record<string, number> = {}
-    for (const et of expenseTypes) {
-      typeTotals[et.id] = et.categories.reduce((sum, cat) => sum + (catTotals[cat] || 0), 0)
-    }
-    const sorted = [...expenseTypes].sort((a, b) => (typeTotals[b.id] || 0) - (typeTotals[a.id] || 0))
-    return [
-      ...sorted.map(et => ({ value: et.id, label: et.type_name })),
-      ...(expenseTypes.length > 0 ? [{ value: '__others__', label: 'אחר' }] : []),
-    ]
-  }, [expenseTypes, allExpensesRaw])
+  // Expense type options for filter
+  const typeOptions = useMemo(() => [
+    ...expenseTypes.map(et => ({ value: et.id, label: et.type_name })),
+    ...(expenseTypes.length > 0 ? [{ value: '__others__', label: 'אחר' }] : []),
+  ], [expenseTypes])
 
   // Init selected types to all when data loads
   useEffect(() => {
@@ -242,74 +206,17 @@ export function ExpensesChartsPage() {
 
   const maxMonth = byMonth.reduce((m, [, v]) => Math.max(m, v), 0) || 1
 
-  const hasActiveFilters = useMemo(() => {
-    if (aggMode !== 'avg') return true
-    if (selectedTypes.length > 0 && selectedTypes.length < typeOptions.length) return true
-    if (timeRange !== 'last12') return true
-    if (customFrom || customTo) return true
-    return false
-  }, [aggMode, selectedTypes, typeOptions.length, timeRange, customFrom, customTo])
-
-  const clearFilters = () => {
-    setAggMode('avg')
-    setSelectedTypes(typeOptions.map(o => o.value))
-    setTimeRange('last12')
-    setCustomFrom('')
-    setCustomTo('')
-  }
-
   return (
     <div className="section-page">
       <div className="section-header">
         <h1>הוצאות</h1>
-        <div className="section-header-actions">
-          {!(loading || fixedLoading || paybacksLoading) && allExpensesRaw.length > 0 && (
-            <ChartFilterPopover hasActive={hasActiveFilters} onClear={clearFilters}>
-              <div className="filter-popover-field">
-                <div className="filter-popover-label">תצוגה</div>
-                <div className="filter-tabs">
-                  <button type="button" className={`filter-tab${aggMode === 'avg' ? ' active' : ''}`} onClick={() => setAggMode('avg')}>ממוצע חודשי</button>
-                  <button type="button" className={`filter-tab${aggMode === 'sum' ? ' active' : ''}`} onClick={() => setAggMode('sum')}>סכום</button>
-                </div>
-              </div>
-              <div className="filter-popover-field">
-                <div className="filter-popover-label">סוג הוצאה</div>
-                <FilterMultiSelect
-                  options={typeOptions}
-                  value={selectedTypes}
-                  placeholder="הכל"
-                  onChange={setSelectedTypes}
-                />
-              </div>
-              <div className="filter-popover-field">
-                <div className="filter-popover-label">טווח זמן</div>
-                <div className="filter-tabs">
-                  <button type="button" className={`filter-tab${timeRange === 'last1' ? ' active' : ''}`} onClick={() => setTimeRange('last1')}>חודש אחרון</button>
-                  <button type="button" className={`filter-tab${timeRange === 'last6' ? ' active' : ''}`} onClick={() => setTimeRange('last6')}>6 חודשים</button>
-                  <button type="button" className={`filter-tab${timeRange === 'last12' ? ' active' : ''}`} onClick={() => setTimeRange('last12')}>שנה</button>
-                  <button type="button" className={`filter-tab${timeRange === 'custom' ? ' active' : ''}`} onClick={() => setTimeRange('custom')}>מותאם</button>
-                </div>
-              </div>
-              {timeRange === 'custom' && (
-                <div className="filter-popover-field">
-                  <div className="filter-popover-label">טווח מותאם</div>
-                  <div className="custom-range-row">
-                    <DateInput value={customFrom} onChange={setCustomFrom} placeholder="מתאריך" />
-                    <span className="range-sep">-</span>
-                    <DateInput value={customTo} onChange={setCustomTo} placeholder="עד תאריך" />
-                  </div>
-                </div>
-              )}
-            </ChartFilterPopover>
-          )}
-          <div className="section-tabs">
-            <NavLink to="/expenses" end className={({ isActive }) => `section-tab${isActive ? ' active' : ''}`}>
-              טבלה
-            </NavLink>
-            <NavLink to="/expenses/charts" className={({ isActive }) => `section-tab${isActive ? ' active' : ''}`}>
-              גרפים
-            </NavLink>
-          </div>
+        <div className="section-tabs">
+          <NavLink to="/expenses" end className={({ isActive }) => `section-tab${isActive ? ' active' : ''}`}>
+            טבלה
+          </NavLink>
+          <NavLink to="/expenses/charts" className={({ isActive }) => `section-tab${isActive ? ' active' : ''}`}>
+            גרפים
+          </NavLink>
         </div>
       </div>
 
@@ -319,6 +226,46 @@ export function ExpensesChartsPage() {
         <div className="section-empty">אין נתונים להצגה. הוסף הוצאות בטבלה.</div>
       ) : (
         <div className="charts-grid">
+          {/* Filters */}
+          <div className="charts-filters">
+            <div className="filter-group">
+              <label className="filter-label">תצוגה</label>
+              <div className="filter-tabs">
+                <button type="button" className={`filter-tab${aggMode === 'avg' ? ' active' : ''}`} onClick={() => setAggMode('avg')}>ממוצע חודשי</button>
+                <button type="button" className={`filter-tab${aggMode === 'sum' ? ' active' : ''}`} onClick={() => setAggMode('sum')}>סכום</button>
+              </div>
+            </div>
+            <div className="filter-group">
+              <label className="filter-label">סוג הוצאה</label>
+              <FilterMultiSelect
+                options={typeOptions}
+                value={selectedTypes}
+                placeholder="הכל"
+                onChange={setSelectedTypes}
+              />
+            </div>
+            <div className="filter-group">
+              <label className="filter-label">טווח זמן</label>
+              <div className="filter-tabs">
+                <button type="button" className={`filter-tab${timeRange === 'last1' ? ' active' : ''}`} onClick={() => setTimeRange('last1')}>חודש אחרון</button>
+                <button type="button" className={`filter-tab${timeRange === 'last6' ? ' active' : ''}`} onClick={() => setTimeRange('last6')}>6 חודשים</button>
+                <button type="button" className={`filter-tab${timeRange === 'last12' ? ' active' : ''}`} onClick={() => setTimeRange('last12')}>שנה</button>
+                <button type="button" className={`filter-tab${timeRange === 'custom' ? ' active' : ''}`} onClick={() => setTimeRange('custom')}>מותאם</button>
+              </div>
+            </div>
+            {timeRange === 'custom' && (
+              <div className="custom-range-field">
+                <label className="filter-label">מתאריך</label>
+                <DateInput value={customFrom} onChange={setCustomFrom} placeholder="מתאריך" />
+              </div>
+            )}
+            {timeRange === 'custom' && (
+              <div className="custom-range-field">
+                <label className="filter-label">עד תאריך</label>
+                <DateInput value={customTo} onChange={setCustomTo} placeholder="עד תאריך" />
+              </div>
+            )}
+          </div>
 
           {filtered.length === 0 ? (
             <div className="section-empty">אין נתונים בטווח שנבחר.</div>
@@ -365,23 +312,29 @@ export function ExpensesChartsPage() {
               <div className="chart-card">
                 <h3>הוצאות לפי קטגוריה</h3>
                 <div className="h-bar-chart">
-                  {categories.map(([cat, total], i) => (
-                    <div className="h-bar-row" key={cat}>
-                      <span className="h-bar-label">{cat}</span>
-                      <div className="h-bar-track">
-                        <div
-                          className="h-bar-fill"
-                          style={{
-                            width: `${(total / maxCategory) * 100}%`,
-                            background: CATEGORY_COLORS[i % CATEGORY_COLORS.length],
-                          }}
-                        >
-                          <span className="h-bar-pct">{((total / totalAmount) * 100).toFixed(1)}%</span>
+                  {categories.map(([cat, total], i) => {
+                    const pct = (total / totalAmount) * 100
+                    const widthPct = (total / maxCategory) * 100
+                    const narrow = widthPct < 12
+                    return (
+                      <div className="h-bar-row" key={cat}>
+                        <span className="h-bar-label">{cat}</span>
+                        <div className="h-bar-track">
+                          <div
+                            className="h-bar-fill"
+                            style={{
+                              width: `${widthPct}%`,
+                              background: CATEGORY_COLORS[i % CATEGORY_COLORS.length],
+                            }}
+                          >
+                            {!narrow && <span className="h-bar-pct">{pct.toFixed(1)}%</span>}
+                          </div>
+                          {narrow && <span className="h-bar-pct-out">{pct.toFixed(1)}%</span>}
                         </div>
+                        <span className="h-bar-value">{formatCurrency(total)}</span>
                       </div>
-                      <span className="h-bar-value">{formatCurrency(total)}</span>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               </div>
             </>
