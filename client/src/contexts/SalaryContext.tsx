@@ -17,6 +17,7 @@ interface SalaryContextType {
   loading: boolean
   fetchSalaries: () => Promise<void>
   addSalary: (salary: Pick<Salary, 'month' | 'employer' | 'bruto' | 'neto'>) => Promise<void>
+  updateSalary: (id: string, fields: Partial<Pick<Salary, 'month' | 'employer' | 'bruto' | 'neto'>>) => Promise<void>
   deleteSalary: (id: string) => Promise<void>
 }
 
@@ -55,6 +56,18 @@ export function SalaryProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  const updateSalary = async (id: string, fields: Partial<Pick<Salary, 'month' | 'employer' | 'bruto' | 'neto'>>) => {
+    const { data, error } = await supabase
+      .from('salaries')
+      .update(fields)
+      .eq('id', id)
+      .select()
+      .single()
+    if (!error && data) {
+      setSalaries(prev => prev.map(s => s.id === id ? data : s).sort((a, b) => b.month.localeCompare(a.month)))
+    }
+  }
+
   const deleteSalary = async (id: string) => {
     const { error } = await supabase.from('salaries').delete().eq('id', id)
     if (!error) {
@@ -63,7 +76,7 @@ export function SalaryProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <SalaryContext.Provider value={{ salaries, loading, fetchSalaries, addSalary, deleteSalary }}>
+    <SalaryContext.Provider value={{ salaries, loading, fetchSalaries, addSalary, updateSalary, deleteSalary }}>
       {children}
     </SalaryContext.Provider>
   )

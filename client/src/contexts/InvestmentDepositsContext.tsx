@@ -20,6 +20,7 @@ interface InvestmentDepositsContextType {
   fetchDeposits: () => Promise<void>
   addDeposit: (deposit: Pick<InvestmentDeposit, 'channel_id' | 'amount' | 'date' | 'depositor' | 'salary_id'>) => Promise<void>
   addWithdrawal: (withdrawal: Pick<InvestmentDeposit, 'channel_id' | 'amount' | 'date'>) => Promise<void>
+  updateDeposit: (id: string, fields: Partial<Pick<InvestmentDeposit, 'channel_id' | 'amount' | 'date' | 'depositor' | 'salary_id'>>) => Promise<void>
   deleteDeposit: (id: string) => Promise<void>
   removeByChannelId: (channelId: string) => void
 }
@@ -71,6 +72,18 @@ export function InvestmentDepositsProvider({ children }: { children: ReactNode }
     }
   }
 
+  const updateDeposit = async (id: string, fields: Partial<Pick<InvestmentDeposit, 'channel_id' | 'amount' | 'date' | 'depositor' | 'salary_id'>>) => {
+    const { data, error } = await supabase
+      .from('investment_deposits')
+      .update(fields)
+      .eq('id', id)
+      .select()
+      .single()
+    if (!error && data) {
+      setDeposits(prev => prev.map(d => d.id === id ? data : d).sort((a, b) => b.date.localeCompare(a.date)))
+    }
+  }
+
   const deleteDeposit = async (id: string) => {
     const { error } = await supabase.from('investment_deposits').delete().eq('id', id)
     if (!error) {
@@ -83,7 +96,7 @@ export function InvestmentDepositsProvider({ children }: { children: ReactNode }
   }
 
   return (
-    <InvestmentDepositsContext.Provider value={{ deposits, loading, fetchDeposits, addDeposit, addWithdrawal, deleteDeposit, removeByChannelId }}>
+    <InvestmentDepositsContext.Provider value={{ deposits, loading, fetchDeposits, addDeposit, addWithdrawal, updateDeposit, deleteDeposit, removeByChannelId }}>
       {children}
     </InvestmentDepositsContext.Provider>
   )

@@ -36,8 +36,8 @@ type ActiveTab = 'channels' | 'deposits' | 'values'
 
 export function InvestmentsTablePage() {
   const { channels, loading: chLoading, fetchChannels, addChannel, updateChannel, deleteChannel } = useInvestmentChannels()
-  const { deposits, loading: depLoading, fetchDeposits, addDeposit, addWithdrawal, deleteDeposit, removeByChannelId: removeDepositsByChannel } = useInvestmentDeposits()
-  const { valueUpdates, loading: valLoading, fetchValueUpdates, addValueUpdate, deleteValueUpdate, removeByChannelId: removeValuesByChannel } = useInvestmentValues()
+  const { deposits, loading: depLoading, fetchDeposits, addDeposit, addWithdrawal, updateDeposit, deleteDeposit, removeByChannelId: removeDepositsByChannel } = useInvestmentDeposits()
+  const { valueUpdates, loading: valLoading, fetchValueUpdates, addValueUpdate, updateValueUpdate, deleteValueUpdate, removeByChannelId: removeValuesByChannel } = useInvestmentValues()
   const { options: companyOptions, loading: companyLoading, addOption: addCompany, removeOption: removeCompany } = useDropdownOptions('investment_company')
   const { options: depositorOptions, loading: depositorLoading, addOption: addDepositor, removeOption: removeDepositor } = useDropdownOptions('investment_depositor')
   const { options: pathOptions, loading: pathLoading, addOption: addPath, removeOption: removePath } = useDropdownOptions('investment_path')
@@ -77,6 +77,20 @@ export function InvestmentsTablePage() {
 
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
   const [pendingDeleteType, setPendingDeleteType] = useState<'channel' | 'deposit' | 'value' | null>(null)
+
+  // Edit deposit state
+  const [editingDeposit, setEditingDeposit] = useState<string | null>(null)
+  const [editDepChannel, setEditDepChannel] = useState('')
+  const [editDepAmount, setEditDepAmount] = useState('')
+  const [editDepDate, setEditDepDate] = useState('')
+  const [editDepDepositor, setEditDepDepositor] = useState('')
+  const [editDepSaving, setEditDepSaving] = useState(false)
+
+  // Edit value update state
+  const [editingValue, setEditingValue] = useState<string | null>(null)
+  const [editValValue, setEditValValue] = useState('')
+  const [editValDate, setEditValDate] = useState('')
+  const [editValSaving, setEditValSaving] = useState(false)
 
   const pickerRef = useRef<HTMLDivElement>(null)
 
@@ -266,6 +280,58 @@ export function InvestmentsTablePage() {
     setModal('value')
   }
 
+  // Edit deposit helpers
+  const openEditDeposit = (id: string) => {
+    const dep = deposits.find(d => d.id === id)
+    if (!dep) return
+    setEditingDeposit(id)
+    setEditDepChannel(dep.channel_id)
+    setEditDepAmount(String(dep.amount))
+    setEditDepDate(dep.date)
+    setEditDepDepositor(dep.depositor)
+  }
+
+  const resetEditDeposit = () => {
+    setEditingDeposit(null)
+    setEditDepChannel('')
+    setEditDepAmount('')
+    setEditDepDate('')
+    setEditDepDepositor('')
+  }
+
+  const handleEditDepositSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editingDeposit || !editDepChannel || !editDepAmount || !editDepDate || !editDepDepositor) return
+    setEditDepSaving(true)
+    await updateDeposit(editingDeposit, { channel_id: editDepChannel, amount: Number(editDepAmount), date: editDepDate, depositor: editDepDepositor })
+    setEditDepSaving(false)
+    resetEditDeposit()
+  }
+
+  // Edit value update helpers
+  const openEditValue = (id: string) => {
+    const vu = valueUpdates.find(v => v.id === id)
+    if (!vu) return
+    setEditingValue(id)
+    setEditValValue(String(vu.value))
+    setEditValDate(vu.date)
+  }
+
+  const resetEditValue = () => {
+    setEditingValue(null)
+    setEditValValue('')
+    setEditValDate('')
+  }
+
+  const handleEditValueSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editingValue || !editValValue || !editValDate) return
+    setEditValSaving(true)
+    await updateValueUpdate(editingValue, { value: Number(editValValue), date: editValDate })
+    setEditValSaving(false)
+    resetEditValue()
+  }
+
   const handleChannelSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!chName || !chCompany || !chPath) return
@@ -433,7 +499,12 @@ export function InvestmentsTablePage() {
                         <td className="num-cell">{formatCurrency(dep.amount)}</td>
                         <td>{dep.depositor}</td>
                         <td>{formatDate(dep.date)}</td>
-                        <td className="col-actions">
+                        <td className="col-actions actions-group">
+                          <button className="edit-btn" onClick={() => openEditDeposit(dep.id)} title="ערוך">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" /><path d="m15 5 4 4" />
+                            </svg>
+                          </button>
                           <button className="delete-btn" onClick={() => { setPendingDeleteId(dep.id); setPendingDeleteType('deposit') }} title="מחק">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                               <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
@@ -470,7 +541,12 @@ export function InvestmentsTablePage() {
                         <td>{ch ? `${ch.name} - ${ch.company}` : 'אפיק שנמחק'}</td>
                         <td className="num-cell">{formatCurrency(vu.value)}</td>
                         <td>{formatDate(vu.date)}</td>
-                        <td className="col-actions">
+                        <td className="col-actions actions-group">
+                          <button className="edit-btn" onClick={() => openEditValue(vu.id)} title="ערוך">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" /><path d="m15 5 4 4" />
+                            </svg>
+                          </button>
                           <button className="delete-btn" onClick={() => { setPendingDeleteId(vu.id); setPendingDeleteType('value') }} title="מחק">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                               <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
@@ -758,6 +834,74 @@ export function InvestmentsTablePage() {
                   {wdSaving ? 'שומר...' : 'שמור'}
                 </button>
                 <button type="button" className="btn-cancel" onClick={() => { setModal(null); resetWithdrawalForm() }}>ביטול</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit deposit modal */}
+      {editingDeposit && (
+        <div className="modal-overlay" onClick={resetEditDeposit}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <button className="modal-close" onClick={resetEditDeposit} title="סגור">&times;</button>
+            <h2>עריכת הפקדה</h2>
+            <form onSubmit={handleEditDepositSubmit}>
+              <label>אפיק</label>
+              <ReadOnlySelect
+                options={sortedChannelSelectOptions}
+                value={editDepChannel}
+                placeholder="בחר אפיק"
+                onChange={setEditDepChannel}
+              />
+
+              <label>סכום</label>
+              <NumberInput placeholder="הכנס סכום" value={editDepAmount} onChange={setEditDepAmount} required />
+
+              <label>מי הפקיד</label>
+              <CustomSelect
+                options={sortedDepositorOptions}
+                pinnedOptions={pinnedDepositors}
+                value={editDepDepositor}
+                placeholder="הכנס מפקיד"
+                onChange={setEditDepDepositor}
+                onAddOption={addDepositor}
+                onRemoveOption={removeDepositor}
+                loading={depositorLoading}
+              />
+
+              <label>תאריך</label>
+              <DateInput value={editDepDate} onChange={setEditDepDate} required />
+
+              <div className="modal-actions">
+                <button type="submit" className="btn-primary" disabled={editDepSaving || !editDepChannel || !editDepDepositor}>
+                  {editDepSaving ? 'שומר...' : 'שמור'}
+                </button>
+                <button type="button" className="btn-cancel" onClick={resetEditDeposit}>ביטול</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit value update modal */}
+      {editingValue && (
+        <div className="modal-overlay" onClick={resetEditValue}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <button className="modal-close" onClick={resetEditValue} title="סגור">&times;</button>
+            <h2>עריכת עדכון שווי</h2>
+            <form onSubmit={handleEditValueSubmit}>
+              <label>שווי</label>
+              <NumberInput placeholder="הכנס שווי" value={editValValue} onChange={setEditValValue} required />
+
+              <label>תאריך</label>
+              <DateInput value={editValDate} onChange={setEditValDate} required />
+
+              <div className="modal-actions">
+                <button type="submit" className="btn-primary" disabled={editValSaving}>
+                  {editValSaving ? 'שומר...' : 'שמור'}
+                </button>
+                <button type="button" className="btn-cancel" onClick={resetEditValue}>ביטול</button>
               </div>
             </form>
           </div>

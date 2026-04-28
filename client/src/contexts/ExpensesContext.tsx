@@ -18,6 +18,7 @@ interface ExpensesContextType {
   loading: boolean
   fetchExpenses: () => Promise<void>
   addExpense: (expense: Pick<Expense, 'name' | 'category' | 'amount' | 'date' | 'salary_id'>) => Promise<void>
+  updateExpense: (id: string, fields: Partial<Pick<Expense, 'name' | 'category' | 'amount' | 'date' | 'salary_id'>>) => Promise<void>
   deleteExpense: (id: string) => Promise<void>
 }
 
@@ -56,6 +57,18 @@ export function ExpensesProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  const updateExpense = async (id: string, fields: Partial<Pick<Expense, 'name' | 'category' | 'amount' | 'date' | 'salary_id'>>) => {
+    const { data, error } = await supabase
+      .from('expenses')
+      .update(fields)
+      .eq('id', id)
+      .select()
+      .single()
+    if (!error && data) {
+      setExpenses(prev => prev.map(e => e.id === id ? data : e).sort((a, b) => b.date.localeCompare(a.date)))
+    }
+  }
+
   const deleteExpense = async (id: string) => {
     const { error } = await supabase.from('expenses').delete().eq('id', id)
     if (!error) {
@@ -64,7 +77,7 @@ export function ExpensesProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <ExpensesContext.Provider value={{ expenses, loading, fetchExpenses, addExpense, deleteExpense }}>
+    <ExpensesContext.Provider value={{ expenses, loading, fetchExpenses, addExpense, updateExpense, deleteExpense }}>
       {children}
     </ExpensesContext.Provider>
   )

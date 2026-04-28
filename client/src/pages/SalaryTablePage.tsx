@@ -26,7 +26,7 @@ const salaryColumns: ColumnDef[] = [
 ]
 
 export function SalaryTablePage() {
-  const { salaries, loading, fetchSalaries, addSalary, deleteSalary } = useSalary()
+  const { salaries, loading, fetchSalaries, addSalary, updateSalary, deleteSalary } = useSalary()
   const { options: employerOptions, loading: employerLoading, addOption: addEmployer, removeOption: removeEmployer } = useDropdownOptions('employer')
 
   // Sort employer options by total neto salary
@@ -53,6 +53,14 @@ export function SalaryTablePage() {
   const [saving, setSaving] = useState(false)
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
 
+  // Edit salary state
+  const [editingSalary, setEditingSalary] = useState<string | null>(null)
+  const [editMonth, setEditMonth] = useState('')
+  const [editEmployer, setEditEmployer] = useState('')
+  const [editBruto, setEditBruto] = useState('')
+  const [editNeto, setEditNeto] = useState('')
+  const [editSaving, setEditSaving] = useState(false)
+
   useEffect(() => { fetchSalaries() }, [fetchSalaries])
 
   // Auto-default employer when there's exactly one option
@@ -61,6 +69,33 @@ export function SalaryTablePage() {
       setEmployer(employerOptions[0].label)
     }
   }, [employerOptions, employer])
+
+  const openEditSalary = (id: string) => {
+    const s = salaries.find(s => s.id === id)
+    if (!s) return
+    setEditingSalary(id)
+    setEditMonth(s.month.slice(0, 7))
+    setEditEmployer(s.employer)
+    setEditBruto(String(s.bruto))
+    setEditNeto(String(s.neto))
+  }
+
+  const resetEditSalary = () => {
+    setEditingSalary(null)
+    setEditMonth('')
+    setEditEmployer('')
+    setEditBruto('')
+    setEditNeto('')
+  }
+
+  const handleEditSalarySubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editingSalary || !editMonth || !editEmployer || !editBruto || !editNeto) return
+    setEditSaving(true)
+    await updateSalary(editingSalary, { month: editMonth + '-01', employer: editEmployer, bruto: Number(editBruto), neto: Number(editNeto) })
+    setEditSaving(false)
+    resetEditSalary()
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -117,7 +152,12 @@ export function SalaryTablePage() {
                     <td>{s.employer}</td>
                     <td className="num-cell">{formatCurrency(s.bruto)}</td>
                     <td className="num-cell">{formatCurrency(s.neto)}</td>
-                    <td className="col-actions">
+                    <td className="col-actions actions-group">
+                      <button className="edit-btn" onClick={() => openEditSalary(s.id)} title="ערוך">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" /><path d="m15 5 4 4" />
+                        </svg>
+                      </button>
                       <button className="delete-btn" onClick={() => setPendingDeleteId(s.id)} title="מחק">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
@@ -176,6 +216,44 @@ export function SalaryTablePage() {
                   {saving ? 'שומר...' : 'שמור'}
                 </button>
                 <button type="button" className="btn-cancel" onClick={() => setShowModal(false)}>ביטול</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit salary modal */}
+      {editingSalary && (
+        <div className="modal-overlay" onClick={resetEditSalary}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <button className="modal-close" onClick={resetEditSalary} title="סגור">&times;</button>
+            <h2>עריכת משכורת</h2>
+            <form onSubmit={handleEditSalarySubmit}>
+              <label>חודש</label>
+              <input type="month" value={editMonth} onChange={e => setEditMonth(e.target.value)} required dir="ltr" />
+
+              <label>מעסיק</label>
+              <CustomSelect
+                options={sortedEmployerOptions}
+                value={editEmployer}
+                placeholder="בחר מעסיק"
+                onChange={setEditEmployer}
+                onAddOption={addEmployer}
+                onRemoveOption={removeEmployer}
+                loading={employerLoading}
+              />
+
+              <label>ברוטו</label>
+              <NumberInput placeholder="הכנס ברוטו" value={editBruto} onChange={setEditBruto} required />
+
+              <label>נטו</label>
+              <NumberInput placeholder="הכנס נטו" value={editNeto} onChange={setEditNeto} required />
+
+              <div className="modal-actions">
+                <button type="submit" className="btn-primary" disabled={editSaving}>
+                  {editSaving ? 'שומר...' : 'שמור'}
+                </button>
+                <button type="button" className="btn-cancel" onClick={resetEditSalary}>ביטול</button>
               </div>
             </form>
           </div>

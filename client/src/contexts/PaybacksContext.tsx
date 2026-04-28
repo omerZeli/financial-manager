@@ -21,6 +21,7 @@ interface PaybacksContextType {
   loading: boolean
   fetchPaybacks: () => Promise<void>
   addPayback: (payback: Omit<Payback, 'id' | 'user_id' | 'created_at'>) => Promise<void>
+  updatePayback: (id: string, fields: Partial<Omit<Payback, 'id' | 'user_id' | 'created_at'>>) => Promise<void>
   deletePayback: (id: string) => Promise<void>
   removeByExpenseId: (expenseId: string) => void
   removeByFixedExpenseId: (fixedExpenseId: string) => void
@@ -61,6 +62,18 @@ export function PaybacksProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  const updatePayback = async (id: string, fields: Partial<Omit<Payback, 'id' | 'user_id' | 'created_at'>>) => {
+    const { data, error } = await supabase
+      .from('paybacks')
+      .update(fields)
+      .eq('id', id)
+      .select()
+      .single()
+    if (!error && data) {
+      setPaybacks(prev => prev.map(p => p.id === id ? data : p).sort((a, b) => b.date.localeCompare(a.date)))
+    }
+  }
+
   const deletePayback = async (id: string) => {
     const { error } = await supabase.from('paybacks').delete().eq('id', id)
     if (!error) {
@@ -77,7 +90,7 @@ export function PaybacksProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <PaybacksContext.Provider value={{ paybacks, loading, fetchPaybacks, addPayback, deletePayback, removeByExpenseId, removeByFixedExpenseId }}>
+    <PaybacksContext.Provider value={{ paybacks, loading, fetchPaybacks, addPayback, updatePayback, deletePayback, removeByExpenseId, removeByFixedExpenseId }}>
       {children}
     </PaybacksContext.Provider>
   )
