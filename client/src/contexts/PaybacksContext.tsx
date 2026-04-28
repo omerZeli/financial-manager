@@ -12,6 +12,7 @@ export interface Payback {
   date: string
   person: string
   expense_id: string | null
+  fixed_expense_id: string | null
   created_at: string
 }
 
@@ -22,6 +23,7 @@ interface PaybacksContextType {
   addPayback: (payback: Omit<Payback, 'id' | 'user_id' | 'created_at'>) => Promise<void>
   deletePayback: (id: string) => Promise<void>
   removeByExpenseId: (expenseId: string) => void
+  removeByFixedExpenseId: (fixedExpenseId: string) => void
 }
 
 const PaybacksContext = createContext<PaybacksContextType | undefined>(undefined)
@@ -70,8 +72,12 @@ export function PaybacksProvider({ children }: { children: ReactNode }) {
     setPaybacks(prev => prev.filter(p => p.expense_id !== expenseId))
   }
 
+  const removeByFixedExpenseId = (fixedExpenseId: string) => {
+    setPaybacks(prev => prev.filter(p => p.fixed_expense_id !== fixedExpenseId))
+  }
+
   return (
-    <PaybacksContext.Provider value={{ paybacks, loading, fetchPaybacks, addPayback, deletePayback, removeByExpenseId }}>
+    <PaybacksContext.Provider value={{ paybacks, loading, fetchPaybacks, addPayback, deletePayback, removeByExpenseId, removeByFixedExpenseId }}>
       {children}
     </PaybacksContext.Provider>
   )

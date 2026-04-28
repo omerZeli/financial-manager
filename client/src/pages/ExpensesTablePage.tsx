@@ -33,7 +33,7 @@ type ActiveTab = 'all' | 'regular' | 'fixed' | 'paybacks'
 export function ExpensesTablePage() {
   const { expenses, loading, fetchExpenses, addExpense, deleteExpense } = useExpenses()
   const { fixedExpenses, inflatedExpenses, loading: fixedLoading, fetchFixedExpenses, addFixedExpense, updateFixedExpense, deleteFixedExpense } = useFixedExpenses()
-  const { paybacks, loading: paybacksLoading, fetchPaybacks, addPayback, deletePayback, removeByExpenseId } = usePaybacks()
+  const { paybacks, loading: paybacksLoading, fetchPaybacks, addPayback, deletePayback, removeByExpenseId, removeByFixedExpenseId } = usePaybacks()
   const { salaries, fetchSalaries } = useSalary()
   const { options: categoryOptions, loading: categoryLoading, addOption: addCategory, removeOption: removeCategory } = useDropdownOptions('expense_category')
   const { options: fixedCategoryOptions, loading: fixedCategoryLoading, addOption: addFixedCategory, removeOption: removeFixedCategory } = useDropdownOptions('fixed_expense_category')
@@ -72,6 +72,7 @@ export function ExpensesTablePage() {
   const [pbDate, setPbDate] = useState('')
   const [pbPerson, setPbPerson] = useState('')
   const [pbExpenseId, setPbExpenseId] = useState('')
+  const [pbFixedExpenseId, setPbFixedExpenseId] = useState('')
   const [pbSaving, setPbSaving] = useState(false)
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
   const [pendingDeleteType, setPendingDeleteType] = useState<'expense' | 'fixed' | 'payback' | null>(null)
@@ -105,6 +106,19 @@ export function ExpensesTablePage() {
     return map
   }, [paybacks])
 
+  // Build a list of "to_me" paybacks linked to fixed expenses (with date info for inflated matching)
+  const toMeByFixed = useMemo(() => {
+    const map: Record<string, { total: number; items: { amount: number; date: string }[] }> = {}
+    for (const pb of paybacks) {
+      if (pb.direction === 'to_me' && pb.fixed_expense_id) {
+        if (!map[pb.fixed_expense_id]) map[pb.fixed_expense_id] = { total: 0, items: [] }
+        map[pb.fixed_expense_id].total += pb.amount
+        map[pb.fixed_expense_id].items.push({ amount: pb.amount, date: pb.date })
+      }
+    }
+    return map
+  }, [paybacks])
+
   // "by_me" paybacks as virtual expense rows
   const byMeAsExpenses = useMemo(() => {
     return paybacks
@@ -121,19 +135,81 @@ export function ExpensesTablePage() {
       }))
   }, [paybacks])
 
+  // Options for the "to_me" payback expense dropdown: regular (not fully paid) + fixed expenses
+  const paybackExpenseOptions = useMemo(() => {
+    // Regular expenses with remaining amount > 0
+    const regularOpts = expenses
+      .filter(exp => {
+        const returned = toMeByExpense[exp.id] || 0
+        return exp.amount - returned > 0
+      })
+      .map(exp => {
+        const returned = toMeByExpense[exp.id] || 0
+        const remaining = exp.amount - returned
+        return {
+          value: `expense:${exp.id}`,
+          label: `${exp.name} - ${formatCurrency(remaining)} (${formatDate(exp.date)})`,
+          _date: exp.date,
+          _amount: remaining,
+        }
+      })
+
+    // Fixed expenses as single entries (not inflated)
+    const fixedOpts = fixedExpenses.map(fe => {
+      const returned = toMeByFixed[fe.id]?.total || 0
+      const remaining = fe.amount - returned
+      return {
+        value: `fixed:${fe.id}`,
+        label: `${fe.name} - ${formatCurrency(remaining)} (קבועה)`,
+        _date: fe.start_date,
+        _amount: remaining,
+      }
+    })
+
+    return [...regularOpts, ...fixedOpts]
+  }, [expenses, fixedExpenses, toMeByExpense, toMeByFixed])
+
   // Merge real + inflated + by_me paybacks, adjust amounts for to_me paybacks
   const allExpenses = useMemo(() => {
     const adjusted = expenses.map(exp => {
       const returned = toMeByExpense[exp.id] || 0
       return { ...exp, amount: exp.amount - returned, _originalAmount: exp.amount, _returnedAmount: returned }
     })
+
+    // For fixed expense paybacks, reduce the last inflated expense before each payback date
+    const inflatedAdjusted = inflatedExpenses.map(e => ({
+      ...e,
+      _originalAmount: undefined as number | undefined,
+      _returnedAmount: undefined as number | undefined,
+      _paybackPerson: undefined as string | undefined,
+    }))
+
+    // Apply fixed expense paybacks to inflated rows
+    for (const [fixedId, data] of Object.entries(toMeByFixed)) {
+      for (const pb of data.items) {
+        // Find the last inflated expense for this fixed expense that is on or before the payback date
+        const candidates = inflatedAdjusted
+          .filter(ie => ie.id.startsWith(fixedId + '_') && ie.date <= pb.date)
+          .sort((a, b) => b.date.localeCompare(a.date))
+        if (candidates.length > 0) {
+          const target = candidates[0]
+          if (!target._originalAmount) {
+            target._originalAmount = target.amount
+            target._returnedAmount = 0
+          }
+          target._returnedAmount = (target._returnedAmount || 0) + pb.amount
+          target.amount -= pb.amount
+        }
+      }
+    }
+
     const merged = [
       ...adjusted.filter(e => e.amount !== 0).map(e => ({ ...e, _paybackPerson: undefined as string | undefined })),
-      ...inflatedExpenses.map(e => ({ ...e, _originalAmount: undefined as number | undefined, _returnedAmount: undefined as number | undefined, _paybackPerson: undefined as string | undefined })),
+      ...inflatedAdjusted.filter(e => e.amount !== 0),
       ...byMeAsExpenses.map(e => ({ ...e, _originalAmount: undefined as number | undefined, _returnedAmount: undefined as number | undefined })),
     ]
     return merged.sort((a, b) => b.date.localeCompare(a.date))
-  }, [expenses, inflatedExpenses, byMeAsExpenses, toMeByExpense])
+  }, [expenses, inflatedExpenses, byMeAsExpenses, toMeByExpense, toMeByFixed])
 
   // Close picker on outside click
   useEffect(() => {
@@ -149,7 +225,7 @@ export function ExpensesTablePage() {
 
   const resetExpenseForm = () => { setName(''); setCategory(''); setAmount(''); setDate(''); setDeductedFromSalary(false); setSelectedSalaryId('') }
   const resetFixedForm = () => { setFixedName(''); setFixedCategory(''); setFixedAmount(''); setFixedStartDate(''); setHasEndDate(false); setFixedEndDate(''); setFixedDeductedFromSalary(false); setFixedSalaryEmployer('') }
-  const resetPaybackForm = () => { setPbDirection('to_me'); setPbName(''); setPbCategory(''); setPbAmount(''); setPbDate(''); setPbPerson(''); setPbExpenseId('') }
+  const resetPaybackForm = () => { setPbDirection('to_me'); setPbName(''); setPbCategory(''); setPbAmount(''); setPbDate(''); setPbPerson(''); setPbExpenseId(''); setPbFixedExpenseId('') }
 
   // Recent salaries (last 6 months)
   const recentSalaries = useMemo(() => {
@@ -285,7 +361,7 @@ export function ExpensesTablePage() {
     e.preventDefault()
     if (!pbAmount || !pbDate || !pbPerson) return
     if (pbDirection === 'by_me' && (!pbName || !pbCategory)) return
-    if (pbDirection === 'to_me' && !pbExpenseId) return
+    if (pbDirection === 'to_me' && !pbExpenseId && !pbFixedExpenseId) return
     setPbSaving(true)
     await addPayback({
       direction: pbDirection,
@@ -294,7 +370,8 @@ export function ExpensesTablePage() {
       amount: Number(pbAmount),
       date: pbDate,
       person: pbPerson,
-      expense_id: pbDirection === 'to_me' ? pbExpenseId : null,
+      expense_id: pbDirection === 'to_me' && pbExpenseId ? pbExpenseId : null,
+      fixed_expense_id: pbDirection === 'to_me' && pbFixedExpenseId ? pbFixedExpenseId : null,
     })
     setPbSaving(false)
     setModal(null)
@@ -465,7 +542,8 @@ export function ExpensesTablePage() {
               </thead>
               <tbody>
                 {paybacks.map(pb => {
-                  const linkedExp = pb.direction === 'to_me' ? expenses.find(e => e.id === pb.expense_id) : null
+                  const linkedExp = pb.direction === 'to_me' && pb.expense_id ? expenses.find(e => e.id === pb.expense_id) : null
+                  const linkedFixed = pb.direction === 'to_me' && pb.fixed_expense_id ? fixedExpenses.find(e => e.id === pb.fixed_expense_id) : null
                   return (
                   <tr key={pb.id}>
                     <td>
@@ -476,12 +554,10 @@ export function ExpensesTablePage() {
                     <td>
                       {pb.direction === 'by_me'
                         ? pb.name
-                        : (() => {
-                            return linkedExp ? linkedExp.name : 'הוצאה שנמחקה'
-                          })()
+                        : linkedExp ? linkedExp.name : linkedFixed ? `${linkedFixed.name} (קבועה)` : 'הוצאה שנמחקה'
                       }
                     </td>
-                    <td>{pb.direction === 'by_me' ? pb.category : (linkedExp ? linkedExp.category : '-')}</td>
+                    <td>{pb.direction === 'by_me' ? pb.category : (linkedExp ? linkedExp.category : linkedFixed ? linkedFixed.category : '-')}</td>
                     <td className="num-cell">{formatCurrency(pb.amount)}</td>
                     <td>{formatDate(pb.date)}</td>
                     <td>{pb.person}</td>
@@ -516,7 +592,7 @@ export function ExpensesTablePage() {
             if (pendingDeleteType === 'payback') {
               const pb = paybacks.find(p => p.id === pendingDeleteId)
               if (!pb) return undefined
-              const label = pb.direction === 'by_me' ? pb.name : expenses.find(e => e.id === pb.expense_id)?.name
+              const label = pb.direction === 'by_me' ? pb.name : (pb.expense_id ? expenses.find(e => e.id === pb.expense_id)?.name : pb.fixed_expense_id ? fixedExpenses.find(e => e.id === pb.fixed_expense_id)?.name : null)
               return `${label || 'החזר'} - ${formatCurrency(pb.amount)} (${formatDate(pb.date)})`
             }
             return undefined
@@ -540,7 +616,7 @@ export function ExpensesTablePage() {
               deleteExpense(pendingDeleteId)
               removeByExpenseId(pendingDeleteId)
             }
-            else if (pendingDeleteType === 'fixed') deleteFixedExpense(pendingDeleteId)
+            else if (pendingDeleteType === 'fixed') { deleteFixedExpense(pendingDeleteId); removeByFixedExpenseId(pendingDeleteId) }
             else if (pendingDeleteType === 'payback') deletePayback(pendingDeleteId)
             setPendingDeleteId(null)
             setPendingDeleteType(null)
@@ -760,7 +836,7 @@ export function ExpensesTablePage() {
                 <button
                   type="button"
                   className={`direction-btn${pbDirection === 'by_me' ? ' active' : ''}`}
-                  onClick={() => { setPbDirection('by_me'); setPbExpenseId('') }}
+                  onClick={() => { setPbDirection('by_me'); setPbExpenseId(''); setPbFixedExpenseId('') }}
                 >
                   שילמתי לאחר
                 </button>
@@ -786,18 +862,29 @@ export function ExpensesTablePage() {
                 <>
                   <label>הוצאה מקורית</label>
                   <ReadOnlySelect
-                    options={expenses.map(exp => ({
-                      value: exp.id,
-                      label: `${exp.name} - ${formatCurrency(exp.amount)} (${formatDate(exp.date)})`
-                    }))}
-                    value={pbExpenseId}
+                    options={paybackExpenseOptions}
+                    value={pbExpenseId ? `expense:${pbExpenseId}` : pbFixedExpenseId ? `fixed:${pbFixedExpenseId}` : ''}
                     placeholder="חפש הוצאה"
                     onChange={(val) => {
-                      setPbExpenseId(val)
-                      const exp = expenses.find(e => e.id === val)
-                      if (exp) {
-                        setPbDate(exp.date)
-                        setPbAmount(String(exp.amount))
+                      if (val.startsWith('expense:')) {
+                        const id = val.slice(8)
+                        setPbExpenseId(id)
+                        setPbFixedExpenseId('')
+                        const exp = expenses.find(e => e.id === id)
+                        if (exp) {
+                          setPbDate(exp.date)
+                          const returned = toMeByExpense[id] || 0
+                          setPbAmount(String(exp.amount - returned))
+                        }
+                      } else if (val.startsWith('fixed:')) {
+                        const id = val.slice(6)
+                        setPbFixedExpenseId(id)
+                        setPbExpenseId('')
+                        const fe = fixedExpenses.find(e => e.id === id)
+                        if (fe) {
+                          const returned = toMeByFixed[id]?.total || 0
+                          setPbAmount(String(fe.amount - returned))
+                        }
                       }
                     }}
                   />
@@ -827,7 +914,7 @@ export function ExpensesTablePage() {
                 <button
                   type="submit"
                   className="btn-primary"
-                  disabled={pbSaving || !pbPerson || (pbDirection === 'by_me' ? !pbCategory : !pbExpenseId)}
+                  disabled={pbSaving || !pbPerson || (pbDirection === 'by_me' ? !pbCategory : (!pbExpenseId && !pbFixedExpenseId))}
                 >
                   {pbSaving ? 'שומר...' : 'שמור'}
                 </button>

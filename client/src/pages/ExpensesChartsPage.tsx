@@ -71,6 +71,19 @@ export function ExpensesChartsPage() {
     return map
   }, [paybacks])
 
+  // Build to_me payback data per fixed_expense_id
+  const toMeByFixed = useMemo(() => {
+    const map: Record<string, { total: number; items: { amount: number; date: string }[] }> = {}
+    for (const pb of paybacks) {
+      if (pb.direction === 'to_me' && pb.fixed_expense_id) {
+        if (!map[pb.fixed_expense_id]) map[pb.fixed_expense_id] = { total: 0, items: [] }
+        map[pb.fixed_expense_id].total += pb.amount
+        map[pb.fixed_expense_id].items.push({ amount: pb.amount, date: pb.date })
+      }
+    }
+    return map
+  }, [paybacks])
+
   // by_me paybacks as virtual expense entries
   const byMeExpenses = useMemo(() => {
     return paybacks
@@ -100,10 +113,23 @@ export function ExpensesChartsPage() {
     })
     const inflated = inflatedExpenses.map(ie => {
       const fixedId = ie.id.substring(0, ie.id.lastIndexOf('_'))
-      return { ...ie, _salaryDeducted: salaryDeductedFixedIds.has(fixedId), _fixed: true }
+      return { ...ie, amount: ie.amount, _salaryDeducted: salaryDeductedFixedIds.has(fixedId), _fixed: true }
     })
-    return [...adjusted, ...inflated, ...byMeExpenses]
-  }, [expenses, inflatedExpenses, byMeExpenses, toMeByExpense, salaryDeductedFixedIds])
+
+    // Apply fixed expense paybacks to the last inflated expense before each payback date
+    for (const [fixedId, data] of Object.entries(toMeByFixed)) {
+      for (const pb of data.items) {
+        const candidates = inflated
+          .filter(ie => ie.id.startsWith(fixedId + '_') && ie.date <= pb.date)
+          .sort((a, b) => b.date.localeCompare(a.date))
+        if (candidates.length > 0) {
+          candidates[0].amount -= pb.amount
+        }
+      }
+    }
+
+    return [...adjusted, ...inflated.filter(ie => ie.amount !== 0), ...byMeExpenses]
+  }, [expenses, inflatedExpenses, byMeExpenses, toMeByExpense, toMeByFixed, salaryDeductedFixedIds])
 
   // All categories covered by any expense type
   const allTypedCategories = useMemo(() => {
