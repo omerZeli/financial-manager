@@ -34,7 +34,8 @@ function getMinDate(range: TimeRange, customFrom: string): string {
   if (range === 'all') return '0000-01-01'
   const now = new Date()
   const months = range === 'last6' ? 6 : 12
-  now.setMonth(now.getMonth() - months)
+  now.setMonth(now.getMonth() - months + 1)
+  now.setDate(1)
   return now.toISOString().slice(0, 10)
 }
 
