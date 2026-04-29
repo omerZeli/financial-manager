@@ -6,12 +6,14 @@ import { useInvestmentValues } from '../contexts/InvestmentValuesContext'
 import { useSalary } from '../contexts/SalaryContext'
 import { useDropdownOptions } from '../hooks/useDropdownOptions'
 import { useTableControls, type ColumnDef } from '../hooks/useTableControls'
-import { CustomSelect } from '../components/common/CustomSelect'
-import { ReadOnlySelect } from '../components/common/ReadOnlySelect'
-import { NumberInput } from '../components/common/NumberInput'
 import { ConfirmDialog } from '../components/common/ConfirmDialog'
 import { SortableTh, FilterPopover } from '../components/common/TableControls'
-import DateInput from '../components/common/DateInput'
+import { ChannelForm } from '../components/forms/ChannelForm'
+import { DepositForm } from '../components/forms/DepositForm'
+import { ValueUpdateForm } from '../components/forms/ValueUpdateForm'
+import { WithdrawalForm } from '../components/forms/WithdrawalForm'
+import { EditDepositForm } from '../components/forms/EditDepositForm'
+import { EditValueUpdateForm } from '../components/forms/EditValueUpdateForm'
 import { computeChannelSummary } from '../lib/computeChannelSummary'
 import './Section.css'
 
@@ -45,52 +47,12 @@ export function InvestmentsTablePage() {
 
   const [modal, setModal] = useState<ModalType>(null)
   const [activeTab, setActiveTab] = useState<ActiveTab>('channels')
-
-  // Channel form
-  const [chName, setChName] = useState('')
-  const [chCompany, setChCompany] = useState('')
-  const [chPath, setChPath] = useState('')
-  const [chIsPension, setChIsPension] = useState(false)
-  const [chSaving, setChSaving] = useState(false)
-
-  // Deposit form
-  const [depChannel, setDepChannel] = useState('')
-  const [depAmount, setDepAmount] = useState('')
-  const [depDate, setDepDate] = useState('')
-  const [depDepositor, setDepDepositor] = useState('')
-  const [depSaving, setDepSaving] = useState(false)
-  const [depDeductedFromSalary, setDepDeductedFromSalary] = useState(false)
-  const [depSelectedSalaryId, setDepSelectedSalaryId] = useState('')
-
-  // Value update form
-  const [valChannel, setValChannel] = useState('')
-  const [valValue, setValValue] = useState('')
-  const [valPath, setValPath] = useState('')
-  const [valDate, setValDate] = useState('')
-  const [valSaving, setValSaving] = useState(false)
-
-  // Withdrawal form
-  const [wdChannel, setWdChannel] = useState('')
-  const [wdAmount, setWdAmount] = useState('')
-  const [wdDate, setWdDate] = useState('')
-  const [wdSaving, setWdSaving] = useState(false)
-
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
   const [pendingDeleteType, setPendingDeleteType] = useState<'channel' | 'deposit' | 'value' | null>(null)
-
-  // Edit deposit state
   const [editingDeposit, setEditingDeposit] = useState<string | null>(null)
-  const [editDepChannel, setEditDepChannel] = useState('')
-  const [editDepAmount, setEditDepAmount] = useState('')
-  const [editDepDate, setEditDepDate] = useState('')
-  const [editDepDepositor, setEditDepDepositor] = useState('')
-  const [editDepSaving, setEditDepSaving] = useState(false)
-
-  // Edit value update state
   const [editingValue, setEditingValue] = useState<string | null>(null)
-  const [editValValue, setEditValValue] = useState('')
-  const [editValDate, setEditValDate] = useState('')
-  const [editValSaving, setEditValSaving] = useState(false)
+  // Value update form initial state (set when opening from channel row)
+  const [valueFormInit, setValueFormInit] = useState<{ channelId: string; channelLabel: string; initialValue: string; initialPath: string; initialDate: string } | null>(null)
 
   const pickerRef = useRef<HTMLDivElement>(null)
 
@@ -148,6 +110,30 @@ export function InvestmentsTablePage() {
       .sort((a, b) => b.totalDeposits - a.totalDeposits)
       .map(ch => ({ value: ch.id, label: `${ch.name} - ${ch.company}` }))
   }, [channelSummaries])
+
+  // Pinned depositor options: "אני" + unique employer names
+  const pinnedDepositors = useMemo(() => {
+    const employers = [...new Set(salaries.map(s => s.employer))].sort()
+    return ['אני', ...employers]
+  }, [salaries])
+
+  // Recent salaries (last 6 months)
+  const recentSalaries = useMemo(() => {
+    const now = new Date()
+    const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1)
+    const cutoff = sixMonthsAgo.toISOString().slice(0, 10)
+    return salaries.filter(s => s.month >= cutoff)
+  }, [salaries])
+
+  const salaryOptions = useMemo(() => {
+    return [...recentSalaries]
+      .sort((a, b) => b.neto - a.neto)
+      .map(s => {
+        const d = new Date(s.month + 'T00:00:00')
+        const monthLabel = d.toLocaleDateString('he-IL', { month: 'long', year: 'numeric' })
+        return { value: s.id, label: `${monthLabel} - ${s.employer}` }
+      })
+  }, [recentSalaries])
 
   // Column definitions for each sub-tab
   const channelCols: ColumnDef[] = useMemo(() => [
@@ -215,167 +201,20 @@ export function InvestmentsTablePage() {
 
   const activeTableCtrl = activeTab === 'channels' ? channelTable : activeTab === 'deposits' ? depositTable : valueTable
 
-  const resetChannelForm = () => { setChName(''); setChCompany(''); setChPath(''); setChIsPension(false) }
-  const resetDepositForm = () => { setDepChannel(''); setDepAmount(''); setDepDate(''); setDepDepositor(''); setDepDeductedFromSalary(false); setDepSelectedSalaryId('') }
-  const resetValueForm = () => { setValChannel(''); setValValue(''); setValPath(''); setValDate('') }
-  const resetWithdrawalForm = () => { setWdChannel(''); setWdAmount(''); setWdDate('') }
-
-  // Pinned depositor options: "אני" + unique employer names
-  const pinnedDepositors = useMemo(() => {
-    const employers = [...new Set(salaries.map(s => s.employer))].sort()
-    return ['אני', ...employers]
-  }, [salaries])
-
-  // Whether the selected depositor is a pinned (hard) option
-  const isPinnedDepositor = useMemo(() => {
-    return pinnedDepositors.includes(depDepositor)
-  }, [pinnedDepositors, depDepositor])
-
-  // Recent salaries (last 6 months)
-  const recentSalaries = useMemo(() => {
-    const now = new Date()
-    const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1)
-    const cutoff = sixMonthsAgo.toISOString().slice(0, 10)
-    return salaries.filter(s => s.month >= cutoff)
-  }, [salaries])
-
-  // Filtered salary options based on depositor
-  const salaryOptions = useMemo(() => {
-    const filtered = depDepositor && depDepositor !== 'אני'
-      ? recentSalaries.filter(s => s.employer === depDepositor)
-      : recentSalaries
-    return [...filtered]
-      .sort((a, b) => b.neto - a.neto)
-      .map(s => {
-        const d = new Date(s.month + 'T00:00:00')
-        const monthLabel = d.toLocaleDateString('he-IL', { month: 'long', year: 'numeric' })
-        return { value: s.id, label: `${monthLabel} - ${s.employer}` }
-      })
-  }, [recentSalaries, depDepositor])
-
-  // Auto-select salary for deposit when date/depositor changes (previous month's salary)
-  useEffect(() => {
-    if (!depDeductedFromSalary || !depDate) { setDepSelectedSalaryId(''); return }
-    const d = new Date(depDate + 'T00:00:00')
-    const prev = new Date(d.getFullYear(), d.getMonth() - 1, 1)
-    const prevMonth = `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, '0')}`
-    let matching = recentSalaries.filter(s => s.month.slice(0, 7) === prevMonth)
-    if (depDepositor && depDepositor !== 'אני') {
-      matching = matching.filter(s => s.employer === depDepositor)
-    }
-    if (matching.length === 1) setDepSelectedSalaryId(matching[0].id)
-    else setDepSelectedSalaryId('')
-  }, [depDeductedFromSalary, depDate, depDepositor, recentSalaries])
-
   const openValueFormForChannel = (channelId: string) => {
     const ch = channels.find(c => c.id === channelId)
     const latestValue = valueUpdates
       .filter(v => v.channel_id === channelId)
       .sort((a, b) => b.date.localeCompare(a.date))[0]
     const today = new Date().toISOString().slice(0, 10)
-    setValChannel(channelId)
-    setValValue(latestValue ? String(latestValue.value) : '')
-    setValPath(ch ? ch.investment_path : '')
-    setValDate(today)
+    setValueFormInit({
+      channelId,
+      channelLabel: ch ? `${ch.name} - ${ch.company}` : '',
+      initialValue: latestValue ? String(latestValue.value) : '',
+      initialPath: ch ? ch.investment_path : '',
+      initialDate: today,
+    })
     setModal('value')
-  }
-
-  // Edit deposit helpers
-  const openEditDeposit = (id: string) => {
-    const dep = deposits.find(d => d.id === id)
-    if (!dep) return
-    setEditingDeposit(id)
-    setEditDepChannel(dep.channel_id)
-    setEditDepAmount(String(dep.amount))
-    setEditDepDate(dep.date)
-    setEditDepDepositor(dep.depositor)
-  }
-
-  const resetEditDeposit = () => {
-    setEditingDeposit(null)
-    setEditDepChannel('')
-    setEditDepAmount('')
-    setEditDepDate('')
-    setEditDepDepositor('')
-  }
-
-  const handleEditDepositSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!editingDeposit || !editDepChannel || !editDepAmount || !editDepDate || !editDepDepositor) return
-    setEditDepSaving(true)
-    await updateDeposit(editingDeposit, { channel_id: editDepChannel, amount: Number(editDepAmount), date: editDepDate, depositor: editDepDepositor })
-    setEditDepSaving(false)
-    resetEditDeposit()
-  }
-
-  // Edit value update helpers
-  const openEditValue = (id: string) => {
-    const vu = valueUpdates.find(v => v.id === id)
-    if (!vu) return
-    setEditingValue(id)
-    setEditValValue(String(vu.value))
-    setEditValDate(vu.date)
-  }
-
-  const resetEditValue = () => {
-    setEditingValue(null)
-    setEditValValue('')
-    setEditValDate('')
-  }
-
-  const handleEditValueSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!editingValue || !editValValue || !editValDate) return
-    setEditValSaving(true)
-    await updateValueUpdate(editingValue, { value: Number(editValValue), date: editValDate })
-    setEditValSaving(false)
-    resetEditValue()
-  }
-
-  const handleChannelSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!chName || !chCompany || !chPath) return
-    setChSaving(true)
-    await addChannel({ name: chName, company: chCompany, investment_path: chPath, is_pension: chIsPension })
-    setChSaving(false)
-    setModal(null)
-    resetChannelForm()
-  }
-
-  const handleDepositSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!depChannel || !depAmount || !depDate || !depDepositor) return
-    setDepSaving(true)
-    await addDeposit({ channel_id: depChannel, amount: Number(depAmount), date: depDate, depositor: depDepositor, salary_id: depDeductedFromSalary && depSelectedSalaryId ? depSelectedSalaryId : null })
-    setDepSaving(false)
-    setModal(null)
-    resetDepositForm()
-  }
-
-  const handleValueSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!valChannel || !valValue || !valPath || !valDate) return
-    setValSaving(true)
-    const ch = channels.find(c => c.id === valChannel)
-    if (ch && valPath !== ch.investment_path) {
-      await updateChannel(valChannel, { investment_path: valPath })
-    }
-    await addValueUpdate({ channel_id: valChannel, value: Number(valValue), date: valDate })
-    setValSaving(false)
-    setModal(null)
-    resetValueForm()
-  }
-
-  const handleWithdrawalSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!wdChannel || !wdAmount || !wdDate) return
-    setWdSaving(true)
-    const amount = Number(wdAmount)
-    // Add withdrawal record (deposit with is_withdrawal=true)
-    await addWithdrawal({ channel_id: wdChannel, amount, date: wdDate })
-    setWdSaving(false)
-    setModal(null)
-    resetWithdrawalForm()
   }
 
   const isLoading = chLoading || depLoading || valLoading
@@ -470,7 +309,6 @@ export function InvestmentsTablePage() {
             </div>
         )
       ) : activeTab === 'deposits' ? (
-        /* Deposits tab */
         deposits.length === 0 ? (
           <div className="section-empty">אין הפקדות ומשיכות עדיין. לחץ על + כדי להוסיף.</div>
         ) : (
@@ -500,7 +338,7 @@ export function InvestmentsTablePage() {
                         <td>{dep.depositor}</td>
                         <td>{formatDate(dep.date)}</td>
                         <td className="col-actions actions-group">
-                          <button className="edit-btn" onClick={() => openEditDeposit(dep.id)} title="ערוך">
+                          <button className="edit-btn" onClick={() => setEditingDeposit(dep.id)} title="ערוך">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                               <path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" /><path d="m15 5 4 4" />
                             </svg>
@@ -519,7 +357,6 @@ export function InvestmentsTablePage() {
             </div>
         )
       ) : activeTab === 'values' ? (
-        /* Value updates tab */
         valueUpdates.length === 0 ? (
           <div className="section-empty">אין עדכוני ערך עדיין. לחץ על + כדי להוסיף.</div>
         ) : (
@@ -542,7 +379,7 @@ export function InvestmentsTablePage() {
                         <td className="num-cell">{formatCurrency(vu.value)}</td>
                         <td>{formatDate(vu.date)}</td>
                         <td className="col-actions actions-group">
-                          <button className="edit-btn" onClick={() => openEditValue(vu.id)} title="ערוך">
+                          <button className="edit-btn" onClick={() => setEditingValue(vu.id)} title="ערוך">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                               <path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" /><path d="m15 5 4 4" />
                             </svg>
@@ -643,270 +480,97 @@ export function InvestmentsTablePage() {
         <button className="section-fab" onClick={() => setModal(modal === 'picker' ? null : 'picker')} title="הוסף">+</button>
       </div>
 
-      {/* Channel modal */}
+      {/* Form modals — each is its own component with isolated state */}
       {modal === 'channel' && (
-        <div className="modal-overlay" onClick={() => { setModal(null); resetChannelForm() }}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <button className="modal-close" onClick={() => { setModal(null); resetChannelForm() }} title="סגור">&times;</button>
-            <h2>אפיק השקעה חדש</h2>
-            <form onSubmit={handleChannelSubmit}>
-              <label>שם אפיק</label>
-              <input type="text" placeholder="הכנס שם אפיק" value={chName} onChange={e => setChName(e.target.value)} required />
-
-              <label>חברה</label>
-              <CustomSelect
-                options={sortedCompanyOptions}
-                value={chCompany}
-                placeholder="הכנס חברה"
-                onChange={setChCompany}
-                onAddOption={addCompany}
-                onRemoveOption={removeCompany}
-                loading={companyLoading}
-              />
-
-              <label>מסלול השקעה</label>
-              <CustomSelect
-                options={sortedPathOptions}
-                value={chPath}
-                placeholder="הכנס מסלול השקעה"
-                onChange={setChPath}
-                onAddOption={addPath}
-                onRemoveOption={removePath}
-                loading={pathLoading}
-              />
-
-              <div className="toggle-row">
-                <label className="toggle-label" htmlFor="is-pension">אפיק פנסיוני?</label>
-                <button
-                  type="button"
-                  id="is-pension"
-                  role="switch"
-                  aria-checked={chIsPension}
-                  className={`toggle-switch${chIsPension ? ' active' : ''}`}
-                  onClick={() => setChIsPension(prev => !prev)}
-                >
-                  <span className="toggle-knob" />
-                </button>
-              </div>
-
-              <div className="modal-actions">
-                <button type="submit" className="btn-primary" disabled={chSaving || !chCompany}>
-                  {chSaving ? 'שומר...' : 'שמור'}
-                </button>
-                <button type="button" className="btn-cancel" onClick={() => { setModal(null); resetChannelForm() }}>ביטול</button>
-              </div>
-            </form>
-          </div>
-        </div>
+        <ChannelForm
+          sortedCompanyOptions={sortedCompanyOptions}
+          companyLoading={companyLoading}
+          addCompany={addCompany}
+          removeCompany={removeCompany}
+          sortedPathOptions={sortedPathOptions}
+          pathLoading={pathLoading}
+          addPath={addPath}
+          removePath={removePath}
+          onSubmit={addChannel}
+          onClose={() => setModal(null)}
+        />
       )}
 
-      {/* Deposit modal */}
       {modal === 'deposit' && (
-        <div className="modal-overlay" onClick={() => { setModal(null); resetDepositForm() }}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <button className="modal-close" onClick={() => { setModal(null); resetDepositForm() }} title="סגור">&times;</button>
-            <h2>הפקדה חדשה</h2>
-            <form onSubmit={handleDepositSubmit}>
-              <label>אפיק</label>
-              <ReadOnlySelect
-                options={sortedChannelSelectOptions}
-                value={depChannel}
-                placeholder="בחר אפיק"
-                onChange={setDepChannel}
-              />
-
-              <label>סכום הפקדה</label>
-              <NumberInput placeholder="הכנס סכום" value={depAmount} onChange={setDepAmount} required />
-
-              <label>מי הפקיד</label>
-              <CustomSelect
-                options={sortedDepositorOptions}
-                pinnedOptions={pinnedDepositors}
-                value={depDepositor}
-                placeholder="הכנס מפקיד"
-                onChange={(val) => { setDepDepositor(val); setDepDeductedFromSalary(false); setDepSelectedSalaryId('') }}
-                onAddOption={addDepositor}
-                onRemoveOption={removeDepositor}
-                loading={depositorLoading}
-              />
-
-              <label>תאריך</label>
-              <DateInput value={depDate} onChange={setDepDate} required />
-
-              {isPinnedDepositor && depDepositor && (
-                <div className="toggle-row">
-                  <label className="toggle-label" htmlFor="dep-salary-deduct">נוכה מהמשכורת?</label>
-                  <button
-                    type="button"
-                    id="dep-salary-deduct"
-                    role="switch"
-                    aria-checked={depDeductedFromSalary}
-                    className={`toggle-switch${depDeductedFromSalary ? ' active' : ''}`}
-                    onClick={() => { setDepDeductedFromSalary(prev => !prev); setDepSelectedSalaryId('') }}
-                  >
-                    <span className="toggle-knob" />
-                  </button>
-                </div>
-              )}
-
-              {depDeductedFromSalary && (
-                <>
-                  <label>משכורת</label>
-                  <ReadOnlySelect
-                    options={salaryOptions}
-                    value={depSelectedSalaryId}
-                    placeholder="בחר משכורת"
-                    onChange={setDepSelectedSalaryId}
-                  />
-                </>
-              )}
-
-              <div className="modal-actions">
-                <button type="submit" className="btn-primary" disabled={depSaving || !depChannel || !depDepositor || (depDeductedFromSalary && !depSelectedSalaryId)}>
-                  {depSaving ? 'שומר...' : 'שמור'}
-                </button>
-                <button type="button" className="btn-cancel" onClick={() => { setModal(null); resetDepositForm() }}>ביטול</button>
-              </div>
-            </form>
-          </div>
-        </div>
+        <DepositForm
+          sortedChannelSelectOptions={sortedChannelSelectOptions}
+          sortedDepositorOptions={sortedDepositorOptions}
+          depositorLoading={depositorLoading}
+          addDepositor={addDepositor}
+          removeDepositor={removeDepositor}
+          pinnedDepositors={pinnedDepositors}
+          salaryOptions={salaryOptions}
+          recentSalaries={recentSalaries}
+          onSubmit={addDeposit}
+          onClose={() => setModal(null)}
+        />
       )}
 
-      {/* Value update modal */}
-      {modal === 'value' && (
-        <div className="modal-overlay" onClick={() => { setModal(null); resetValueForm() }}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <button className="modal-close" onClick={() => { setModal(null); resetValueForm() }} title="סגור">&times;</button>
-            <h2>עדכון שווי</h2>
-            <div className="modal-subtitle">{(() => { const c = channels.find(c => c.id === valChannel); return c ? `${c.name} - ${c.company}` : '' })()}</div>
-            <form onSubmit={handleValueSubmit}>
-              <label>שווי נוכחי</label>
-              <NumberInput placeholder="הכנס שווי" value={valValue} onChange={setValValue} required />
-
-              <label>מסלול השקעה</label>
-              <CustomSelect
-                options={sortedPathOptions}
-                value={valPath}
-                placeholder="הכנס מסלול השקעה"
-                onChange={setValPath}
-                onAddOption={addPath}
-                onRemoveOption={removePath}
-                loading={pathLoading}
-              />
-
-              <label>תאריך עדכון</label>
-              <DateInput value={valDate} onChange={setValDate} required />
-
-              <div className="modal-actions">
-                <button type="submit" className="btn-primary" disabled={valSaving || !valChannel}>
-                  {valSaving ? 'שומר...' : 'שמור'}
-                </button>
-                <button type="button" className="btn-cancel" onClick={() => { setModal(null); resetValueForm() }}>ביטול</button>
-              </div>
-            </form>
-          </div>
-        </div>
+      {modal === 'value' && valueFormInit && (
+        <ValueUpdateForm
+          channelId={valueFormInit.channelId}
+          channelLabel={valueFormInit.channelLabel}
+          initialValue={valueFormInit.initialValue}
+          initialPath={valueFormInit.initialPath}
+          initialDate={valueFormInit.initialDate}
+          sortedPathOptions={sortedPathOptions}
+          pathLoading={pathLoading}
+          addPath={addPath}
+          removePath={removePath}
+          onSubmit={async (data) => {
+            const ch = channels.find(c => c.id === data.channel_id)
+            if (ch && data.investment_path && data.investment_path !== ch.investment_path) {
+              await updateChannel(data.channel_id, { investment_path: data.investment_path })
+            }
+            await addValueUpdate({ channel_id: data.channel_id, value: data.value, date: data.date })
+          }}
+          onClose={() => { setModal(null); setValueFormInit(null) }}
+        />
       )}
 
-      {/* Withdrawal modal */}
       {modal === 'withdrawal' && (
-        <div className="modal-overlay" onClick={() => { setModal(null); resetWithdrawalForm() }}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <button className="modal-close" onClick={() => { setModal(null); resetWithdrawalForm() }} title="סגור">&times;</button>
-            <h2>משיכה מאפיק</h2>
-            <form onSubmit={handleWithdrawalSubmit}>
-              <label>אפיק</label>
-              <ReadOnlySelect
-                options={sortedChannelSelectOptions}
-                value={wdChannel}
-                placeholder="בחר אפיק"
-                onChange={setWdChannel}
-              />
-
-              <label>סכום משיכה</label>
-              <NumberInput placeholder="הכנס סכום" value={wdAmount} onChange={setWdAmount} required />
-
-              <label>תאריך</label>
-              <DateInput value={wdDate} onChange={setWdDate} required />
-
-              <div className="modal-actions">
-                <button type="submit" className="btn-primary" disabled={wdSaving || !wdChannel}>
-                  {wdSaving ? 'שומר...' : 'שמור'}
-                </button>
-                <button type="button" className="btn-cancel" onClick={() => { setModal(null); resetWithdrawalForm() }}>ביטול</button>
-              </div>
-            </form>
-          </div>
-        </div>
+        <WithdrawalForm
+          sortedChannelSelectOptions={sortedChannelSelectOptions}
+          onSubmit={async (data) => { await addWithdrawal(data) }}
+          onClose={() => setModal(null)}
+        />
       )}
 
-      {/* Edit deposit modal */}
-      {editingDeposit && (
-        <div className="modal-overlay" onClick={resetEditDeposit}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <button className="modal-close" onClick={resetEditDeposit} title="סגור">&times;</button>
-            <h2>עריכת הפקדה</h2>
-            <form onSubmit={handleEditDepositSubmit}>
-              <label>אפיק</label>
-              <ReadOnlySelect
-                options={sortedChannelSelectOptions}
-                value={editDepChannel}
-                placeholder="בחר אפיק"
-                onChange={setEditDepChannel}
-              />
+      {/* Edit modals */}
+      {editingDeposit && (() => {
+        const dep = deposits.find(d => d.id === editingDeposit)
+        if (!dep) return null
+        return (
+          <EditDepositForm
+            deposit={dep}
+            sortedChannelSelectOptions={sortedChannelSelectOptions}
+            sortedDepositorOptions={sortedDepositorOptions}
+            depositorLoading={depositorLoading}
+            addDepositor={addDepositor}
+            removeDepositor={removeDepositor}
+            pinnedDepositors={pinnedDepositors}
+            onSubmit={async (id, fields) => { await updateDeposit(id, fields) }}
+            onClose={() => setEditingDeposit(null)}
+          />
+        )
+      })()}
 
-              <label>סכום</label>
-              <NumberInput placeholder="הכנס סכום" value={editDepAmount} onChange={setEditDepAmount} required />
-
-              <label>מי הפקיד</label>
-              <CustomSelect
-                options={sortedDepositorOptions}
-                pinnedOptions={pinnedDepositors}
-                value={editDepDepositor}
-                placeholder="הכנס מפקיד"
-                onChange={setEditDepDepositor}
-                onAddOption={addDepositor}
-                onRemoveOption={removeDepositor}
-                loading={depositorLoading}
-              />
-
-              <label>תאריך</label>
-              <DateInput value={editDepDate} onChange={setEditDepDate} required />
-
-              <div className="modal-actions">
-                <button type="submit" className="btn-primary" disabled={editDepSaving || !editDepChannel || !editDepDepositor}>
-                  {editDepSaving ? 'שומר...' : 'שמור'}
-                </button>
-                <button type="button" className="btn-cancel" onClick={resetEditDeposit}>ביטול</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Edit value update modal */}
-      {editingValue && (
-        <div className="modal-overlay" onClick={resetEditValue}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <button className="modal-close" onClick={resetEditValue} title="סגור">&times;</button>
-            <h2>עריכת עדכון שווי</h2>
-            <form onSubmit={handleEditValueSubmit}>
-              <label>שווי</label>
-              <NumberInput placeholder="הכנס שווי" value={editValValue} onChange={setEditValValue} required />
-
-              <label>תאריך</label>
-              <DateInput value={editValDate} onChange={setEditValDate} required />
-
-              <div className="modal-actions">
-                <button type="submit" className="btn-primary" disabled={editValSaving}>
-                  {editValSaving ? 'שומר...' : 'שמור'}
-                </button>
-                <button type="button" className="btn-cancel" onClick={resetEditValue}>ביטול</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {editingValue && (() => {
+        const vu = valueUpdates.find(v => v.id === editingValue)
+        if (!vu) return null
+        return (
+          <EditValueUpdateForm
+            valueUpdate={vu}
+            onSubmit={async (id, fields) => { await updateValueUpdate(id, fields) }}
+            onClose={() => setEditingValue(null)}
+          />
+        )
+      })()}
     </div>
   )
 }

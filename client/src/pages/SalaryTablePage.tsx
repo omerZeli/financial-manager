@@ -1,12 +1,12 @@
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { NavLink } from 'react-router-dom'
 import { useSalary } from '../contexts/SalaryContext'
-import { NumberInput } from '../components/common/NumberInput'
-import { CustomSelect } from '../components/common/CustomSelect'
 import { ConfirmDialog } from '../components/common/ConfirmDialog'
 import { SortableTh, FilterPopover } from '../components/common/TableControls'
 import { useTableControls, type ColumnDef } from '../hooks/useTableControls'
 import { useDropdownOptions } from '../hooks/useDropdownOptions'
+import { SalaryForm } from '../components/forms/SalaryForm'
+import { EditSalaryForm } from '../components/forms/EditSalaryForm'
 import './Section.css'
 
 function formatMonth(dateStr: string) {
@@ -46,69 +46,10 @@ export function SalaryTablePage() {
 
   const table = useTableControls(salaries, salaryColumns, 'month', 'desc', getSalaryValue)
   const [showModal, setShowModal] = useState(false)
-  const [month, setMonth] = useState('')
-  const [employer, setEmployer] = useState('')
-  const [bruto, setBruto] = useState('')
-  const [neto, setNeto] = useState('')
-  const [saving, setSaving] = useState(false)
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
-
-  // Edit salary state
   const [editingSalary, setEditingSalary] = useState<string | null>(null)
-  const [editMonth, setEditMonth] = useState('')
-  const [editEmployer, setEditEmployer] = useState('')
-  const [editBruto, setEditBruto] = useState('')
-  const [editNeto, setEditNeto] = useState('')
-  const [editSaving, setEditSaving] = useState(false)
 
   useEffect(() => { fetchSalaries() }, [fetchSalaries])
-
-  // Auto-default employer when there's exactly one option
-  useEffect(() => {
-    if (!employer && employerOptions.length === 1) {
-      setEmployer(employerOptions[0].label)
-    }
-  }, [employerOptions, employer])
-
-  const openEditSalary = (id: string) => {
-    const s = salaries.find(s => s.id === id)
-    if (!s) return
-    setEditingSalary(id)
-    setEditMonth(s.month.slice(0, 7))
-    setEditEmployer(s.employer)
-    setEditBruto(String(s.bruto))
-    setEditNeto(String(s.neto))
-  }
-
-  const resetEditSalary = () => {
-    setEditingSalary(null)
-    setEditMonth('')
-    setEditEmployer('')
-    setEditBruto('')
-    setEditNeto('')
-  }
-
-  const handleEditSalarySubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!editingSalary || !editMonth || !editEmployer || !editBruto || !editNeto) return
-    setEditSaving(true)
-    await updateSalary(editingSalary, { month: editMonth + '-01', employer: editEmployer, bruto: Number(editBruto), neto: Number(editNeto) })
-    setEditSaving(false)
-    resetEditSalary()
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!month || !employer || !bruto || !neto) return
-    setSaving(true)
-    await addSalary({ month: month + '-01', employer, bruto: Number(bruto), neto: Number(neto) })
-    setSaving(false)
-    setShowModal(false)
-    setMonth('')
-    setEmployer(employerOptions.length === 1 ? employerOptions[0].label : '')
-    setBruto('')
-    setNeto('')
-  }
 
   return (
     <div className="section-page">
@@ -153,7 +94,7 @@ export function SalaryTablePage() {
                     <td className="num-cell">{formatCurrency(s.bruto)}</td>
                     <td className="num-cell">{formatCurrency(s.neto)}</td>
                     <td className="col-actions actions-group">
-                      <button className="edit-btn" onClick={() => openEditSalary(s.id)} title="ערוך">
+                      <button className="edit-btn" onClick={() => setEditingSalary(s.id)} title="ערוך">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" /><path d="m15 5 4 4" />
                         </svg>
@@ -186,79 +127,32 @@ export function SalaryTablePage() {
       )}
 
       {showModal && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <button className="modal-close" onClick={() => setShowModal(false)} title="סגור">&times;</button>
-            <h2>הוסף משכורת</h2>
-            <form onSubmit={handleSubmit}>
-              <label>חודש</label>
-              <input type="month" value={month} onChange={e => setMonth(e.target.value)} required dir="ltr" />
-
-              <label>מעסיק</label>
-              <CustomSelect
-                options={sortedEmployerOptions}
-                value={employer}
-                placeholder="בחר מעסיק"
-                onChange={setEmployer}
-                onAddOption={addEmployer}
-                onRemoveOption={removeEmployer}
-                loading={employerLoading}
-              />
-
-              <label>ברוטו</label>
-              <NumberInput placeholder="הכנס ברוטו" value={bruto} onChange={setBruto} required />
-
-              <label>נטו</label>
-              <NumberInput placeholder="הכנס נטו" value={neto} onChange={setNeto} required />
-
-              <div className="modal-actions">
-                <button type="submit" className="btn-primary" disabled={saving}>
-                  {saving ? 'שומר...' : 'שמור'}
-                </button>
-                <button type="button" className="btn-cancel" onClick={() => setShowModal(false)}>ביטול</button>
-              </div>
-            </form>
-          </div>
-        </div>
+        <SalaryForm
+          sortedEmployerOptions={sortedEmployerOptions}
+          employerOptions={employerOptions}
+          employerLoading={employerLoading}
+          addEmployer={addEmployer}
+          removeEmployer={removeEmployer}
+          onSubmit={addSalary}
+          onClose={() => setShowModal(false)}
+        />
       )}
 
-      {/* Edit salary modal */}
-      {editingSalary && (
-        <div className="modal-overlay" onClick={resetEditSalary}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <button className="modal-close" onClick={resetEditSalary} title="סגור">&times;</button>
-            <h2>עריכת משכורת</h2>
-            <form onSubmit={handleEditSalarySubmit}>
-              <label>חודש</label>
-              <input type="month" value={editMonth} onChange={e => setEditMonth(e.target.value)} required dir="ltr" />
-
-              <label>מעסיק</label>
-              <CustomSelect
-                options={sortedEmployerOptions}
-                value={editEmployer}
-                placeholder="בחר מעסיק"
-                onChange={setEditEmployer}
-                onAddOption={addEmployer}
-                onRemoveOption={removeEmployer}
-                loading={employerLoading}
-              />
-
-              <label>ברוטו</label>
-              <NumberInput placeholder="הכנס ברוטו" value={editBruto} onChange={setEditBruto} required />
-
-              <label>נטו</label>
-              <NumberInput placeholder="הכנס נטו" value={editNeto} onChange={setEditNeto} required />
-
-              <div className="modal-actions">
-                <button type="submit" className="btn-primary" disabled={editSaving}>
-                  {editSaving ? 'שומר...' : 'שמור'}
-                </button>
-                <button type="button" className="btn-cancel" onClick={resetEditSalary}>ביטול</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {editingSalary && (() => {
+        const s = salaries.find(s => s.id === editingSalary)
+        if (!s) return null
+        return (
+          <EditSalaryForm
+            salary={s}
+            sortedEmployerOptions={sortedEmployerOptions}
+            employerLoading={employerLoading}
+            addEmployer={addEmployer}
+            removeEmployer={removeEmployer}
+            onSubmit={async (id, fields) => { await updateSalary(id, fields) }}
+            onClose={() => setEditingSalary(null)}
+          />
+        )
+      })()}
     </div>
   )
 }

@@ -7,14 +7,15 @@ import { useExpenseTypes } from '../contexts/ExpenseTypesContext'
 import { useSalary } from '../contexts/SalaryContext'
 import { useDropdownOptions } from '../hooks/useDropdownOptions'
 import { useTableControls, type ColumnDef } from '../hooks/useTableControls'
-import { CustomSelect } from '../components/common/CustomSelect'
-import { ReadOnlySelect } from '../components/common/ReadOnlySelect'
-import { AutocompleteInput } from '../components/common/AutocompleteInput'
-import { NumberInput } from '../components/common/NumberInput'
-import { MultiSelect } from '../components/common/MultiSelect'
 import { ConfirmDialog } from '../components/common/ConfirmDialog'
 import { SortableTh, FilterPopover } from '../components/common/TableControls'
-import DateInput from '../components/common/DateInput'
+import { ExpenseForm } from '../components/forms/ExpenseForm'
+import { FixedExpenseForm } from '../components/forms/FixedExpenseForm'
+import { PaybackForm } from '../components/forms/PaybackForm'
+import { ExpenseTypeForm } from '../components/forms/ExpenseTypeForm'
+import { EditExpenseForm } from '../components/forms/EditExpenseForm'
+import { EditFixedExpenseForm } from '../components/forms/EditFixedExpenseForm'
+import { EditPaybackForm } from '../components/forms/EditPaybackForm'
 import './Section.css'
 
 function formatDate(dateStr: string) {
@@ -45,66 +46,11 @@ export function ExpensesTablePage() {
 
   const [modal, setModal] = useState<ModalType>(null)
   const [activeTab, setActiveTab] = useState<ActiveTab>('all')
-
-  // Regular expense form
-  const [name, setName] = useState('')
-  const [category, setCategory] = useState('')
-  const [amount, setAmount] = useState('')
-  const [date, setDate] = useState('')
-  const [saving, setSaving] = useState(false)
-  const [deductedFromSalary, setDeductedFromSalary] = useState(false)
-  const [selectedSalaryId, setSelectedSalaryId] = useState('')
-
-  // Fixed expense form
-  const [fixedName, setFixedName] = useState('')
-  const [fixedCategory, setFixedCategory] = useState('')
-  const [fixedAmount, setFixedAmount] = useState('')
-  const [fixedStartDate, setFixedStartDate] = useState('')
-  const [hasEndDate, setHasEndDate] = useState(false)
-  const [fixedEndDate, setFixedEndDate] = useState('')
-  const [fixedSaving, setFixedSaving] = useState(false)
-  const [fixedDeductedFromSalary, setFixedDeductedFromSalary] = useState(false)
-  const [fixedSalaryEmployer, setFixedSalaryEmployer] = useState('')
-
-  // Payback form
-  const [pbDirection, setPbDirection] = useState<'by_me' | 'to_me'>('to_me')
-  const [pbName, setPbName] = useState('')
-  const [pbCategory, setPbCategory] = useState('')
-  const [pbAmount, setPbAmount] = useState('')
-  const [pbDate, setPbDate] = useState('')
-  const [pbPerson, setPbPerson] = useState('')
-  const [pbExpenseId, setPbExpenseId] = useState('')
-  const [pbFixedExpenseId, setPbFixedExpenseId] = useState('')
-  const [pbSaving, setPbSaving] = useState(false)
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
   const [pendingDeleteType, setPendingDeleteType] = useState<'expense' | 'fixed' | 'payback' | null>(null)
-
-  // Edit fixed expense state
   const [editingFixed, setEditingFixed] = useState<string | null>(null)
-  const [editFixedEndDate, setEditFixedEndDate] = useState('')
-  const [editFixedSaving, setEditFixedSaving] = useState(false)
-
-  // Edit regular expense state
   const [editingExpense, setEditingExpense] = useState<string | null>(null)
-  const [editExpName, setEditExpName] = useState('')
-  const [editExpCategory, setEditExpCategory] = useState('')
-  const [editExpAmount, setEditExpAmount] = useState('')
-  const [editExpDate, setEditExpDate] = useState('')
-  const [editExpSaving, setEditExpSaving] = useState(false)
-
-  // Edit payback state
   const [editingPayback, setEditingPayback] = useState<string | null>(null)
-  const [editPbAmount, setEditPbAmount] = useState('')
-  const [editPbDate, setEditPbDate] = useState('')
-  const [editPbPerson, setEditPbPerson] = useState('')
-  const [editPbName, setEditPbName] = useState('')
-  const [editPbCategory, setEditPbCategory] = useState('')
-  const [editPbSaving, setEditPbSaving] = useState(false)
-
-  // Expense type form
-  const [etTypeName, setEtTypeName] = useState('')
-  const [etCategories, setEtCategories] = useState<string[]>([])
-  const [etSaving, setEtSaving] = useState(false)
 
   const pickerRef = useRef<HTMLDivElement>(null)
 
@@ -191,7 +137,6 @@ export function ExpensesTablePage() {
 
   // Options for the "to_me" payback expense dropdown: regular (not fully paid) + fixed expenses
   const paybackExpenseOptions = useMemo(() => {
-    // Regular expenses with remaining amount > 0
     const regularOpts = expenses
       .filter(exp => {
         const returned = toMeByExpense[exp.id] || 0
@@ -208,7 +153,6 @@ export function ExpensesTablePage() {
         }
       })
 
-    // Fixed expenses as single entries (not inflated)
     const fixedOpts = fixedExpenses.map(fe => {
       const returned = toMeByFixed[fe.id]?.total || 0
       const remaining = fe.amount - returned
@@ -230,7 +174,6 @@ export function ExpensesTablePage() {
       return { ...exp, amount: exp.amount - returned, _originalAmount: exp.amount, _returnedAmount: returned }
     })
 
-    // For fixed expense paybacks, reduce the last inflated expense before each payback date
     const inflatedAdjusted = inflatedExpenses.map(e => ({
       ...e,
       _originalAmount: undefined as number | undefined,
@@ -238,10 +181,8 @@ export function ExpensesTablePage() {
       _paybackPerson: undefined as string | undefined,
     }))
 
-    // Apply fixed expense paybacks to inflated rows
     for (const [fixedId, data] of Object.entries(toMeByFixed)) {
       for (const pb of data.items) {
-        // Find the last inflated expense for this fixed expense that is on or before the payback date
         const candidates = inflatedAdjusted
           .filter(ie => ie.id.startsWith(fixedId + '_') && ie.date <= pb.date)
           .sort((a, b) => b.date.localeCompare(a.date))
@@ -365,10 +306,6 @@ export function ExpensesTablePage() {
     return () => document.removeEventListener('mousedown', handler)
   }, [modal])
 
-  const resetExpenseForm = () => { setName(''); setCategory(''); setAmount(''); setDate(''); setDeductedFromSalary(false); setSelectedSalaryId('') }
-  const resetFixedForm = () => { setFixedName(''); setFixedCategory(''); setFixedAmount(''); setFixedStartDate(''); setHasEndDate(false); setFixedEndDate(''); setFixedDeductedFromSalary(false); setFixedSalaryEmployer('') }
-  const resetPaybackForm = () => { setPbDirection('to_me'); setPbName(''); setPbCategory(''); setPbAmount(''); setPbDate(''); setPbPerson(''); setPbExpenseId(''); setPbFixedExpenseId('') }
-
   // Recent salaries (last 6 months)
   const recentSalaries = useMemo(() => {
     const now = new Date()
@@ -387,17 +324,6 @@ export function ExpensesTablePage() {
       })
   }, [recentSalaries])
 
-  // Auto-select salary for regular expense when date changes (previous month's salary)
-  useEffect(() => {
-    if (!deductedFromSalary || !date) { setSelectedSalaryId(''); return }
-    const d = new Date(date + 'T00:00:00')
-    const prev = new Date(d.getFullYear(), d.getMonth() - 1, 1)
-    const prevMonth = `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, '0')}`
-    const matching = recentSalaries.filter(s => s.month.slice(0, 7) === prevMonth)
-    if (matching.length === 1) setSelectedSalaryId(matching[0].id)
-    else setSelectedSalaryId('')
-  }, [deductedFromSalary, date, recentSalaries])
-
   // Unique employer options from salaries, sorted by total neto
   const employerOptions = useMemo(() => {
     const totals: Record<string, number> = {}
@@ -408,110 +334,6 @@ export function ExpensesTablePage() {
       .map(e => ({ value: e, label: e }))
   }, [salaries])
 
-  // Auto-select employer when there's only one
-  useEffect(() => {
-    if (!fixedDeductedFromSalary) { setFixedSalaryEmployer(''); return }
-    if (employerOptions.length === 1) setFixedSalaryEmployer(employerOptions[0].value)
-    else setFixedSalaryEmployer('')
-  }, [fixedDeductedFromSalary, employerOptions])
-
-  const openEditFixed = (id: string) => {
-    const fe = fixedExpenses.find(e => e.id === id)
-    if (!fe) return
-    setEditingFixed(id)
-    setEditFixedEndDate(fe.end_date || '')
-  }
-
-  const resetEditFixed = () => {
-    setEditingFixed(null)
-    setEditFixedEndDate('')
-  }
-
-  const handleEditFixedSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!editingFixed) return
-    setEditFixedSaving(true)
-    await updateFixedExpense(editingFixed, {
-      end_date: editFixedEndDate || null,
-    })
-    setEditFixedSaving(false)
-    resetEditFixed()
-  }
-
-  // Edit regular expense helpers
-  const openEditExpense = (id: string) => {
-    const exp = expenses.find(e => e.id === id)
-    if (!exp) return
-    setEditingExpense(id)
-    setEditExpName(exp.name)
-    setEditExpCategory(exp.category)
-    setEditExpAmount(String(exp.amount))
-    setEditExpDate(exp.date)
-  }
-
-  const resetEditExpense = () => {
-    setEditingExpense(null)
-    setEditExpName('')
-    setEditExpCategory('')
-    setEditExpAmount('')
-    setEditExpDate('')
-  }
-
-  const handleEditExpenseSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!editingExpense || !editExpName || !editExpCategory || !editExpAmount || !editExpDate) return
-    setEditExpSaving(true)
-    await updateExpense(editingExpense, { name: editExpName, category: editExpCategory, amount: Number(editExpAmount), date: editExpDate })
-    setEditExpSaving(false)
-    resetEditExpense()
-  }
-
-  // Edit payback helpers
-  const openEditPayback = (id: string) => {
-    const pb = paybacks.find(p => p.id === id)
-    if (!pb) return
-    setEditingPayback(id)
-    setEditPbAmount(String(pb.amount))
-    setEditPbDate(pb.date)
-    setEditPbPerson(pb.person)
-    setEditPbName(pb.name || '')
-    setEditPbCategory(pb.category || '')
-  }
-
-  const resetEditPayback = () => {
-    setEditingPayback(null)
-    setEditPbAmount('')
-    setEditPbDate('')
-    setEditPbPerson('')
-    setEditPbName('')
-    setEditPbCategory('')
-  }
-
-  const handleEditPaybackSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!editingPayback || !editPbAmount || !editPbDate || !editPbPerson) return
-    const pb = paybacks.find(p => p.id === editingPayback)
-    if (!pb) return
-    setEditPbSaving(true)
-    const fields: Record<string, unknown> = { amount: Number(editPbAmount), date: editPbDate, person: editPbPerson }
-    if (pb.direction === 'by_me') {
-      fields.name = editPbName
-      fields.category = editPbCategory
-    }
-    await updatePayback(editingPayback, fields)
-    setEditPbSaving(false)
-    resetEditPayback()
-  }
-
-  // Expense type helpers
-  const resetExpenseTypeForm = () => { setEtTypeName(''); setEtCategories([]) }
-
-  const expenseNameSuggestions = useMemo(() => {
-    const totals: Record<string, number> = {}
-    for (const e of expenses) totals[e.name] = (totals[e.name] || 0) + e.amount
-    return Object.keys(totals).sort((a, b) => totals[b] - totals[a])
-  }, [expenses])
-
   const allCategoryLabels = useMemo(() => {
     const totals: Record<string, number> = {}
     for (const e of expenses) totals[e.category] = (totals[e.category] || 0) + e.amount
@@ -521,78 +343,6 @@ export function ExpensesTablePage() {
     for (const o of fixedCategoryOptions) set.add(o.label)
     return Array.from(set).sort((a, b) => (totals[b] || 0) - (totals[a] || 0))
   }, [categoryOptions, fixedCategoryOptions, expenses, inflatedExpenses])
-
-  const existingType = useMemo(() => expenseTypes.find(et => et.type_name === etTypeName), [expenseTypes, etTypeName])
-
-  useEffect(() => {
-    if (existingType) {
-      setEtCategories(existingType.categories)
-    } else {
-      setEtCategories([])
-    }
-  }, [existingType])
-
-  const handleExpenseTypeSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!etTypeName || etCategories.length === 0) return
-    setEtSaving(true)
-    if (existingType) {
-      await updateExpenseType(existingType.id, etCategories)
-    } else {
-      await addExpenseType(etTypeName, etCategories)
-    }
-    setEtSaving(false)
-    setModal(null)
-    resetExpenseTypeForm()
-  }
-
-  const handleExpenseSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!name || !category || !amount || !date) return
-    setSaving(true)
-    await addExpense({ name, category, amount: Number(amount), date, salary_id: deductedFromSalary && selectedSalaryId ? selectedSalaryId : null })
-    setSaving(false)
-    setModal(null)
-    resetExpenseForm()
-  }
-
-  const handleFixedSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!fixedName || !fixedCategory || !fixedAmount || !fixedStartDate) return
-    setFixedSaving(true)
-    await addFixedExpense({
-      name: fixedName,
-      category: fixedCategory,
-      amount: Number(fixedAmount),
-      start_date: fixedStartDate,
-      end_date: hasEndDate && fixedEndDate ? fixedEndDate : null,
-      salary_employer: fixedDeductedFromSalary && fixedSalaryEmployer ? fixedSalaryEmployer : null,
-    })
-    setFixedSaving(false)
-    setModal(null)
-    resetFixedForm()
-  }
-
-  const handlePaybackSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!pbAmount || !pbDate || !pbPerson) return
-    if (pbDirection === 'by_me' && (!pbName || !pbCategory)) return
-    if (pbDirection === 'to_me' && !pbExpenseId && !pbFixedExpenseId) return
-    setPbSaving(true)
-    await addPayback({
-      direction: pbDirection,
-      name: pbDirection === 'by_me' ? pbName : null,
-      category: pbDirection === 'by_me' ? pbCategory : null,
-      amount: Number(pbAmount),
-      date: pbDate,
-      person: pbPerson,
-      expense_id: pbDirection === 'to_me' && pbExpenseId ? pbExpenseId : null,
-      fixed_expense_id: pbDirection === 'to_me' && pbFixedExpenseId ? pbFixedExpenseId : null,
-    })
-    setPbSaving(false)
-    setModal(null)
-    resetPaybackForm()
-  }
 
   const isLoading = activeTab === 'all'
     ? (loading || fixedLoading || paybacksLoading)
@@ -655,12 +405,18 @@ export function ExpensesTablePage() {
                 </thead>
                 <tbody>
                   {allExpTable.processed.map(exp => (
-                      <tr key={exp.id}>
-                        <td>{exp.name}</td>
-                        <td>{exp.category}</td>
-                        <td className="num-cell">{formatCurrency(exp.amount)}</td>
-                        <td>{formatDate(exp.date)}</td>
-                      </tr>
+                    <tr key={exp.id}>
+                      <td>
+                        {exp.name}
+                        {exp._paybackPerson && <span className="payback-badge"> החזר ל{exp._paybackPerson}</span>}
+                        {exp._returnedAmount != null && exp._returnedAmount > 0 && (
+                          <span className="returned-badge"> (הוחזר {formatCurrency(exp._returnedAmount)})</span>
+                        )}
+                      </td>
+                      <td>{exp.category}</td>
+                      <td className="num-cell">{formatCurrency(exp.amount)}</td>
+                      <td>{formatDate(exp.date)}</td>
+                    </tr>
                   ))}
                 </tbody>
               </table>
@@ -689,7 +445,7 @@ export function ExpensesTablePage() {
                       <td className="num-cell">{formatCurrency(exp.amount)}</td>
                       <td>{formatDate(exp.date)}</td>
                       <td className="col-actions actions-group">
-                        <button className="edit-btn" onClick={() => openEditExpense(exp.id)} title="ערוך">
+                        <button className="edit-btn" onClick={() => setEditingExpense(exp.id)} title="ערוך">
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" /><path d="m15 5 4 4" />
                           </svg>
@@ -731,7 +487,7 @@ export function ExpensesTablePage() {
                       <td>{formatDate(exp.start_date)}</td>
                       <td>{exp.end_date ? formatDate(exp.end_date) : '-'}</td>
                       <td className="col-actions actions-group">
-                        <button className="edit-btn" onClick={() => openEditFixed(exp.id)} title="ערוך">
+                        <button className="edit-btn" onClick={() => setEditingFixed(exp.id)} title="ערוך">
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" /><path d="m15 5 4 4" />
                           </svg>
@@ -788,7 +544,7 @@ export function ExpensesTablePage() {
                       <td>{formatDate(pb.date)}</td>
                       <td>{pb.person}</td>
                       <td className="col-actions actions-group">
-                        <button className="edit-btn" onClick={() => openEditPayback(pb.id)} title="ערוך">
+                        <button className="edit-btn" onClick={() => setEditingPayback(pb.id)} title="ערוך">
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" /><path d="m15 5 4 4" />
                           </svg>
@@ -889,446 +645,118 @@ export function ExpensesTablePage() {
         <button className="section-fab" onClick={() => setModal(modal === 'picker' ? null : 'picker')} title="הוסף הוצאה">+</button>
       </div>
 
-      {/* Regular expense modal */}
+      {/* Form modals — each is its own component with isolated state */}
       {modal === 'expense' && (
-        <div className="modal-overlay" onClick={() => { setModal(null); resetExpenseForm() }}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <button className="modal-close" onClick={() => { setModal(null); resetExpenseForm() }} title="סגור">&times;</button>
-            <h2>הוסף הוצאה רגילה</h2>
-            <form onSubmit={handleExpenseSubmit}>
-              <label>שם הוצאה</label>
-              <AutocompleteInput
-                suggestions={expenseNameSuggestions}
-                value={name}
-                onChange={setName}
-                onSelect={(val) => {
-                  const prev = expenses.find(e => e.name === val)
-                  if (prev) setCategory(prev.category)
-                }}
-                placeholder="הכנס שם הוצאה"
-                required
-              />
-
-              <label>קטגוריה</label>
-              <CustomSelect
-                options={sortedCategoryOptions}
-                value={category}
-                placeholder="הכנס קטגוריה"
-                onChange={setCategory}
-                onAddOption={addCategory}
-                onRemoveOption={removeCategory}
-                loading={categoryLoading}
-              />
-
-              <label>סכום</label>
-              <NumberInput placeholder="הכנס סכום" value={amount} onChange={setAmount} required />
-
-              <label>תאריך</label>
-              <DateInput value={date} onChange={setDate} required />
-
-              <div className="toggle-row">
-                <label className="toggle-label" htmlFor="exp-salary-deduct">נוכה מהמשכורת?</label>
-                <button
-                  type="button"
-                  id="exp-salary-deduct"
-                  role="switch"
-                  aria-checked={deductedFromSalary}
-                  className={`toggle-switch${deductedFromSalary ? ' active' : ''}`}
-                  onClick={() => { setDeductedFromSalary(prev => !prev); setSelectedSalaryId('') }}
-                >
-                  <span className="toggle-knob" />
-                </button>
-              </div>
-
-              {deductedFromSalary && (
-                <>
-                  <label>משכורת</label>
-                  <ReadOnlySelect
-                    options={salaryOptions}
-                    value={selectedSalaryId}
-                    placeholder="בחר משכורת"
-                    onChange={setSelectedSalaryId}
-                  />
-                </>
-              )}
-
-              <div className="modal-actions">
-                <button type="submit" className="btn-primary" disabled={saving || !category || (deductedFromSalary && !selectedSalaryId)}>
-                  {saving ? 'שומר...' : 'שמור'}
-                </button>
-                <button type="button" className="btn-cancel" onClick={() => { setModal(null); resetExpenseForm() }}>ביטול</button>
-              </div>
-            </form>
-          </div>
-        </div>
+        <ExpenseForm
+          expenses={expenses}
+          sortedCategoryOptions={sortedCategoryOptions}
+          categoryLoading={categoryLoading}
+          addCategory={addCategory}
+          removeCategory={removeCategory}
+          salaryOptions={salaryOptions}
+          recentSalaries={recentSalaries}
+          onSubmit={addExpense}
+          onClose={() => setModal(null)}
+        />
       )}
 
-      {/* Fixed expense modal */}
       {modal === 'fixed' && (
-        <div className="modal-overlay" onClick={() => { setModal(null); resetFixedForm() }}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <button className="modal-close" onClick={() => { setModal(null); resetFixedForm() }} title="סגור">&times;</button>
-            <h2>הוסף הוצאה קבועה</h2>
-            <form onSubmit={handleFixedSubmit}>
-              <label>שם הוצאה</label>
-              <input type="text" placeholder="הכנס שם הוצאה" value={fixedName} onChange={e => setFixedName(e.target.value)} required />
-
-              <label>קטגוריה</label>
-              <CustomSelect
-                options={sortedFixedCategoryOptions}
-                value={fixedCategory}
-                placeholder="הכנס קטגוריה"
-                onChange={setFixedCategory}
-                onAddOption={addFixedCategory}
-                onRemoveOption={removeFixedCategory}
-                loading={fixedCategoryLoading}
-              />
-
-              <label>סכום</label>
-              <NumberInput placeholder="הכנס סכום" value={fixedAmount} onChange={setFixedAmount} required />
-
-              <label>תאריך התחלה</label>
-              <DateInput value={fixedStartDate} onChange={setFixedStartDate} required />
-
-              <div className="toggle-row">
-                <label className="toggle-label" htmlFor="has-end-date">יש תאריך סיום?</label>
-                <button
-                  type="button"
-                  id="has-end-date"
-                  role="switch"
-                  aria-checked={hasEndDate}
-                  className={`toggle-switch${hasEndDate ? ' active' : ''}`}
-                  onClick={() => { setHasEndDate(prev => !prev); setFixedEndDate('') }}
-                >
-                  <span className="toggle-knob" />
-                </button>
-              </div>
-
-              {hasEndDate && (
-                <>
-                  <label>תאריך סיום</label>
-                  <DateInput value={fixedEndDate} onChange={setFixedEndDate} required min={fixedStartDate || undefined} />
-                </>
-              )}
-
-              <div className="toggle-row">
-                <label className="toggle-label" htmlFor="fixed-salary-deduct">נוכה מהמשכורת?</label>
-                <button
-                  type="button"
-                  id="fixed-salary-deduct"
-                  role="switch"
-                  aria-checked={fixedDeductedFromSalary}
-                  className={`toggle-switch${fixedDeductedFromSalary ? ' active' : ''}`}
-                  onClick={() => { setFixedDeductedFromSalary(prev => !prev); setFixedSalaryEmployer('') }}
-                >
-                  <span className="toggle-knob" />
-                </button>
-              </div>
-
-              {fixedDeductedFromSalary && (
-                <>
-                  <label>מעסיק</label>
-                  <ReadOnlySelect
-                    options={employerOptions}
-                    value={fixedSalaryEmployer}
-                    placeholder="בחר מעסיק"
-                    onChange={setFixedSalaryEmployer}
-                  />
-                </>
-              )}
-
-              <div className="modal-actions">
-                <button type="submit" className="btn-primary" disabled={fixedSaving || !fixedCategory || (fixedDeductedFromSalary && !fixedSalaryEmployer)}>
-                  {fixedSaving ? 'שומר...' : 'שמור'}
-                </button>
-                <button type="button" className="btn-cancel" onClick={() => { setModal(null); resetFixedForm() }}>ביטול</button>
-              </div>
-            </form>
-          </div>
-        </div>
+        <FixedExpenseForm
+          sortedFixedCategoryOptions={sortedFixedCategoryOptions}
+          fixedCategoryLoading={fixedCategoryLoading}
+          addFixedCategory={addFixedCategory}
+          removeFixedCategory={removeFixedCategory}
+          employerOptions={employerOptions}
+          onSubmit={addFixedExpense}
+          onClose={() => setModal(null)}
+        />
       )}
 
-      {/* Payback modal */}
       {modal === 'payback' && (
-        <div className="modal-overlay" onClick={() => { setModal(null); resetPaybackForm() }}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <button className="modal-close" onClick={() => { setModal(null); resetPaybackForm() }} title="סגור">&times;</button>
-            <h2>הוסף החזר</h2>
-            <form onSubmit={handlePaybackSubmit}>
-              {/* Direction toggle */}
-              <div className="direction-toggle">
-                <button
-                  type="button"
-                  className={`direction-btn${pbDirection === 'to_me' ? ' active' : ''}`}
-                  onClick={() => { setPbDirection('to_me'); setPbName(''); setPbCategory('') }}
-                >
-                  שילמו לי
-                </button>
-                <button
-                  type="button"
-                  className={`direction-btn${pbDirection === 'by_me' ? ' active' : ''}`}
-                  onClick={() => { setPbDirection('by_me'); setPbExpenseId(''); setPbFixedExpenseId('') }}
-                >
-                  שילמתי לאחר
-                </button>
-              </div>
-
-              {pbDirection === 'by_me' ? (
-                <>
-                  <label>שם הוצאה</label>
-                  <input type="text" placeholder="הכנס שם הוצאה" value={pbName} onChange={e => setPbName(e.target.value)} required />
-
-                  <label>קטגוריה</label>
-                  <CustomSelect
-                    options={sortedCategoryOptions}
-                    value={pbCategory}
-                    placeholder="הכנס קטגוריה"
-                    onChange={setPbCategory}
-                    onAddOption={addCategory}
-                    onRemoveOption={removeCategory}
-                    loading={categoryLoading}
-                  />
-                </>
-              ) : (
-                <>
-                  <label>הוצאה מקורית</label>
-                  <ReadOnlySelect
-                    options={paybackExpenseOptions}
-                    value={pbExpenseId ? `expense:${pbExpenseId}` : pbFixedExpenseId ? `fixed:${pbFixedExpenseId}` : ''}
-                    placeholder="חפש הוצאה"
-                    onChange={(val) => {
-                      if (val.startsWith('expense:')) {
-                        const id = val.slice(8)
-                        setPbExpenseId(id)
-                        setPbFixedExpenseId('')
-                        const exp = expenses.find(e => e.id === id)
-                        if (exp) {
-                          setPbDate(exp.date)
-                          const returned = toMeByExpense[id] || 0
-                          setPbAmount(String(exp.amount - returned))
-                        }
-                      } else if (val.startsWith('fixed:')) {
-                        const id = val.slice(6)
-                        setPbFixedExpenseId(id)
-                        setPbExpenseId('')
-                        const fe = fixedExpenses.find(e => e.id === id)
-                        if (fe) {
-                          const returned = toMeByFixed[id]?.total || 0
-                          setPbAmount(String(fe.amount - returned))
-                        }
-                      }
-                    }}
-                  />
-                </>
-              )}
-
-              <label>
-                {pbDirection === 'by_me' ? 'למי שילמתי' : 'מי שילם לי'}
-              </label>
-              <CustomSelect
-                options={sortedPersonOptions}
-                value={pbPerson}
-                placeholder="הכנס שם"
-                onChange={setPbPerson}
-                onAddOption={addPerson}
-                onRemoveOption={removePerson}
-                loading={personLoading}
-              />
-
-              <label>סכום</label>
-              <NumberInput placeholder="הכנס סכום" value={pbAmount} onChange={setPbAmount} required />
-
-              <label>תאריך</label>
-              <DateInput value={pbDate} onChange={setPbDate} required />
-
-              <div className="modal-actions">
-                <button
-                  type="submit"
-                  className="btn-primary"
-                  disabled={pbSaving || !pbPerson || (pbDirection === 'by_me' ? !pbCategory : (!pbExpenseId && !pbFixedExpenseId))}
-                >
-                  {pbSaving ? 'שומר...' : 'שמור'}
-                </button>
-                <button type="button" className="btn-cancel" onClick={() => { setModal(null); resetPaybackForm() }}>ביטול</button>
-              </div>
-            </form>
-          </div>
-        </div>
+        <PaybackForm
+          expenses={expenses}
+          fixedExpenses={fixedExpenses}
+          sortedCategoryOptions={sortedCategoryOptions}
+          categoryLoading={categoryLoading}
+          addCategory={addCategory}
+          removeCategory={removeCategory}
+          sortedPersonOptions={sortedPersonOptions}
+          personLoading={personLoading}
+          addPerson={addPerson}
+          removePerson={removePerson}
+          paybackExpenseOptions={paybackExpenseOptions}
+          toMeByExpense={toMeByExpense}
+          toMeByFixed={toMeByFixed}
+          onSubmit={addPayback}
+          onClose={() => setModal(null)}
+        />
       )}
 
-      {/* Edit fixed expense modal */}
-      {editingFixed && (
-        <div className="modal-overlay" onClick={resetEditFixed}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <button className="modal-close" onClick={resetEditFixed} title="סגור">&times;</button>
-            <h2>עריכת הוצאה קבועה</h2>
-            <form onSubmit={handleEditFixedSubmit}>
-              <label>תאריך סיום</label>
-              <DateInput value={editFixedEndDate} onChange={setEditFixedEndDate} />
-
-              <div className="modal-actions">
-                <button type="submit" className="btn-primary" disabled={editFixedSaving}>
-                  {editFixedSaving ? 'שומר...' : 'שמור'}
-                </button>
-                <button type="button" className="btn-cancel" onClick={resetEditFixed}>ביטול</button>
-              </div>
-            </form>
-          </div>
-        </div>
+      {modal === 'expense_type' && (
+        <ExpenseTypeForm
+          sortedExpenseTypeOptions={sortedExpenseTypeOptions}
+          etTypeLoading={etTypeLoading}
+          addExpenseTypeOption={addExpenseTypeOption}
+          removeExpenseTypeOption={removeExpenseTypeOption}
+          expenseTypeOptions={expenseTypeOptions}
+          expenseTypes={expenseTypes}
+          allCategoryLabels={allCategoryLabels}
+          addExpenseType={addExpenseType}
+          updateExpenseType={updateExpenseType}
+          deleteExpenseType={deleteExpenseType}
+          onClose={() => setModal(null)}
+        />
       )}
 
-      {/* Edit regular expense modal */}
-      {editingExpense && (
-        <div className="modal-overlay" onClick={resetEditExpense}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <button className="modal-close" onClick={resetEditExpense} title="סגור">&times;</button>
-            <h2>עריכת הוצאה</h2>
-            <form onSubmit={handleEditExpenseSubmit}>
-              <label>שם הוצאה</label>
-              <AutocompleteInput
-                suggestions={expenseNameSuggestions}
-                value={editExpName}
-                onChange={setEditExpName}
-                onSelect={(val) => {
-                  const prev = expenses.find(e => e.name === val)
-                  if (prev) setEditExpCategory(prev.category)
-                }}
-                placeholder="הכנס שם הוצאה"
-                required
-              />
+      {/* Edit modals */}
+      {editingFixed && (() => {
+        const fe = fixedExpenses.find(e => e.id === editingFixed)
+        if (!fe) return null
+        return (
+          <EditFixedExpenseForm
+            initialEndDate={fe.end_date || ''}
+            onSubmit={async (endDate) => { await updateFixedExpense(editingFixed, { end_date: endDate }) }}
+            onClose={() => setEditingFixed(null)}
+          />
+        )
+      })()}
 
-              <label>קטגוריה</label>
-              <CustomSelect
-                options={sortedCategoryOptions}
-                value={editExpCategory}
-                placeholder="הכנס קטגוריה"
-                onChange={setEditExpCategory}
-                onAddOption={addCategory}
-                onRemoveOption={removeCategory}
-                loading={categoryLoading}
-              />
+      {editingExpense && (() => {
+        const exp = expenses.find(e => e.id === editingExpense)
+        if (!exp) return null
+        return (
+          <EditExpenseForm
+            expense={exp}
+            expenses={expenses}
+            sortedCategoryOptions={sortedCategoryOptions}
+            categoryLoading={categoryLoading}
+            addCategory={addCategory}
+            removeCategory={removeCategory}
+            onSubmit={async (id, fields) => { await updateExpense(id, fields) }}
+            onClose={() => setEditingExpense(null)}
+          />
+        )
+      })()}
 
-              <label>סכום</label>
-              <NumberInput placeholder="הכנס סכום" value={editExpAmount} onChange={setEditExpAmount} required />
-
-              <label>תאריך</label>
-              <DateInput value={editExpDate} onChange={setEditExpDate} required />
-
-              <div className="modal-actions">
-                <button type="submit" className="btn-primary" disabled={editExpSaving || !editExpCategory}>
-                  {editExpSaving ? 'שומר...' : 'שמור'}
-                </button>
-                <button type="button" className="btn-cancel" onClick={resetEditExpense}>ביטול</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Edit payback modal */}
       {editingPayback && (() => {
         const pb = paybacks.find(p => p.id === editingPayback)
         if (!pb) return null
         return (
-          <div className="modal-overlay" onClick={resetEditPayback}>
-            <div className="modal-content" onClick={e => e.stopPropagation()}>
-              <button className="modal-close" onClick={resetEditPayback} title="סגור">&times;</button>
-              <h2>עריכת החזר</h2>
-              <form onSubmit={handleEditPaybackSubmit}>
-                {pb.direction === 'by_me' && (
-                  <>
-                    <label>שם הוצאה</label>
-                    <input type="text" placeholder="הכנס שם הוצאה" value={editPbName} onChange={e => setEditPbName(e.target.value)} required />
-
-                    <label>קטגוריה</label>
-                    <CustomSelect
-                      options={sortedCategoryOptions}
-                      value={editPbCategory}
-                      placeholder="הכנס קטגוריה"
-                      onChange={setEditPbCategory}
-                      onAddOption={addCategory}
-                      onRemoveOption={removeCategory}
-                      loading={categoryLoading}
-                    />
-                  </>
-                )}
-
-                <label>סכום</label>
-                <NumberInput placeholder="הכנס סכום" value={editPbAmount} onChange={setEditPbAmount} required />
-
-                <label>תאריך</label>
-                <DateInput value={editPbDate} onChange={setEditPbDate} required />
-
-                <label>
-                  {pb.direction === 'by_me' ? 'למי שילמתי' : 'מי שילם לי'}
-                </label>
-                <CustomSelect
-                  options={sortedPersonOptions}
-                  value={editPbPerson}
-                  placeholder="הכנס שם"
-                  onChange={setEditPbPerson}
-                  onAddOption={addPerson}
-                  onRemoveOption={removePerson}
-                  loading={personLoading}
-                />
-
-                <div className="modal-actions">
-                  <button type="submit" className="btn-primary" disabled={editPbSaving || !editPbPerson || (pb.direction === 'by_me' && !editPbCategory)}>
-                    {editPbSaving ? 'שומר...' : 'שמור'}
-                  </button>
-                  <button type="button" className="btn-cancel" onClick={resetEditPayback}>ביטול</button>
-                </div>
-              </form>
-            </div>
-          </div>
+          <EditPaybackForm
+            payback={pb}
+            sortedCategoryOptions={sortedCategoryOptions}
+            categoryLoading={categoryLoading}
+            addCategory={addCategory}
+            removeCategory={removeCategory}
+            sortedPersonOptions={sortedPersonOptions}
+            personLoading={personLoading}
+            addPerson={addPerson}
+            removePerson={removePerson}
+            onSubmit={async (id, fields) => { await updatePayback(id, fields) }}
+            onClose={() => setEditingPayback(null)}
+          />
         )
       })()}
-
-      {/* Expense type modal */}
-      {modal === 'expense_type' && (
-        <div className="modal-overlay" onClick={() => { setModal(null); resetExpenseTypeForm() }}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <button className="modal-close" onClick={() => { setModal(null); resetExpenseTypeForm() }} title="סגור">&times;</button>
-            <h2>{existingType ? 'עריכת סוג הוצאות' : 'סוג הוצאות חדש'}</h2>
-            <form onSubmit={handleExpenseTypeSubmit}>
-              <label>סוג</label>
-              <CustomSelect
-                options={sortedExpenseTypeOptions}
-                value={etTypeName}
-                placeholder="הכנס סוג הוצאות"
-                onChange={setEtTypeName}
-                onAddOption={addExpenseTypeOption}
-                onRemoveOption={async (id) => {
-                  const opt = expenseTypeOptions.find(o => o.id === id)
-                  const removed = await removeExpenseTypeOption(id)
-                  if (removed && opt) {
-                    const et = expenseTypes.find(e => e.type_name === opt.label)
-                    if (et) await deleteExpenseType(et.id)
-                    if (opt.label === etTypeName) setEtTypeName('')
-                  }
-                  return removed
-                }}
-                loading={etTypeLoading}
-              />
-
-              <label>קטגוריות</label>
-              <MultiSelect
-                options={allCategoryLabels}
-                value={etCategories}
-                placeholder="בחר קטגוריות"
-                onChange={setEtCategories}
-              />
-
-              <div className="modal-actions">
-                <button type="submit" className="btn-primary" disabled={etSaving || !etTypeName || etCategories.length === 0}>
-                  {etSaving ? 'שומר...' : 'שמור'}
-                </button>
-                <button type="button" className="btn-cancel" onClick={() => { setModal(null); resetExpenseTypeForm() }}>ביטול</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
