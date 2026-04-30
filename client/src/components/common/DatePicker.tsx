@@ -421,7 +421,6 @@ export default function DatePicker({ value, onChange, required, min, placeholder
           value={text}
           onChange={handleTextChange}
           onBlur={handleBlur}
-          onFocus={() => setOpen(true)}
           placeholder={placeholder || 'DD/MM/YYYY'}
           required={required}
           dir="ltr"
