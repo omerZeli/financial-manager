@@ -534,11 +534,11 @@
   gap: 6px;
 }
 
-.custom-range-field .date-input-wrap {
+.custom-range-field .date-picker {
   margin-bottom: 0;
 }
 
-.custom-range-field .date-input-display {
+.custom-range-field .date-picker-display {
   padding: 7px 12px 7px 30px;
   font-size: 12px;
   width: 110px;
@@ -944,72 +944,6 @@
 
 .negative-return {
   color: var(--error) !important;
-}
-
-/* Date input */
-.date-input-wrap {
-  position: relative;
-  margin-bottom: 12px;
-}
-
-.date-input-display {
-  width: 100%;
-  padding: 10px 12px 10px 36px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  font-size: 14px;
-  font-family: var(--sans);
-  color: var(--text-h);
-  background: var(--bg);
-  transition: border-color 0.15s;
-  box-sizing: border-box;
-}
-
-.date-input-display::placeholder {
-  color: var(--text);
-  opacity: 0.5;
-}
-
-.date-input-display:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-bg);
-}
-
-.date-input-hidden {
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  pointer-events: none;
-  width: 100%;
-  height: 100%;
-}
-
-.date-input-picker-btn {
-  position: absolute;
-  left: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: none;
-  border: none;
-  padding: 4px;
-  cursor: pointer;
-  color: var(--text);
-  opacity: 0.5;
-  transition: opacity 0.15s, color 0.15s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 4px;
-}
-
-.date-input-picker-btn:hover {
-  opacity: 1;
-  color: var(--accent);
-}
-
-.date-input-wrap:focus-within .date-input-picker-btn {
-  opacity: 0.8;
 }
 
 /* Wide filter select (investments channel filter) */

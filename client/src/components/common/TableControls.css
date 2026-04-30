@@ -184,13 +184,13 @@
   box-shadow: 0 0 0 3px var(--accent-bg);
 }
 
-.filter-popover-range .date-input-wrap {
+.filter-popover-range .date-picker {
   margin-bottom: 0;
   flex: 1;
   min-width: 0;
 }
 
-.filter-popover-range .date-input-display {
+.filter-popover-range .date-picker-display {
   padding: 8px 12px 8px 34px;
   font-size: 13px;
   width: 100%;
@@ -198,7 +198,7 @@
   box-sizing: border-box;
 }
 
-.filter-popover-range .date-input-picker-btn {
+.filter-popover-range .date-picker-icon {
   left: 6px;
 }
 

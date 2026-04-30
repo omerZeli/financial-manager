@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import DateInput from '../common/DateInput'
+import DateInput from '../common/DatePicker'
 
 interface EditFixedExpenseFormProps {
   initialEndDate: string

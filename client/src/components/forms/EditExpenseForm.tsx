@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react'
 import { AutocompleteInput } from '../common/AutocompleteInput'
 import { CustomSelect } from '../common/CustomSelect'
 import { NumberInput } from '../common/NumberInput'
-import DateInput from '../common/DateInput'
+import DateInput from '../common/DatePicker'
 import type { DropdownOption } from '../../hooks/useDropdownOptions'
 import type { Expense } from '../../contexts/ExpensesContext'
 

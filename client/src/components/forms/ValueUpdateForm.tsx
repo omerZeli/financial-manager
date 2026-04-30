@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { CustomSelect } from '../common/CustomSelect'
 import { NumberInput } from '../common/NumberInput'
-import DateInput from '../common/DateInput'
+import DateInput from '../common/DatePicker'
 import type { DropdownOption } from '../../hooks/useDropdownOptions'
 
 interface ValueUpdateFormProps {

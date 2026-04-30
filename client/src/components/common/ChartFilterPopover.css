@@ -30,13 +30,13 @@
   gap: 6px;
 }
 
-.chart-filter-popover .custom-range-row .date-input-wrap {
+.chart-filter-popover .custom-range-row .date-picker {
   margin-bottom: 0;
   flex: 1;
   min-width: 0;
 }
 
-.chart-filter-popover .custom-range-row .date-input-display {
+.chart-filter-popover .custom-range-row .date-picker-display {
   padding: 8px 12px 8px 34px;
   font-size: 13px;
   width: 100%;
@@ -44,6 +44,6 @@
   box-sizing: border-box;
 }
 
-.chart-filter-popover .custom-range-row .date-input-picker-btn {
+.chart-filter-popover .custom-range-row .date-picker-icon {
   left: 6px;
 }

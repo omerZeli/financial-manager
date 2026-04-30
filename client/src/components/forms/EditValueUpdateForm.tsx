@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { NumberInput } from '../common/NumberInput'
-import DateInput from '../common/DateInput'
+import DateInput from '../common/DatePicker'
 
 interface ValueUpdate {
   id: string

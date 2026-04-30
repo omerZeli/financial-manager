@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { type SortDir, type ColumnDef, type FilterState } from '../../hooks/useTableControls'
 import { FilterMultiSelect } from './FilterMultiSelect'
 import { NumberInput } from './NumberInput'
-import DateInput from './DateInput'
+import DateInput from './DatePicker'
 import './TableControls.css'
 
 interface SortableThProps {

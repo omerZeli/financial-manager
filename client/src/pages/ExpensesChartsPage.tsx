@@ -6,7 +6,7 @@ import { usePaybacks } from '../contexts/PaybacksContext'
 import { useExpenseTypes } from '../contexts/ExpenseTypesContext'
 import { useSalary } from '../contexts/SalaryContext'
 import { FilterMultiSelect } from '../components/common/FilterMultiSelect'
-import DateInput from '../components/common/DateInput'
+import DateInput from '../components/common/DatePicker'
 import { ChartFilterPopover } from '../components/common/ChartFilterPopover'
 import './Section.css'
 

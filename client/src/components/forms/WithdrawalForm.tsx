@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { NumberInput } from '../common/NumberInput'
 import { ReadOnlySelect } from '../common/ReadOnlySelect'
-import DateInput from '../common/DateInput'
+import DateInput from '../common/DatePicker'
 
 interface WithdrawalFormProps {
   sortedChannelSelectOptions: { value: string; label: string }[]

@@ -51,6 +51,7 @@ function inflateFixed(fe: FixedExpense): Expense[] {
       category: fe.category,
       amount: fe.amount,
       date: dateStr,
+      salary_id: null,
       created_at: fe.created_at,
     })
 
