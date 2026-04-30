@@ -14,7 +14,11 @@ export function ChartFilterPopover({ children, hasActive, onClear }: ChartFilter
   useEffect(() => {
     if (!open) return
     const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
+      const target = e.target as Node
+      if (ref.current && !ref.current.contains(target)) {
+        // Don't close if the click landed inside a DatePicker portal dropdown
+        const dpDropdown = (target as Element).closest?.('.date-picker-dropdown')
+        if (dpDropdown) return
         setOpen(false)
       }
     }
