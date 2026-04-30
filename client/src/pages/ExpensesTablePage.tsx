@@ -406,13 +406,7 @@ export function ExpensesTablePage() {
                 <tbody>
                   {allExpTable.processed.map(exp => (
                     <tr key={exp.id}>
-                      <td>
-                        {exp.name}
-                        {exp._paybackPerson && <span className="payback-badge"> החזר ל{exp._paybackPerson}</span>}
-                        {exp._returnedAmount != null && exp._returnedAmount > 0 && (
-                          <span className="returned-badge"> (הוחזר {formatCurrency(exp._returnedAmount)})</span>
-                        )}
-                      </td>
+                      <td>{exp.name}</td>
                       <td>{exp.category}</td>
                       <td className="num-cell">{formatCurrency(exp.amount)}</td>
                       <td>{formatDate(exp.date)}</td>
