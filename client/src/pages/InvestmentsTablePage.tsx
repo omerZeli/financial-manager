@@ -117,23 +117,18 @@ export function InvestmentsTablePage() {
     return ['אני', ...employers]
   }, [salaries])
 
-  // Recent salaries (last 6 months)
-  const recentSalaries = useMemo(() => {
-    const now = new Date()
-    const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1)
-    const cutoff = sixMonthsAgo.toISOString().slice(0, 10)
-    return salaries.filter(s => s.month >= cutoff)
-  }, [salaries])
+  // All salaries for deposit salary deduction
+  const allSalaries = useMemo(() => [...salaries], [salaries])
 
   const salaryOptions = useMemo(() => {
-    return [...recentSalaries]
+    return [...allSalaries]
       .sort((a, b) => b.neto - a.neto)
       .map(s => {
         const d = new Date(s.month + 'T00:00:00')
         const monthLabel = d.toLocaleDateString('he-IL', { month: 'long', year: 'numeric' })
         return { value: s.id, label: `${monthLabel} - ${s.employer}` }
       })
-  }, [recentSalaries])
+  }, [allSalaries])
 
   // Column definitions for each sub-tab
   const channelCols: ColumnDef[] = useMemo(() => [
@@ -505,7 +500,7 @@ export function InvestmentsTablePage() {
           removeDepositor={removeDepositor}
           pinnedDepositors={pinnedDepositors}
           salaryOptions={salaryOptions}
-          recentSalaries={recentSalaries}
+          recentSalaries={allSalaries}
           onSubmit={addDeposit}
           onClose={() => setModal(null)}
         />
