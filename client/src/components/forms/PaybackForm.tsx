@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
+import { AutocompleteInput } from '../common/AutocompleteInput'
 import { CustomSelect } from '../common/CustomSelect'
 import { NumberInput } from '../common/NumberInput'
 import { ReadOnlySelect } from '../common/ReadOnlySelect'
@@ -61,6 +62,12 @@ export function PaybackForm({
   const [pbFixedExpenseId, setPbFixedExpenseId] = useState('')
   const [pbSaving, setPbSaving] = useState(false)
 
+  const expenseNameSuggestions = useMemo(() => {
+    const totals: Record<string, number> = {}
+    for (const e of expenses) totals[e.name] = (totals[e.name] || 0) + e.amount
+    return Object.keys(totals).sort((a, b) => totals[b] - totals[a])
+  }, [expenses])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!pbAmount || !pbDate || !pbPerson) return
@@ -108,7 +115,17 @@ export function PaybackForm({
           {pbDirection === 'by_me' ? (
             <>
               <label>שם הוצאה</label>
-              <input type="text" placeholder="הכנס שם הוצאה" value={pbName} onChange={e => setPbName(e.target.value)} required />
+              <AutocompleteInput
+                suggestions={expenseNameSuggestions}
+                value={pbName}
+                onChange={setPbName}
+                onSelect={(val) => {
+                  const prev = expenses.find(e => e.name === val)
+                  if (prev) setPbCategory(prev.category)
+                }}
+                placeholder="הכנס שם הוצאה"
+                required
+              />
 
               <label>קטגוריה</label>
               <CustomSelect
