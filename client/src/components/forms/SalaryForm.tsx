@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { CustomSelect } from '../common/CustomSelect'
 import { NumberInput } from '../common/NumberInput'
+import MonthPicker from '../common/MonthPicker'
 import type { DropdownOption } from '../../hooks/useDropdownOptions'
 
 interface SalaryFormProps {
@@ -51,7 +52,7 @@ export function SalaryForm({
         <h2>הוסף משכורת</h2>
         <form onSubmit={handleSubmit}>
           <label>חודש</label>
-          <input type="month" value={month} onChange={e => setMonth(e.target.value)} required dir="ltr" />
+          <MonthPicker value={month} onChange={setMonth} required />
 
           <label>מעסיק</label>
           <CustomSelect
