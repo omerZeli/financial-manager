@@ -203,7 +203,7 @@ export function InvestmentsTablePage() {
     return null
   }, [channels])
 
-  const channelTable = useTableControls(channelSummaries, channelCols, 'name', 'asc', getChannelValue)
+  const channelTable = useTableControls(channelSummaries, channelCols, 'currentValue', 'desc', getChannelValue)
   const depositTable = useTableControls(deposits, depositCols, 'date', 'desc', getDepositValue)
   const valueTable = useTableControls(valueUpdates, valueCols, 'date', 'desc', getValueUpdateValue)
 
