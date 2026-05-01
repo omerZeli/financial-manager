@@ -101,14 +101,27 @@ export function InvestmentsTablePage() {
     return opts.sort((a, b) => (totals[b.label] || 0) - (totals[a.label] || 0))
   }, [pathOptions, channelSummaries])
 
+  // Pinned depositor options: "אני" + unique employer names
+  const pinnedDepositors = useMemo(() => {
+    const employers = [...new Set(salaries.map(s => s.employer))].sort()
+    return ['אני', ...employers]
+  }, [salaries])
+
   // Sort depositor options by total deposited per depositor
+  // Include pinned depositors that aren't in DB options so they participate in the sort
   const sortedDepositorOptions = useMemo(() => {
     const totals: Record<string, number> = {}
     for (const d of deposits) {
       if (!d.is_withdrawal) totals[d.depositor] = (totals[d.depositor] || 0) + d.amount
     }
-    return [...depositorOptions].sort((a, b) => (totals[b.label] || 0) - (totals[a.label] || 0))
-  }, [depositorOptions, deposits])
+    const opts = [...depositorOptions]
+    for (const label of pinnedDepositors) {
+      if (!opts.some(o => o.label === label)) {
+        opts.push({ id: `__pinned__${label}`, label })
+      }
+    }
+    return opts.sort((a, b) => (totals[b.label] || 0) - (totals[a.label] || 0))
+  }, [depositorOptions, deposits, pinnedDepositors])
 
   // Sort channel options for ReadOnlySelect by total deposits
   const sortedChannelSelectOptions = useMemo(() => {
@@ -116,12 +129,6 @@ export function InvestmentsTablePage() {
       .sort((a, b) => b.totalDeposits - a.totalDeposits)
       .map(ch => ({ value: ch.id, label: `${ch.name} - ${ch.company}` }))
   }, [channelSummaries])
-
-  // Pinned depositor options: "אני" + unique employer names
-  const pinnedDepositors = useMemo(() => {
-    const employers = [...new Set(salaries.map(s => s.employer))].sort()
-    return ['אני', ...employers]
-  }, [salaries])
 
   // All salaries for deposit salary deduction
   const allSalaries = useMemo(() => [...salaries], [salaries])
