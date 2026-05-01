@@ -1,6 +1,9 @@
 import type { InvestmentDeposit } from '../contexts/InvestmentDepositsContext'
 import type { InvestmentValueUpdate } from '../contexts/InvestmentValuesContext'
 
+/** Hardcoded cash path label — used to identify cash/checking-account channels */
+export const CASH_PATH_LABEL = 'מזומן / עו"ש'
+
 /**
  * Event Sourcing / Checkpoint recalculation engine for investment channels.
  *
@@ -12,6 +15,10 @@ import type { InvestmentValueUpdate } from '../contexts/InvestmentValuesContext'
  * - Value Update → hard-overrides the running balance (checkpoint).
  *   The delta between the running balance before the checkpoint and the new value
  *   is accumulated as profit/loss.
+ *
+ * For **cash channels** (investment_path === CASH_PATH_LABEL), value updates represent
+ * the total balance. The value IS the deposits amount, so return is always 0.
+ * Actual deposit/withdrawal records are ignored for cash channels.
  *
  * This approach removes any need for chronological input ordering —
  * users can add retroactive events at any past date.
@@ -39,7 +46,26 @@ export function computeChannelSummary(
   channelId: string,
   deposits: InvestmentDeposit[],
   valueUpdates: InvestmentValueUpdate[],
+  isCash = false,
 ): ChannelSummary {
+  // Cash channels: value update IS the balance, deposits are ignored, return is always 0
+  if (isCash) {
+    const channelValues = valueUpdates
+      .filter(v => v.channel_id === channelId)
+      .sort((a, b) => a.date.localeCompare(b.date))
+    if (channelValues.length === 0) {
+      return { totalDeposits: 0, currentValue: 0, lastUpdated: null, returnAbsolute: 0, returnPercent: 0 }
+    }
+    const latest = channelValues[channelValues.length - 1]
+    return {
+      totalDeposits: latest.value,
+      currentValue: latest.value,
+      lastUpdated: latest.date,
+      returnAbsolute: 0,
+      returnPercent: 0,
+    }
+  }
+
   // Build unified event list
   const events: Event[] = []
 

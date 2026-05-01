@@ -187,6 +187,7 @@ The investments section tracks investment channels, deposits, withdrawals, and v
   - **Value Update** → acts as a **checkpoint** that hard-overrides the running balance. The delta between the running balance before the checkpoint and the new value is accumulated as profit/loss.
 - On same-date events, deposits/withdrawals are processed before value updates so checkpoints capture the balance after that day's cash flows.
 - Both the table page (`channelSummaries`) and charts page (`summaries`, `returnOverTime`) use `computeChannelSummary` for all calculations.
+- **Cash channels** (`investment_path === CASH_PATH_LABEL`): For channels whose path is `'מזומן/עו"ש'`, value updates represent the total balance directly. Deposit/withdrawal records are ignored. The value IS the deposits amount, so return is always 0. The `computeChannelSummary` function accepts an `isCash` flag to enable this behavior.
 
 #### FAB Type Picker
 - Clicking the + FAB opens a popup menu with three options: create channel, deposit, withdrawal.
@@ -197,6 +198,7 @@ The investments section tracks investment channels, deposits, withdrawals, and v
 - Fields: `name`, `company`, `investment_path`, `is_pension` (boolean)
 - Context: `InvestmentChannelsContext` (`src/contexts/InvestmentChannelsContext.tsx`)
 - Dropdown company: `investment_company`
+- The `investment_path` dropdown has a **hardcoded pinned option** `'מזומן/עו"ש'` (exported as `CASH_PATH_LABEL` from `computeChannelSummary.ts`). This option is always present and cannot be deleted by the user.
 - The add form has a **toggle switch** ("אפיק פנסיוני?") for the pension flag.
 
 #### Investment Deposits (`investment_deposits` table)
@@ -296,11 +298,12 @@ Expense types allow users to group expense categories into named types for use i
 - When adding a new parent-child relationship, always add `ON DELETE CASCADE` to the FK and a corresponding `removeBy...` cache cleanup helper in the child context.
 
 ## Custom Dropdown Options
-- All dropdowns in the project use **user-managed options** — there are no hardcoded/static option lists.
+- All dropdowns in the project use **user-managed options** — there are no hardcoded/static option lists (with one exception below).
 - Options are stored per-user in the `user_dropdown_options` table, categorized by a `category` string (e.g. `'credit_card_company'`).
 - The shared `CustomSelect` component (`components/common/CustomSelect.tsx`) supports adding and removing options inline, as well as searching/filtering.
 - Use the `useDropdownOptions` hook (`hooks/useDropdownOptions.ts`) to fetch, add, and remove options for a given category.
 - When adding a new dropdown field, create a new category string and wire it through the hook and `CustomSelect` with `onAddOption`/`onRemoveOption` props.
+- **Exception — investment_path**: The `investment_path` dropdown includes a hardcoded pinned option `'מזומן/עו"ש'` via the `pinnedOptions` prop. This option is always available and cannot be deleted. It identifies cash/checking-account channels that use special computation logic (see Cash channels in Event Sourcing Architecture).
 
 ## Dropdown Option Sorting
 - All select/dropdown options across the app are **sorted by their associated total monetary value**, descending (highest first).

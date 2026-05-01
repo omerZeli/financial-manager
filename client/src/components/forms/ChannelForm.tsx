@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { CustomSelect } from '../common/CustomSelect'
+import { CASH_PATH_LABEL } from '../../lib/computeChannelSummary'
 import type { DropdownOption } from '../../hooks/useDropdownOptions'
 
 interface ChannelFormProps {
@@ -65,6 +66,7 @@ export function ChannelForm({
           <label>מסלול השקעה</label>
           <CustomSelect
             options={sortedPathOptions}
+            pinnedOptions={[CASH_PATH_LABEL]}
             value={chPath}
             placeholder="הכנס מסלול השקעה"
             onChange={setChPath}

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { CustomSelect } from '../common/CustomSelect'
 import { NumberInput } from '../common/NumberInput'
 import DateInput from '../common/DatePicker'
+import { CASH_PATH_LABEL } from '../../lib/computeChannelSummary'
 import type { DropdownOption } from '../../hooks/useDropdownOptions'
 
 interface ValueUpdateFormProps {
@@ -58,6 +59,7 @@ export function ValueUpdateForm({
           <label>מסלול השקעה</label>
           <CustomSelect
             options={sortedPathOptions}
+            pinnedOptions={[CASH_PATH_LABEL]}
             value={valPath}
             placeholder="הכנס מסלול השקעה"
             onChange={setValPath}

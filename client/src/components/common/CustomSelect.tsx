@@ -33,8 +33,12 @@ export function CustomSelect({
 
   const pinnedSet = new Set(pinnedOptions)
   const allOptions: (DropdownOption & { pinned?: boolean })[] = [
-    ...pinnedOptions.map(label => ({ id: `__pinned__${label}`, label, pinned: true })),
-    ...options.filter(o => !pinnedSet.has(o.label)),
+    // Keep options in their original (sorted) order, marking pinned ones
+    ...options.map(o => pinnedSet.has(o.label) ? { ...o, pinned: true } : o),
+    // Append pinned labels that don't exist in options (at the end)
+    ...pinnedOptions
+      .filter(label => !options.some(o => o.label === label))
+      .map(label => ({ id: `__pinned__${label}`, label, pinned: true })),
   ]
   const selected = allOptions.find((o) => o.label === value)
   const filtered = search

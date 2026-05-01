@@ -6,7 +6,7 @@ import { useInvestmentValues } from '../contexts/InvestmentValuesContext'
 import { FilterMultiSelect } from '../components/common/FilterMultiSelect'
 import DateInput from '../components/common/DatePicker'
 import { ChartFilterPopover } from '../components/common/ChartFilterPopover'
-import { computeChannelSummary } from '../lib/computeChannelSummary'
+import { computeChannelSummary, CASH_PATH_LABEL } from '../lib/computeChannelSummary'
 import './Section.css'
 
 function formatCurrency(n: number) {
@@ -102,7 +102,8 @@ export function InvestmentsChartsPage() {
 
   const summaries = useMemo(() => {
     return filteredChannels.map(ch => {
-      const summary = computeChannelSummary(ch.id, filteredDeposits, filteredValues)
+      const isCash = ch.investment_path === CASH_PATH_LABEL
+      const summary = computeChannelSummary(ch.id, filteredDeposits, filteredValues, isCash)
       return { ...ch, ...summary }
     })
   }, [filteredChannels, filteredDeposits, filteredValues])
@@ -254,7 +255,8 @@ export function InvestmentsChartsPage() {
       let totalValue = 0
 
       for (const ch of filteredChannels) {
-        const summary = computeChannelSummary(ch.id, depositsToDate, valuesToDate)
+        const isCash = ch.investment_path === CASH_PATH_LABEL
+        const summary = computeChannelSummary(ch.id, depositsToDate, valuesToDate, isCash)
         totalInvested += summary.totalDeposits
         totalValue += summary.currentValue
       }

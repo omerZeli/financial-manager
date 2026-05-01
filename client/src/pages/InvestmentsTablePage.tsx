@@ -14,7 +14,7 @@ import { ValueUpdateForm } from '../components/forms/ValueUpdateForm'
 import { WithdrawalForm } from '../components/forms/WithdrawalForm'
 import { EditDepositForm } from '../components/forms/EditDepositForm'
 import { EditValueUpdateForm } from '../components/forms/EditValueUpdateForm'
-import { computeChannelSummary } from '../lib/computeChannelSummary'
+import { computeChannelSummary, CASH_PATH_LABEL } from '../lib/computeChannelSummary'
 import './Section.css'
 
 function formatDate(dateStr: string) {
@@ -76,7 +76,8 @@ export function InvestmentsTablePage() {
   // Computed channel summary data (event sourcing recalculation)
   const channelSummaries = useMemo(() => {
     return channels.map(ch => {
-      const summary = computeChannelSummary(ch.id, deposits, valueUpdates)
+      const isCash = ch.investment_path === CASH_PATH_LABEL
+      const summary = computeChannelSummary(ch.id, deposits, valueUpdates, isCash)
       return { ...ch, ...summary }
     })
   }, [channels, deposits, valueUpdates])
@@ -92,7 +93,12 @@ export function InvestmentsTablePage() {
   const sortedPathOptions = useMemo(() => {
     const totals: Record<string, number> = {}
     for (const cs of channelSummaries) totals[cs.investment_path] = (totals[cs.investment_path] || 0) + cs.currentValue
-    return [...pathOptions].sort((a, b) => (totals[b.label] || 0) - (totals[a.label] || 0))
+    const opts = [...pathOptions]
+    // Ensure the hardcoded cash option participates in sorting even if not a user-created DB option
+    if (!opts.some(o => o.label === CASH_PATH_LABEL)) {
+      opts.push({ id: `__pinned__${CASH_PATH_LABEL}`, label: CASH_PATH_LABEL })
+    }
+    return opts.sort((a, b) => (totals[b.label] || 0) - (totals[a.label] || 0))
   }, [pathOptions, channelSummaries])
 
   // Sort depositor options by total deposited per depositor
