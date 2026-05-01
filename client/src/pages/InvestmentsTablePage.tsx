@@ -549,6 +549,8 @@ export function InvestmentsTablePage() {
             addDepositor={addDepositor}
             removeDepositor={removeDepositor}
             pinnedDepositors={pinnedDepositors}
+            salaryOptions={salaryOptions}
+            recentSalaries={allSalaries}
             onSubmit={async (id, fields) => { await updateDeposit(id, fields) }}
             onClose={() => setEditingDeposit(null)}
           />

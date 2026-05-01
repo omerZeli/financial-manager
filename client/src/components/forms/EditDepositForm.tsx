@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { CustomSelect } from '../common/CustomSelect'
 import { NumberInput } from '../common/NumberInput'
 import { ReadOnlySelect } from '../common/ReadOnlySelect'
@@ -11,6 +11,7 @@ interface Deposit {
   amount: number
   date: string
   depositor: string
+  salary_id: string | null
 }
 
 interface EditDepositFormProps {
@@ -21,7 +22,9 @@ interface EditDepositFormProps {
   addDepositor: (label: string) => Promise<DropdownOption | null>
   removeDepositor: (id: string) => Promise<boolean>
   pinnedDepositors: string[]
-  onSubmit: (id: string, fields: { channel_id: string; amount: number; date: string; depositor: string }) => Promise<void>
+  salaryOptions: { value: string; label: string }[]
+  recentSalaries: { id: string; month: string; employer: string }[]
+  onSubmit: (id: string, fields: { channel_id: string; amount: number; date: string; depositor: string; salary_id: string | null }) => Promise<void>
   onClose: () => void
 }
 
@@ -33,6 +36,8 @@ export function EditDepositForm({
   addDepositor,
   removeDepositor,
   pinnedDepositors,
+  salaryOptions: salaryOptionsProp,
+  recentSalaries,
   onSubmit,
   onClose,
 }: EditDepositFormProps) {
@@ -41,12 +46,48 @@ export function EditDepositForm({
   const [editDepDate, setEditDepDate] = useState(deposit.date)
   const [editDepDepositor, setEditDepDepositor] = useState(deposit.depositor)
   const [editDepSaving, setEditDepSaving] = useState(false)
+  const [editDepDeductedFromSalary, setEditDepDeductedFromSalary] = useState(!!deposit.salary_id)
+  const [editDepSelectedSalaryId, setEditDepSelectedSalaryId] = useState(deposit.salary_id || '')
+
+  const isPinnedDepositor = useMemo(() => {
+    return pinnedDepositors.includes(editDepDepositor)
+  }, [pinnedDepositors, editDepDepositor])
+
+  // Filtered salary options based on depositor
+  const salaryOptions = useMemo(() => {
+    const filtered = editDepDepositor && editDepDepositor !== 'אני'
+      ? salaryOptionsProp.filter(s => s.label.includes(editDepDepositor))
+      : salaryOptionsProp
+    return filtered
+  }, [salaryOptionsProp, editDepDepositor])
+
+  // Auto-select salary when date/depositor changes (only if no salary already selected)
+  useEffect(() => {
+    if (!editDepDeductedFromSalary || !editDepDate) { setEditDepSelectedSalaryId(''); return }
+    // If the user already has a salary selected (from the existing deposit), keep it
+    if (editDepSelectedSalaryId) return
+    const d = new Date(editDepDate + 'T00:00:00')
+    const prev = new Date(d.getFullYear(), d.getMonth() - 1, 1)
+    const prevMonth = `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, '0')}`
+    let matching = recentSalaries.filter(s => s.month.slice(0, 7) === prevMonth)
+    if (editDepDepositor && editDepDepositor !== 'אני') {
+      matching = matching.filter(s => s.employer === editDepDepositor)
+    }
+    if (matching.length === 1) setEditDepSelectedSalaryId(matching[0].id)
+    else setEditDepSelectedSalaryId('')
+  }, [editDepDeductedFromSalary, editDepDate, editDepDepositor, recentSalaries])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!editDepChannel || !editDepAmount || !editDepDate || !editDepDepositor) return
     setEditDepSaving(true)
-    await onSubmit(deposit.id, { channel_id: editDepChannel, amount: Number(editDepAmount), date: editDepDate, depositor: editDepDepositor })
+    await onSubmit(deposit.id, {
+      channel_id: editDepChannel,
+      amount: Number(editDepAmount),
+      date: editDepDate,
+      depositor: editDepDepositor,
+      salary_id: editDepDeductedFromSalary && editDepSelectedSalaryId ? editDepSelectedSalaryId : null,
+    })
     setEditDepSaving(false)
     onClose()
   }
@@ -74,7 +115,7 @@ export function EditDepositForm({
             pinnedOptions={pinnedDepositors}
             value={editDepDepositor}
             placeholder="הכנס מפקיד"
-            onChange={setEditDepDepositor}
+            onChange={(val) => { setEditDepDepositor(val); setEditDepDeductedFromSalary(false); setEditDepSelectedSalaryId('') }}
             onAddOption={addDepositor}
             onRemoveOption={removeDepositor}
             loading={depositorLoading}
@@ -83,8 +124,36 @@ export function EditDepositForm({
           <label>תאריך</label>
           <DateInput value={editDepDate} onChange={setEditDepDate} required />
 
+          {isPinnedDepositor && editDepDepositor && (
+            <div className="toggle-row">
+              <label className="toggle-label" htmlFor="edit-dep-salary-deduct">נוכה מהמשכורת?</label>
+              <button
+                type="button"
+                id="edit-dep-salary-deduct"
+                role="switch"
+                aria-checked={editDepDeductedFromSalary}
+                className={`toggle-switch${editDepDeductedFromSalary ? ' active' : ''}`}
+                onClick={() => { setEditDepDeductedFromSalary(prev => !prev); setEditDepSelectedSalaryId('') }}
+              >
+                <span className="toggle-knob" />
+              </button>
+            </div>
+          )}
+
+          {editDepDeductedFromSalary && (
+            <>
+              <label>משכורת</label>
+              <ReadOnlySelect
+                options={salaryOptions}
+                value={editDepSelectedSalaryId}
+                placeholder="בחר משכורת"
+                onChange={setEditDepSelectedSalaryId}
+              />
+            </>
+          )}
+
           <div className="modal-actions">
-            <button type="submit" className="btn-primary" disabled={editDepSaving || !editDepChannel || !editDepDepositor}>
+            <button type="submit" className="btn-primary" disabled={editDepSaving || !editDepChannel || !editDepDepositor || (editDepDeductedFromSalary && !editDepSelectedSalaryId)}>
               {editDepSaving ? 'שומר...' : 'שמור'}
             </button>
             <button type="button" className="btn-cancel" onClick={onClose}>ביטול</button>
