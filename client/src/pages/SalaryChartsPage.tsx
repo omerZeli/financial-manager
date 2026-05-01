@@ -96,17 +96,27 @@ export function SalaryChartsPage() {
     if (!filtered.length) return { investmentDeductions: 0, employerDeposits: 0, expenseDeductions: 0, other: 0 }
 
     const salaryIds = new Set(filtered.map(s => s.id))
-    const salaryMap = new Map(filtered.map(s => [s.id, s]))
+    const filteredEmployers = new Set(filtered.map(s => s.employer))
 
+    // Investment deductions: deposits linked to a filtered salary where depositor is "אני"
     const linkedDeposits = deposits.filter(d => d.salary_id && salaryIds.has(d.salary_id))
-    let employerTotal = 0
     let investmentTotal = 0
     for (const dep of linkedDeposits) {
-      const sal = salaryMap.get(dep.salary_id!)
-      if (sal && dep.depositor === sal.employer) {
+      investmentTotal += dep.amount
+    }
+
+    // Employer deposits: all non-withdrawal deposits where the depositor is one of the
+    // filtered employers, within the time range. These are NOT salary deductions — they
+    // are employer contributions tracked by depositor name and date.
+    const minMonth = getMinMonth(timeRange, customFrom)
+    const maxMonth = timeRange === 'custom' && customTo ? customTo : '9999-12-31'
+    let employerTotal = 0
+    for (const dep of deposits) {
+      if (dep.is_withdrawal) continue
+      if (dep.depositor === 'אני') continue
+      if (!filteredEmployers.has(dep.depositor)) continue
+      if (dep.date >= minMonth && dep.date <= maxMonth) {
         employerTotal += dep.amount
-      } else {
-        investmentTotal += dep.amount
       }
     }
 
@@ -136,9 +146,9 @@ export function SalaryChartsPage() {
       investmentDeductions: agg(investmentTotal),
       employerDeposits: agg(employerTotal),
       expenseDeductions: agg(expenseTotal),
-      other: Math.max(0, aggDiff - agg(investmentTotal) - agg(employerTotal) - agg(expenseTotal)),
+      other: Math.max(0, aggDiff - agg(investmentTotal) - agg(expenseTotal)),
     }
-  }, [filtered, deposits, expenses, fixedExpenses, aggDiff, aggMode])
+  }, [filtered, deposits, expenses, fixedExpenses, aggDiff, aggMode, timeRange, customFrom, customTo])
 
   const maxVal = filtered.reduce((m, r) => Math.max(m, r.bruto, r.neto), 0) || 1
 

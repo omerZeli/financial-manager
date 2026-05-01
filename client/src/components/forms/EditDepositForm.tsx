@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import { CustomSelect } from '../common/CustomSelect'
 import { NumberInput } from '../common/NumberInput'
 import { ReadOnlySelect } from '../common/ReadOnlySelect'
@@ -49,19 +49,9 @@ export function EditDepositForm({
   const [editDepDeductedFromSalary, setEditDepDeductedFromSalary] = useState(!!deposit.salary_id)
   const [editDepSelectedSalaryId, setEditDepSelectedSalaryId] = useState(deposit.salary_id || '')
 
-  const isPinnedDepositor = useMemo(() => {
-    return pinnedDepositors.includes(editDepDepositor)
-  }, [pinnedDepositors, editDepDepositor])
+  const isDepositorMe = editDepDepositor === 'אני'
 
-  // Filtered salary options based on depositor
-  const salaryOptions = useMemo(() => {
-    const filtered = editDepDepositor && editDepDepositor !== 'אני'
-      ? salaryOptionsProp.filter(s => s.label.includes(editDepDepositor))
-      : salaryOptionsProp
-    return filtered
-  }, [salaryOptionsProp, editDepDepositor])
-
-  // Auto-select salary when date/depositor changes (only if no salary already selected)
+  // Auto-select salary when date changes (only if no salary already selected)
   useEffect(() => {
     if (!editDepDeductedFromSalary || !editDepDate) { setEditDepSelectedSalaryId(''); return }
     // If the user already has a salary selected (from the existing deposit), keep it
@@ -69,13 +59,10 @@ export function EditDepositForm({
     const d = new Date(editDepDate + 'T00:00:00')
     const prev = new Date(d.getFullYear(), d.getMonth() - 1, 1)
     const prevMonth = `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, '0')}`
-    let matching = recentSalaries.filter(s => s.month.slice(0, 7) === prevMonth)
-    if (editDepDepositor && editDepDepositor !== 'אני') {
-      matching = matching.filter(s => s.employer === editDepDepositor)
-    }
+    const matching = recentSalaries.filter(s => s.month.slice(0, 7) === prevMonth)
     if (matching.length === 1) setEditDepSelectedSalaryId(matching[0].id)
     else setEditDepSelectedSalaryId('')
-  }, [editDepDeductedFromSalary, editDepDate, editDepDepositor, recentSalaries])
+  }, [editDepDeductedFromSalary, editDepDate, recentSalaries])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -124,7 +111,7 @@ export function EditDepositForm({
           <label>תאריך</label>
           <DateInput value={editDepDate} onChange={setEditDepDate} required />
 
-          {isPinnedDepositor && editDepDepositor && (
+          {isDepositorMe && (
             <div className="toggle-row">
               <label className="toggle-label" htmlFor="edit-dep-salary-deduct">נוכה מהמשכורת?</label>
               <button
@@ -144,7 +131,7 @@ export function EditDepositForm({
             <>
               <label>משכורת</label>
               <ReadOnlySelect
-                options={salaryOptions}
+                options={salaryOptionsProp}
                 value={editDepSelectedSalaryId}
                 placeholder="בחר משכורת"
                 onChange={setEditDepSelectedSalaryId}
