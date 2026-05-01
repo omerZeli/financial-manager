@@ -74,7 +74,7 @@
 .section-table-wrap thead {
   position: sticky;
   top: 0;
-  z-index: 1;
+  z-index: 2;
 }
 
 .section-table {
@@ -110,6 +110,27 @@
 }
 
 .section-table tr:hover td {
+  background: var(--bg-subtle);
+}
+
+/* Sticky first column (RTL — first column is on the right) */
+.section-table th:first-child,
+.section-table td:first-child {
+  position: sticky;
+  right: 0;
+  z-index: 1;
+}
+
+.section-table th:first-child {
+  z-index: 3;
+  background: var(--bg-subtle);
+}
+
+.section-table td:first-child {
+  background: var(--bg);
+}
+
+.section-table tr:hover td:first-child {
   background: var(--bg-subtle);
 }
 
@@ -828,6 +849,10 @@
 
 /* Payback styles */
 .payback-row {
+  background: var(--accent-bg);
+}
+
+.payback-row td:first-child {
   background: var(--accent-bg);
 }
 
