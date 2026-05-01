@@ -6,6 +6,10 @@
   width: 100%;
 }
 
+.section-page.section-page-wide {
+  max-width: 1050px;
+}
+
 .section-header {
   display: flex;
   align-items: center;

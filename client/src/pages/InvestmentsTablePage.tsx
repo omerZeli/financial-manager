@@ -221,7 +221,7 @@ export function InvestmentsTablePage() {
   const isLoading = chLoading || depLoading || valLoading
 
   return (
-    <div className="section-page">
+    <div className={`section-page${activeTab === 'channels' ? ' section-page-wide' : ''}`}>
       <div className="section-header">
         <h1>השקעות</h1>
         <div className="section-header-actions">
