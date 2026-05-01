@@ -228,15 +228,22 @@ export function InvestmentsChartsPage() {
     const endD = new Date(endDateStr + 'T00:00:00')
     const endMonthEnd = new Date(endD.getFullYear(), endD.getMonth() + 1, 0)
 
-    // Build list of 15th-of-month dates spanning the range
+    // Build list of last-day-of-month dates spanning the range
     const monthlyDates: string[] = []
-    const cursor = new Date(firstD.getFullYear(), firstD.getMonth(), 15)
-    if (cursor < firstD) cursor.setMonth(cursor.getMonth() + 1)
+    const cursor = new Date(firstD.getFullYear(), firstD.getMonth() + 1, 0) // last day of firstD's month
+    if (cursor < firstD) {
+      // move to last day of next month
+      cursor.setMonth(cursor.getMonth() + 2)
+      cursor.setDate(0)
+    }
     while (cursor <= endMonthEnd) {
       const y = cursor.getFullYear()
       const m = String(cursor.getMonth() + 1).padStart(2, '0')
-      monthlyDates.push(`${y}-${m}-15`)
-      cursor.setMonth(cursor.getMonth() + 1)
+      const d = String(cursor.getDate()).padStart(2, '0')
+      monthlyDates.push(`${y}-${m}-${d}`)
+      // Move to last day of next month
+      cursor.setMonth(cursor.getMonth() + 2)
+      cursor.setDate(0)
     }
 
     // If no 15th falls in range, use the actual event dates (capped at 12)
@@ -394,11 +401,8 @@ export function InvestmentsChartsPage() {
             // Format grid label: show decimal only if step is 0.5
             const fmtGrid = (v: number) => (step < 1 ? v.toFixed(1) : v.toFixed(0)) + '%'
 
-            // X-axis labels — pick ~6 evenly spaced
-            const labelCount = Math.min(6, returnOverTime.length)
-            const labelIndices = Array.from({ length: labelCount }, (_, i) =>
-              Math.round((i / (labelCount - 1)) * (returnOverTime.length - 1))
-            )
+            // X-axis labels — show every data point
+            const labelIndices = returnOverTime.map((_, i) => i)
 
             // Zero line
             const zeroY = yMin <= 0 && yMax >= 0 ? toY(0) : null
