@@ -35,7 +35,7 @@ function getMinDate(range: TimeRange, customFrom: string): string {
   if (range === 'all') return '0000-01-01'
   const now = new Date()
   const months = range === 'last6' ? 6 : 12
-  now.setMonth(now.getMonth() - months + 1)
+  now.setMonth(now.getMonth() - months)
   now.setDate(1)
   return now.toISOString().slice(0, 10)
 }
@@ -100,22 +100,103 @@ export function InvestmentsChartsPage() {
     return channels
   }, [channels, selectedChannels])
 
+  const isFiltered = timeRange !== 'all'
+
   const summaries = useMemo(() => {
     return filteredChannels.map(ch => {
       const isCash = ch.investment_path === CASH_PATH_LABEL
       const summary = computeChannelSummary(ch.id, filteredDeposits, filteredValues, isCash)
-      return { ...ch, ...summary }
+      return { ...ch, ...summary, isCash }
     })
   }, [filteredChannels, filteredDeposits, filteredValues])
 
-  const totalDeposited = summaries.reduce((s, c) => s + c.totalDeposits, 0)
-  const totalCurrentValue = summaries.reduce((s, c) => s + c.currentValue, 0)
-  const totalReturn = totalCurrentValue - totalDeposited
-  const totalReturnPercent = totalDeposited > 0 ? totalReturn / totalDeposited : 0
+  // Cash channels have fake deposits (value = deposits), so exclude them from
+  // the deposits card and return calculations. They still count toward current value.
+  const nonCashSummaries = useMemo(() => summaries.filter(s => !s.isCash), [summaries])
+  const nonCashChannels = useMemo(() => filteredChannels.filter(ch => ch.investment_path !== CASH_PATH_LABEL), [filteredChannels])
+  const cashChannelIds = useMemo(() => new Set(filteredChannels.filter(ch => ch.investment_path === CASH_PATH_LABEL).map(ch => ch.id)), [filteredChannels])
 
-  // Earliest deposit date across filtered channels → investment duration
+  // Gross deposits in range (excluding cash channels and withdrawals) for the deposits card
+  const totalDeposited = useMemo(() => {
+    return filteredDeposits
+      .filter(d => !cashChannelIds.has(d.channel_id) && !d.is_withdrawal)
+      .reduce((s, d) => s + d.amount, 0)
+  }, [filteredDeposits, cashChannelIds])
+  const totalCurrentValue = summaries.reduce((s, c) => s + c.currentValue, 0)
+
+  // Compute total return correctly for filtered time ranges.
+  // When a time filter is active, we compare the portfolio value at the start
+  // of the range to the value at the end, subtracting net cash flows in the range.
+  // Formula: return = (endValue - startValue) - netCashFlowInRange
+  const { totalReturn, totalReturnPercent } = useMemo(() => {
+    if (!isFiltered) {
+      // No time filter — use net invested capital from non-cash summaries
+      const nonCashValue = nonCashSummaries.reduce((s, c) => s + c.currentValue, 0)
+      const netInvested = nonCashSummaries.reduce((s, c) => s + c.totalDeposits, 0)
+      const ret = nonCashValue - netInvested
+      return { totalReturn: ret, totalReturnPercent: netInvested > 0 ? ret / netInvested : 0 }
+    }
+
+    const minDate = getMinDate(timeRange, customFrom)
+    const maxDate = timeRange === 'custom' && customTo ? customTo : '9999-12-31'
+    const channelSet = new Set(nonCashChannels.map(ch => ch.id))
+
+    // Events before the range start → opening balance per channel (non-cash only)
+    const depositsBeforeRange = deposits.filter(d => channelSet.has(d.channel_id) && d.date < minDate)
+    const valuesBeforeRange = valueUpdates.filter(v => channelSet.has(v.channel_id) && v.date < minDate)
+
+    // Events up to the range end → closing balance per channel (non-cash only)
+    const depositsToEnd = deposits.filter(d => channelSet.has(d.channel_id) && d.date <= maxDate)
+    const valuesToEnd = valueUpdates.filter(v => channelSet.has(v.channel_id) && v.date <= maxDate)
+
+    let openingValue = 0
+    let closingValue = 0
+
+    for (const ch of nonCashChannels) {
+      const startSummary = computeChannelSummary(ch.id, depositsBeforeRange, valuesBeforeRange, false)
+      const endSummary = computeChannelSummary(ch.id, depositsToEnd, valuesToEnd, false)
+      openingValue += startSummary.currentValue
+      closingValue += endSummary.currentValue
+    }
+
+    // Net cash flow within the range (deposits minus withdrawals), excluding cash channels
+    const nonCashFilteredDeposits = filteredDeposits.filter(d => !cashChannelIds.has(d.channel_id))
+    const netCashFlow = nonCashFilteredDeposits.reduce((sum, d) => {
+      return sum + (d.is_withdrawal ? -d.amount : d.amount)
+    }, 0)
+
+    const ret = (closingValue - openingValue) - netCashFlow
+    // Base for percentage: opening value + deposits in range (the capital at risk)
+    const base = openingValue + nonCashFilteredDeposits.filter(d => !d.is_withdrawal).reduce((s, d) => s + d.amount, 0)
+    return { totalReturn: ret, totalReturnPercent: base > 0 ? ret / base : 0 }
+  }, [isFiltered, timeRange, customFrom, customTo, nonCashSummaries, nonCashChannels, cashChannelIds, filteredDeposits, deposits, valueUpdates])
+
+  // Investment duration — when filtered, use the filter range length; otherwise earliest deposit to today
   const investmentDuration = useMemo(() => {
-    const allDates = filteredDeposits.filter(d => !d.is_withdrawal).map(d => d.date)
+    if (isFiltered) {
+      // For preset ranges, use the exact month count to avoid floating-point drift
+      if (timeRange === 'last6' || timeRange === 'last12') {
+        const totalMonths = timeRange === 'last6' ? 6 : 12
+        const years = Math.floor(totalMonths / 12)
+        const months = totalMonths % 12
+        const parts: string[] = []
+        if (years > 0) parts.push(`${years} שנים`)
+        if (months > 0 || years === 0) parts.push(`${months} חודשים`)
+        return { label: parts.join(' ו-'), months: totalMonths }
+      }
+      const minDate = getMinDate(timeRange, customFrom)
+      const maxDate = timeRange === 'custom' && customTo ? customTo : new Date().toISOString().slice(0, 10)
+      const start = new Date(minDate)
+      const end = new Date(maxDate)
+      const totalMonths = Math.max((end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth()), 0)
+      const years = Math.floor(totalMonths / 12)
+      const months = totalMonths % 12
+      const parts: string[] = []
+      if (years > 0) parts.push(`${years} שנים`)
+      if (months > 0 || years === 0) parts.push(`${months} חודשים`)
+      return { label: parts.join(' ו-'), months: totalMonths }
+    }
+    const allDates = filteredDeposits.filter(d => !d.is_withdrawal && !cashChannelIds.has(d.channel_id)).map(d => d.date)
     if (allDates.length === 0) return { label: '-', months: 0 }
     const earliest = allDates.sort()[0]
     const start = new Date(earliest)
@@ -128,11 +209,14 @@ export function InvestmentsChartsPage() {
     if (years > 0) parts.push(`${years} שנים`)
     if (months > 0 || years === 0) parts.push(`${months} חודשים`)
     return { label: parts.join(' ו-'), months: totalMonths }
-  }, [filteredDeposits])
+  }, [isFiltered, timeRange, customFrom, customTo, filteredDeposits, cashChannelIds])
 
-  // Average yearly return (annualized via monthly CAGR)
+  // Average yearly return (simple annualization)
   const avgYearlyReturn = investmentDuration.months > 0
-    ? Math.pow(1 + totalReturnPercent, 12 / investmentDuration.months) - 1
+    ? totalReturnPercent * (12 / investmentDuration.months)
+    : 0
+  const avgYearlyReturnAbs = investmentDuration.months > 0
+    ? totalReturn * (12 / investmentDuration.months)
     : 0
 
   const isLoading = chLoading || depLoading || valLoading
@@ -203,18 +287,20 @@ export function InvestmentsChartsPage() {
     setCustomTo('')
   }
 
-  // Return over time: compute total return % at the 15th of each month, max 12 points
+  // Return over time: compute total return % at the last day of each month, excluding cash channels
   const returnOverTime = useMemo(() => {
-    const channelSet = new Set(filteredChannels.map(ch => ch.id))
+    const channelSet = new Set(nonCashChannels.map(ch => ch.id))
 
-    // All deposits and value updates for selected channels (unfiltered by time)
+    // All deposits and value updates for selected non-cash channels (unfiltered by time)
     const channelDeposits = deposits.filter(d => channelSet.has(d.channel_id))
     const channelValues = valueUpdates.filter(v => channelSet.has(v.channel_id))
 
-    // All events within the filtered range (deposits + value updates)
+    // All events within the filtered range (non-cash deposits + value updates)
+    const nonCashFilteredDeposits = filteredDeposits.filter(d => channelSet.has(d.channel_id))
+    const nonCashFilteredValues = filteredValues.filter(v => channelSet.has(v.channel_id))
     const allFilteredDates = [
-      ...filteredDeposits.map(d => d.date),
-      ...filteredValues.map(v => v.date),
+      ...nonCashFilteredDeposits.map(d => d.date),
+      ...nonCashFilteredValues.map(v => v.date),
     ]
     if (allFilteredDates.length === 0) return []
 
@@ -266,9 +352,8 @@ export function InvestmentsChartsPage() {
       let totalInvested = 0
       let totalValue = 0
 
-      for (const ch of filteredChannels) {
-        const isCash = ch.investment_path === CASH_PATH_LABEL
-        const summary = computeChannelSummary(ch.id, depositsToDate, valuesToDate, isCash)
+      for (const ch of nonCashChannels) {
+        const summary = computeChannelSummary(ch.id, depositsToDate, valuesToDate, false)
         totalInvested += summary.totalDeposits
         totalValue += summary.currentValue
       }
@@ -280,7 +365,7 @@ export function InvestmentsChartsPage() {
     }
 
     return points
-  }, [filteredDeposits, filteredValues, filteredChannels, deposits, valueUpdates, timeRange, customTo])
+  }, [filteredDeposits, filteredValues, nonCashChannels, deposits, valueUpdates, timeRange, customTo])
 
   return (
     <div className="section-page">
@@ -338,7 +423,7 @@ export function InvestmentsChartsPage() {
         <div className="charts-grid">
           <div className="summary-row">
             <div className="summary-card">
-              <div className="label">הפקדות (נטו)</div>
+              <div className="label">הפקדות</div>
               <div className="value">{formatCurrency(totalDeposited)}</div>
             </div>
             <div className="summary-card">
@@ -360,7 +445,7 @@ export function InvestmentsChartsPage() {
             <div className="summary-card">
               <div className="label">תשואה שנתית ממוצעת</div>
               <div className={`value ${avgYearlyReturn >= 0 ? 'positive-return' : 'negative-return'}`}>
-                {formatCurrency(avgYearlyReturn * totalDeposited)} ({formatPercent(avgYearlyReturn)})
+                {formatCurrency(avgYearlyReturnAbs)} ({formatPercent(avgYearlyReturn)})
               </div>
             </div>
           </div>
