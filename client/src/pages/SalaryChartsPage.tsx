@@ -253,14 +253,14 @@ export function SalaryChartsPage() {
 
               <div className="summary-row">
                 <div className="summary-card">
-                  <div className="label">ניכויים להשקעות</div>
-                  <div className="value">{formatCurrency(breakdown.investmentDeductions)}</div>
-                  {aggBruto > 0 && <div className="sub-value">{((breakdown.investmentDeductions / aggBruto) * 100).toFixed(1)}% מהברוטו</div>}
-                </div>
-                <div className="summary-card">
                   <div className="label">הפקדות מעסיק להשקעות</div>
                   <div className="value">{formatCurrency(breakdown.employerDeposits)}</div>
                   {aggBruto > 0 && <div className="sub-value">{((breakdown.employerDeposits / aggBruto) * 100).toFixed(1)}% מהברוטו</div>}
+                </div>
+                <div className="summary-card">
+                  <div className="label">ניכויים להשקעות</div>
+                  <div className="value">{formatCurrency(breakdown.investmentDeductions)}</div>
+                  {aggBruto > 0 && <div className="sub-value">{((breakdown.investmentDeductions / aggBruto) * 100).toFixed(1)}% מהברוטו</div>}
                 </div>
                 <div className="summary-card">
                   <div className="label">ניכויים להוצאות</div>
