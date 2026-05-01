@@ -7,7 +7,7 @@ import { useSalary } from '../contexts/SalaryContext'
 import { useDropdownOptions } from '../hooks/useDropdownOptions'
 import { useTableControls, type ColumnDef } from '../hooks/useTableControls'
 import { ConfirmDialog } from '../components/common/ConfirmDialog'
-import { SortableTh, FilterPopover } from '../components/common/TableControls'
+import { ColumnHeader, ActiveFiltersBar } from '../components/common/TableControls'
 import { ChannelForm } from '../components/forms/ChannelForm'
 import { DepositForm } from '../components/forms/DepositForm'
 import { ValueUpdateForm } from '../components/forms/ValueUpdateForm'
@@ -51,7 +51,6 @@ export function InvestmentsTablePage() {
   const [pendingDeleteType, setPendingDeleteType] = useState<'channel' | 'deposit' | 'value' | null>(null)
   const [editingDeposit, setEditingDeposit] = useState<string | null>(null)
   const [editingValue, setEditingValue] = useState<string | null>(null)
-  // Value update form initial state (set when opening from channel row)
   const [valueFormInit, setValueFormInit] = useState<{ channelId: string; channelLabel: string; initialValue: string; initialPath: string; initialDate: string } | null>(null)
 
   const pickerRef = useRef<HTMLDivElement>(null)
@@ -94,7 +93,6 @@ export function InvestmentsTablePage() {
     const totals: Record<string, number> = {}
     for (const cs of channelSummaries) totals[cs.investment_path] = (totals[cs.investment_path] || 0) + cs.currentValue
     const opts = [...pathOptions]
-    // Ensure the hardcoded cash option participates in sorting even if not a user-created DB option
     if (!opts.some(o => o.label === CASH_PATH_LABEL)) {
       opts.push({ id: `__pinned__${CASH_PATH_LABEL}`, label: CASH_PATH_LABEL })
     }
@@ -107,8 +105,6 @@ export function InvestmentsTablePage() {
     return ['אני', ...employers]
   }, [salaries])
 
-  // Sort depositor options by total deposited per depositor
-  // Include pinned depositors that aren't in DB options so they participate in the sort
   const sortedDepositorOptions = useMemo(() => {
     const totals: Record<string, number> = {}
     for (const d of deposits) {
@@ -123,14 +119,12 @@ export function InvestmentsTablePage() {
     return opts.sort((a, b) => (totals[b.label] || 0) - (totals[a.label] || 0))
   }, [depositorOptions, deposits, pinnedDepositors])
 
-  // Sort channel options for ReadOnlySelect by total deposits
   const sortedChannelSelectOptions = useMemo(() => {
     return channelSummaries
       .sort((a, b) => b.totalDeposits - a.totalDeposits)
       .map(ch => ({ value: ch.id, label: `${ch.name} - ${ch.company}` }))
   }, [channelSummaries])
 
-  // All salaries for deposit salary deduction
   const allSalaries = useMemo(() => [...salaries], [salaries])
 
   const salaryOptions = useMemo(() => {
@@ -208,6 +202,7 @@ export function InvestmentsTablePage() {
   const valueTable = useTableControls(valueUpdates, valueCols, 'date', 'desc', getValueUpdateValue)
 
   const activeTableCtrl = activeTab === 'channels' ? channelTable : activeTab === 'deposits' ? depositTable : valueTable
+  const activeCols = activeTab === 'channels' ? channelCols : activeTab === 'deposits' ? depositCols : valueCols
 
   const openValueFormForChannel = (channelId: string) => {
     const ch = channels.find(c => c.id === channelId)
@@ -232,9 +227,6 @@ export function InvestmentsTablePage() {
       <div className="section-header">
         <h1>השקעות</h1>
         <div className="section-header-actions">
-          {!isLoading && (
-            <FilterPopover columns={activeTab === 'channels' ? channelCols : activeTab === 'deposits' ? depositCols : valueCols} filters={activeTableCtrl.filters} stringOptions={activeTableCtrl.stringOptions} onStringFilter={activeTableCtrl.setStringFilter} onNumberFilter={activeTableCtrl.setNumberFilter} onDateFilter={activeTableCtrl.setDateFilter} onClear={activeTableCtrl.clearFilters} hasActive={activeTableCtrl.hasActiveFilters} />
-          )}
           <div className="section-tabs">
             <NavLink to="/investments" end className={({ isActive }) => `section-tab${isActive ? ' active' : ''}`}>
               טבלה
@@ -265,27 +257,22 @@ export function InvestmentsTablePage() {
         channelSummaries.length === 0 ? (
           <div className="section-empty">אין אפיקי השקעה עדיין. לחץ על + כדי להוסיף.</div>
         ) : (
+          <div className="section-table-area">
+            <ActiveFiltersBar columns={channelCols} filters={channelTable.filters} onStringFilter={channelTable.setStringFilter} onNumberFilter={channelTable.setNumberFilter} onDateFilter={channelTable.setDateFilter} onClear={channelTable.clearFilters} hasActive={channelTable.hasActiveFilters} />
             <div className="section-table-wrap">
               <table className="section-table">
                 <thead>
                   <tr>
-                    <SortableTh label="שם" colKey="name" sortKey={channelTable.sortKey} sortDir={channelTable.sortDir} onSort={channelTable.toggleSort} />
-                    <SortableTh label="חברה" colKey="company" sortKey={channelTable.sortKey} sortDir={channelTable.sortDir} onSort={channelTable.toggleSort} />
-                    <SortableTh label="מסלול" colKey="investment_path" sortKey={channelTable.sortKey} sortDir={channelTable.sortDir} onSort={channelTable.toggleSort} />
-                    <SortableTh label='סה"כ הפקדות' colKey="totalDeposits" sortKey={channelTable.sortKey} sortDir={channelTable.sortDir} onSort={channelTable.toggleSort} />
-                    <SortableTh label="שווי נוכחי" colKey="currentValue" sortKey={channelTable.sortKey} sortDir={channelTable.sortDir} onSort={channelTable.toggleSort} />
-                    <SortableTh label="עדכון אחרון" colKey="lastUpdated" sortKey={channelTable.sortKey} sortDir={channelTable.sortDir} onSort={channelTable.toggleSort} />
-                    <SortableTh label="תשואה" colKey="returnAbsolute" sortKey={channelTable.sortKey} sortDir={channelTable.sortDir} onSort={channelTable.toggleSort} />
-                    <SortableTh label="תשואה %" colKey="returnPercent" sortKey={channelTable.sortKey} sortDir={channelTable.sortDir} onSort={channelTable.toggleSort} />
+                    {channelCols.map(col => (
+                      <ColumnHeader key={col.key} col={col} sortKey={channelTable.sortKey} sortDir={channelTable.sortDir} onSort={channelTable.toggleSort} filters={channelTable.filters} stringOptions={channelTable.stringOptions[col.key] || []} onStringFilter={channelTable.setStringFilter} onNumberFilter={channelTable.setNumberFilter} onDateFilter={channelTable.setDateFilter} />
+                    ))}
                     <th className="col-actions"></th>
                   </tr>
                 </thead>
                 <tbody>
                   {channelTable.processed.map(ch => (
                     <tr key={ch.id}>
-                      <td>
-                        {ch.name}
-                      </td>
+                      <td>{ch.name}</td>
                       <td>{ch.company}</td>
                       <td>{ch.investment_path}</td>
                       <td className="num-cell">{formatCurrency(ch.totalDeposits)}</td>
@@ -314,20 +301,21 @@ export function InvestmentsTablePage() {
                 </tbody>
               </table>
             </div>
+          </div>
         )
       ) : activeTab === 'deposits' ? (
         deposits.length === 0 ? (
           <div className="section-empty">אין הפקדות ומשיכות עדיין. לחץ על + כדי להוסיף.</div>
         ) : (
+          <div className="section-table-area">
+            <ActiveFiltersBar columns={depositCols} filters={depositTable.filters} onStringFilter={depositTable.setStringFilter} onNumberFilter={depositTable.setNumberFilter} onDateFilter={depositTable.setDateFilter} onClear={depositTable.clearFilters} hasActive={depositTable.hasActiveFilters} />
             <div className="section-table-wrap">
               <table className="section-table">
                 <thead>
                   <tr>
-                    <SortableTh label="אפיק" colKey="channel" sortKey={depositTable.sortKey} sortDir={depositTable.sortDir} onSort={depositTable.toggleSort} />
-                    <SortableTh label="סוג" colKey="type" sortKey={depositTable.sortKey} sortDir={depositTable.sortDir} onSort={depositTable.toggleSort} />
-                    <SortableTh label="סכום" colKey="amount" sortKey={depositTable.sortKey} sortDir={depositTable.sortDir} onSort={depositTable.toggleSort} />
-                    <SortableTh label="מבצע" colKey="depositor" sortKey={depositTable.sortKey} sortDir={depositTable.sortDir} onSort={depositTable.toggleSort} />
-                    <SortableTh label="תאריך" colKey="date" sortKey={depositTable.sortKey} sortDir={depositTable.sortDir} onSort={depositTable.toggleSort} />
+                    {depositCols.map(col => (
+                      <ColumnHeader key={col.key} col={col} sortKey={depositTable.sortKey} sortDir={depositTable.sortDir} onSort={depositTable.toggleSort} filters={depositTable.filters} stringOptions={depositTable.stringOptions[col.key] || []} onStringFilter={depositTable.setStringFilter} onNumberFilter={depositTable.setNumberFilter} onDateFilter={depositTable.setDateFilter} />
+                    ))}
                     <th className="col-actions"></th>
                   </tr>
                 </thead>
@@ -362,18 +350,21 @@ export function InvestmentsTablePage() {
                 </tbody>
               </table>
             </div>
+          </div>
         )
       ) : activeTab === 'values' ? (
         valueUpdates.length === 0 ? (
           <div className="section-empty">אין עדכוני ערך עדיין. לחץ על + כדי להוסיף.</div>
         ) : (
+          <div className="section-table-area">
+            <ActiveFiltersBar columns={valueCols} filters={valueTable.filters} onStringFilter={valueTable.setStringFilter} onNumberFilter={valueTable.setNumberFilter} onDateFilter={valueTable.setDateFilter} onClear={valueTable.clearFilters} hasActive={valueTable.hasActiveFilters} />
             <div className="section-table-wrap">
               <table className="section-table">
                 <thead>
                   <tr>
-                    <SortableTh label="אפיק" colKey="channel" sortKey={valueTable.sortKey} sortDir={valueTable.sortDir} onSort={valueTable.toggleSort} />
-                    <SortableTh label="שווי" colKey="value" sortKey={valueTable.sortKey} sortDir={valueTable.sortDir} onSort={valueTable.toggleSort} />
-                    <SortableTh label="תאריך" colKey="date" sortKey={valueTable.sortKey} sortDir={valueTable.sortDir} onSort={valueTable.toggleSort} />
+                    {valueCols.map(col => (
+                      <ColumnHeader key={col.key} col={col} sortKey={valueTable.sortKey} sortDir={valueTable.sortDir} onSort={valueTable.toggleSort} filters={valueTable.filters} stringOptions={valueTable.stringOptions[col.key] || []} onStringFilter={valueTable.setStringFilter} onNumberFilter={valueTable.setNumberFilter} onDateFilter={valueTable.setDateFilter} />
+                    ))}
                     <th className="col-actions"></th>
                   </tr>
                 </thead>
@@ -403,6 +394,7 @@ export function InvestmentsTablePage() {
                 </tbody>
               </table>
             </div>
+          </div>
         )
       ) : null}
 
@@ -487,7 +479,7 @@ export function InvestmentsTablePage() {
         <button className="section-fab" onClick={() => setModal(modal === 'picker' ? null : 'picker')} title="הוסף">+</button>
       </div>
 
-      {/* Form modals — each is its own component with isolated state */}
+      {/* Form modals */}
       {modal === 'channel' && (
         <ChannelForm
           sortedCompanyOptions={sortedCompanyOptions}

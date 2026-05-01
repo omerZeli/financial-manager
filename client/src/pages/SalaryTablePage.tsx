@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useMemo } from 'react'
 import { NavLink } from 'react-router-dom'
 import { useSalary } from '../contexts/SalaryContext'
 import { ConfirmDialog } from '../components/common/ConfirmDialog'
-import { SortableTh, FilterPopover } from '../components/common/TableControls'
+import { ColumnHeader, ActiveFiltersBar } from '../components/common/TableControls'
 import { useTableControls, type ColumnDef } from '../hooks/useTableControls'
 import { useDropdownOptions } from '../hooks/useDropdownOptions'
 import { SalaryForm } from '../components/forms/SalaryForm'
@@ -56,9 +56,6 @@ export function SalaryTablePage() {
       <div className="section-header">
         <h1>משכורת</h1>
         <div className="section-header-actions">
-          {salaries.length > 0 && (
-            <FilterPopover columns={salaryColumns} filters={table.filters} stringOptions={table.stringOptions} onStringFilter={table.setStringFilter} onNumberFilter={table.setNumberFilter} onDateFilter={table.setDateFilter} onClear={table.clearFilters} hasActive={table.hasActiveFilters} />
-          )}
           <div className="section-tabs">
             <NavLink to="/salary" end className={({ isActive }) => `section-tab${isActive ? ' active' : ''}`}>
               טבלה
@@ -75,14 +72,34 @@ export function SalaryTablePage() {
       ) : salaries.length === 0 ? (
         <div className="section-empty">אין נתוני משכורת עדיין. לחץ על + כדי להוסיף.</div>
       ) : (
-        <div className="section-table-wrap">
+        <div className="section-table-area">
+          <ActiveFiltersBar
+            columns={salaryColumns}
+            filters={table.filters}
+            onStringFilter={table.setStringFilter}
+            onNumberFilter={table.setNumberFilter}
+            onDateFilter={table.setDateFilter}
+            onClear={table.clearFilters}
+            hasActive={table.hasActiveFilters}
+          />
+          <div className="section-table-wrap">
             <table className="section-table">
               <thead>
                 <tr>
-                  <SortableTh label="חודש" colKey="month" sortKey={table.sortKey} sortDir={table.sortDir} onSort={table.toggleSort} />
-                  <SortableTh label="מעסיק" colKey="employer" sortKey={table.sortKey} sortDir={table.sortDir} onSort={table.toggleSort} />
-                  <SortableTh label="ברוטו" colKey="bruto" sortKey={table.sortKey} sortDir={table.sortDir} onSort={table.toggleSort} />
-                  <SortableTh label="נטו" colKey="neto" sortKey={table.sortKey} sortDir={table.sortDir} onSort={table.toggleSort} />
+                  {salaryColumns.map(col => (
+                    <ColumnHeader
+                      key={col.key}
+                      col={col}
+                      sortKey={table.sortKey}
+                      sortDir={table.sortDir}
+                      onSort={table.toggleSort}
+                      filters={table.filters}
+                      stringOptions={table.stringOptions[col.key] || []}
+                      onStringFilter={table.setStringFilter}
+                      onNumberFilter={table.setNumberFilter}
+                      onDateFilter={table.setDateFilter}
+                    />
+                  ))}
                   <th className="col-actions"></th>
                 </tr>
               </thead>
@@ -110,6 +127,7 @@ export function SalaryTablePage() {
               </tbody>
             </table>
           </div>
+        </div>
       )}
 
       <button className="section-fab" onClick={() => setShowModal(true)} title="הוסף משכורת">+</button>

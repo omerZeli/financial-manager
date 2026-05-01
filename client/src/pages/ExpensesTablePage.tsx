@@ -8,7 +8,7 @@ import { useSalary } from '../contexts/SalaryContext'
 import { useDropdownOptions } from '../hooks/useDropdownOptions'
 import { useTableControls, type ColumnDef } from '../hooks/useTableControls'
 import { ConfirmDialog } from '../components/common/ConfirmDialog'
-import { SortableTh, FilterPopover } from '../components/common/TableControls'
+import { ColumnHeader, ActiveFiltersBar } from '../components/common/TableControls'
 import { ExpenseForm } from '../components/forms/ExpenseForm'
 import { FixedExpenseForm } from '../components/forms/FixedExpenseForm'
 import { PaybackForm } from '../components/forms/PaybackForm'
@@ -293,6 +293,7 @@ export function ExpensesTablePage() {
   const paybackTable = useTableControls(paybacks, paybackCols, 'date', 'desc', getPaybackValue)
 
   const activeTable = activeTab === 'all' ? allExpTable : activeTab === 'regular' ? regularExpTable : activeTab === 'fixed' ? fixedExpTable : paybackTable
+  const activeCols = activeTab === 'all' ? allExpCols : activeTab === 'regular' ? regularExpCols : activeTab === 'fixed' ? fixedExpCols : paybackCols
 
   // Close picker on outside click
   useEffect(() => {
@@ -357,9 +358,6 @@ export function ExpensesTablePage() {
       <div className="section-header">
         <h1>הוצאות</h1>
         <div className="section-header-actions">
-          {!isLoading && (
-            <FilterPopover columns={activeTab === 'all' ? allExpCols : activeTab === 'regular' ? regularExpCols : activeTab === 'fixed' ? fixedExpCols : paybackCols} filters={activeTable.filters} stringOptions={activeTable.stringOptions} onStringFilter={activeTable.setStringFilter} onNumberFilter={activeTable.setNumberFilter} onDateFilter={activeTable.setDateFilter} onClear={activeTable.clearFilters} hasActive={activeTable.hasActiveFilters} />
-          )}
           <div className="section-tabs">
             <NavLink to="/expenses" end className={({ isActive }) => `section-tab${isActive ? ' active' : ''}`}>
               טבלה
@@ -393,14 +391,15 @@ export function ExpensesTablePage() {
         allExpenses.length === 0 ? (
           <div className="section-empty">אין הוצאות עדיין. לחץ על + כדי להוסיף.</div>
         ) : (
+          <div className="section-table-area">
+            <ActiveFiltersBar columns={allExpCols} filters={allExpTable.filters} onStringFilter={allExpTable.setStringFilter} onNumberFilter={allExpTable.setNumberFilter} onDateFilter={allExpTable.setDateFilter} onClear={allExpTable.clearFilters} hasActive={allExpTable.hasActiveFilters} />
             <div className="section-table-wrap">
               <table className="section-table">
                 <thead>
                   <tr>
-                    <SortableTh label="שם הוצאה" colKey="name" sortKey={allExpTable.sortKey} sortDir={allExpTable.sortDir} onSort={allExpTable.toggleSort} />
-                    <SortableTh label="קטגוריה" colKey="category" sortKey={allExpTable.sortKey} sortDir={allExpTable.sortDir} onSort={allExpTable.toggleSort} />
-                    <SortableTh label="סכום" colKey="amount" sortKey={allExpTable.sortKey} sortDir={allExpTable.sortDir} onSort={allExpTable.toggleSort} />
-                    <SortableTh label="תאריך" colKey="date" sortKey={allExpTable.sortKey} sortDir={allExpTable.sortDir} onSort={allExpTable.toggleSort} />
+                    {allExpCols.map(col => (
+                      <ColumnHeader key={col.key} col={col} sortKey={allExpTable.sortKey} sortDir={allExpTable.sortDir} onSort={allExpTable.toggleSort} filters={allExpTable.filters} stringOptions={allExpTable.stringOptions[col.key] || []} onStringFilter={allExpTable.setStringFilter} onNumberFilter={allExpTable.setNumberFilter} onDateFilter={allExpTable.setDateFilter} />
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
@@ -415,19 +414,21 @@ export function ExpensesTablePage() {
                 </tbody>
               </table>
             </div>
+          </div>
         )
       ) : activeTab === 'regular' ? (
         expenses.length === 0 ? (
           <div className="section-empty">אין הוצאות רגילות עדיין. לחץ על + כדי להוסיף.</div>
         ) : (
+          <div className="section-table-area">
+            <ActiveFiltersBar columns={regularExpCols} filters={regularExpTable.filters} onStringFilter={regularExpTable.setStringFilter} onNumberFilter={regularExpTable.setNumberFilter} onDateFilter={regularExpTable.setDateFilter} onClear={regularExpTable.clearFilters} hasActive={regularExpTable.hasActiveFilters} />
             <div className="section-table-wrap">
               <table className="section-table">
                 <thead>
                   <tr>
-                    <SortableTh label="שם הוצאה" colKey="name" sortKey={regularExpTable.sortKey} sortDir={regularExpTable.sortDir} onSort={regularExpTable.toggleSort} />
-                    <SortableTh label="קטגוריה" colKey="category" sortKey={regularExpTable.sortKey} sortDir={regularExpTable.sortDir} onSort={regularExpTable.toggleSort} />
-                    <SortableTh label="סכום" colKey="amount" sortKey={regularExpTable.sortKey} sortDir={regularExpTable.sortDir} onSort={regularExpTable.toggleSort} />
-                    <SortableTh label="תאריך" colKey="date" sortKey={regularExpTable.sortKey} sortDir={regularExpTable.sortDir} onSort={regularExpTable.toggleSort} />
+                    {regularExpCols.map(col => (
+                      <ColumnHeader key={col.key} col={col} sortKey={regularExpTable.sortKey} sortDir={regularExpTable.sortDir} onSort={regularExpTable.toggleSort} filters={regularExpTable.filters} stringOptions={regularExpTable.stringOptions[col.key] || []} onStringFilter={regularExpTable.setStringFilter} onNumberFilter={regularExpTable.setNumberFilter} onDateFilter={regularExpTable.setDateFilter} />
+                    ))}
                     <th className="col-actions"></th>
                   </tr>
                 </thead>
@@ -455,20 +456,21 @@ export function ExpensesTablePage() {
                 </tbody>
               </table>
             </div>
+          </div>
         )
       ) : activeTab === 'fixed' ? (
         fixedExpenses.length === 0 ? (
           <div className="section-empty">אין הוצאות קבועות עדיין. לחץ על + כדי להוסיף.</div>
         ) : (
+          <div className="section-table-area">
+            <ActiveFiltersBar columns={fixedExpCols} filters={fixedExpTable.filters} onStringFilter={fixedExpTable.setStringFilter} onNumberFilter={fixedExpTable.setNumberFilter} onDateFilter={fixedExpTable.setDateFilter} onClear={fixedExpTable.clearFilters} hasActive={fixedExpTable.hasActiveFilters} />
             <div className="section-table-wrap">
               <table className="section-table">
                 <thead>
                   <tr>
-                    <SortableTh label="שם הוצאה" colKey="name" sortKey={fixedExpTable.sortKey} sortDir={fixedExpTable.sortDir} onSort={fixedExpTable.toggleSort} />
-                    <SortableTh label="קטגוריה" colKey="category" sortKey={fixedExpTable.sortKey} sortDir={fixedExpTable.sortDir} onSort={fixedExpTable.toggleSort} />
-                    <SortableTh label="סכום" colKey="amount" sortKey={fixedExpTable.sortKey} sortDir={fixedExpTable.sortDir} onSort={fixedExpTable.toggleSort} />
-                    <SortableTh label="תאריך התחלה" colKey="start_date" sortKey={fixedExpTable.sortKey} sortDir={fixedExpTable.sortDir} onSort={fixedExpTable.toggleSort} />
-                    <SortableTh label="תאריך סיום" colKey="end_date" sortKey={fixedExpTable.sortKey} sortDir={fixedExpTable.sortDir} onSort={fixedExpTable.toggleSort} />
+                    {fixedExpCols.map(col => (
+                      <ColumnHeader key={col.key} col={col} sortKey={fixedExpTable.sortKey} sortDir={fixedExpTable.sortDir} onSort={fixedExpTable.toggleSort} filters={fixedExpTable.filters} stringOptions={fixedExpTable.stringOptions[col.key] || []} onStringFilter={fixedExpTable.setStringFilter} onNumberFilter={fixedExpTable.setNumberFilter} onDateFilter={fixedExpTable.setDateFilter} />
+                    ))}
                     <th className="col-actions"></th>
                   </tr>
                 </thead>
@@ -497,22 +499,22 @@ export function ExpensesTablePage() {
                 </tbody>
               </table>
             </div>
+          </div>
         )
       ) : (
         /* Paybacks tab */
         paybacks.length === 0 ? (
           <div className="section-empty">אין העברות עדיין. לחץ על + כדי להוסיף.</div>
         ) : (
+          <div className="section-table-area">
+            <ActiveFiltersBar columns={paybackCols} filters={paybackTable.filters} onStringFilter={paybackTable.setStringFilter} onNumberFilter={paybackTable.setNumberFilter} onDateFilter={paybackTable.setDateFilter} onClear={paybackTable.clearFilters} hasActive={paybackTable.hasActiveFilters} />
             <div className="section-table-wrap">
               <table className="section-table">
                 <thead>
                   <tr>
-                    <SortableTh label="כיוון" colKey="direction" sortKey={paybackTable.sortKey} sortDir={paybackTable.sortDir} onSort={paybackTable.toggleSort} />
-                    <SortableTh label="פרטים" colKey="details" sortKey={paybackTable.sortKey} sortDir={paybackTable.sortDir} onSort={paybackTable.toggleSort} />
-                    <SortableTh label="קטגוריה" colKey="category" sortKey={paybackTable.sortKey} sortDir={paybackTable.sortDir} onSort={paybackTable.toggleSort} />
-                    <SortableTh label="סכום" colKey="amount" sortKey={paybackTable.sortKey} sortDir={paybackTable.sortDir} onSort={paybackTable.toggleSort} />
-                    <SortableTh label="תאריך" colKey="date" sortKey={paybackTable.sortKey} sortDir={paybackTable.sortDir} onSort={paybackTable.toggleSort} />
-                    <SortableTh label="אדם" colKey="person" sortKey={paybackTable.sortKey} sortDir={paybackTable.sortDir} onSort={paybackTable.toggleSort} />
+                    {paybackCols.map(col => (
+                      <ColumnHeader key={col.key} col={col} sortKey={paybackTable.sortKey} sortDir={paybackTable.sortDir} onSort={paybackTable.toggleSort} filters={paybackTable.filters} stringOptions={paybackTable.stringOptions[col.key] || []} onStringFilter={paybackTable.setStringFilter} onNumberFilter={paybackTable.setNumberFilter} onDateFilter={paybackTable.setDateFilter} />
+                    ))}
                     <th className="col-actions"></th>
                   </tr>
                 </thead>
@@ -555,6 +557,7 @@ export function ExpensesTablePage() {
                 </tbody>
               </table>
             </div>
+          </div>
         )
       )}
 

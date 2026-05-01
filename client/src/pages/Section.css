@@ -66,13 +66,21 @@
 }
 
 /* Data table */
+.section-table-area {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-height: calc(100svh - 220px);
+}
+
 .section-table-wrap {
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   overflow: auto;
   box-shadow: var(--shadow-sm);
-  max-height: calc(100svh - 220px);
+  flex: 1;
+  min-height: 0;
 }
 
 .section-table-wrap thead {

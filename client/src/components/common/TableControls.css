@@ -1,4 +1,4 @@
-/* Sortable table header */
+/* Sortable table header (legacy — used by SortableTh) */
 .sortable-th {
   cursor: pointer;
   user-select: none;
@@ -26,12 +26,248 @@
   transform: translateY(1px);
 }
 
-/* Filter popover wrapper */
+/* ── Per-column header (ColumnHeader) ── */
+
+.col-header {
+  user-select: none;
+  transition: color 0.15s;
+}
+
+.col-header.active {
+  color: var(--accent);
+}
+
+.col-header.has-col-filter {
+  color: var(--accent);
+}
+
+.col-header-sort {
+  cursor: pointer;
+}
+
+.col-header-sort:hover {
+  color: var(--accent);
+}
+
+.col-header-icons {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.col-header-icons .sort-icon {
+  cursor: pointer;
+}
+
+/* Small filter icon button next to sort icon */
+.col-filter-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  padding: 2px;
+  border-radius: 3px;
+  cursor: pointer;
+  color: var(--text);
+  opacity: 0.3;
+  transition: opacity 0.15s, color 0.15s, background 0.15s;
+}
+
+.col-header:hover .col-filter-btn,
+.col-filter-btn.open {
+  opacity: 1;
+}
+
+.col-filter-btn:hover {
+  opacity: 1;
+  background: var(--accent-bg);
+  color: var(--accent);
+}
+
+.col-filter-btn.open {
+  background: var(--accent-bg);
+  color: var(--accent);
+}
+
+.col-filter-btn.has-filter {
+  opacity: 1;
+  color: var(--accent);
+  position: relative;
+}
+
+.col-filter-btn.has-filter::after {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: -1px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+/* Per-column filter popover (rendered as portal) */
+.col-filter-popover {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-lg);
+  z-index: 100;
+  padding: 10px;
+  min-width: 220px;
+  animation: col-filter-in 0.12s ease-out;
+}
+
+@keyframes col-filter-in {
+  from { opacity: 0; transform: translateY(-3px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.col-filter-popover .filter-multi-select {
+  min-width: 0;
+  width: 100%;
+}
+
+.col-filter-popover .filter-multi-trigger {
+  padding: 7px 10px;
+  font-size: 12px;
+}
+
+.col-filter-popover .filter-multi-menu {
+  min-width: 100%;
+}
+
+.col-filter-range {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.col-filter-range input {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  padding: 7px 10px !important;
+  font-size: 12px !important;
+  margin-bottom: 0 !important;
+  box-sizing: border-box;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: var(--sans);
+  color: var(--text-h);
+  transition: border-color 0.15s;
+  text-align: right;
+}
+
+.col-filter-range input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-bg);
+}
+
+.col-filter-range .date-picker {
+  margin-bottom: 0;
+  flex: 1;
+  min-width: 0;
+}
+
+.col-filter-range .date-picker-display {
+  padding: 7px 10px 7px 30px;
+  font-size: 12px;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.col-filter-range .date-picker-icon {
+  left: 6px;
+}
+
+/* ── Active filters bar ── */
+
+.active-filters-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 8px 12px;
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius-sm);
+  margin-bottom: 0;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.active-filters-label {
+  font-weight: 600;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.active-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--bg);
+  border: 1px solid var(--accent-border);
+  border-radius: 4px;
+  padding: 3px 6px 3px 4px;
+  color: var(--text-h);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.chip-label {
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.chip-remove {
+  background: none;
+  border: none;
+  color: var(--text);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 0 2px;
+  border-radius: 3px;
+  transition: color 0.15s, background 0.15s;
+  display: flex;
+  align-items: center;
+}
+
+.chip-remove:hover {
+  color: var(--error);
+  background: var(--error-bg);
+}
+
+.active-filters-clear {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 2px 6px;
+  font-family: var(--sans);
+  border-radius: 4px;
+  transition: background 0.15s;
+  margin-right: auto;
+}
+
+.active-filters-clear:hover {
+  background: rgba(37, 99, 235, 0.12);
+}
+
+/* ── Legacy filter popover (kept for chart pages) ── */
+
 .filter-popover-wrap {
   position: relative;
 }
 
-/* Filter toggle button */
 .filter-toggle-btn {
   display: flex;
   align-items: center;
@@ -68,7 +304,6 @@
   background: var(--accent);
 }
 
-/* Popover dropdown */
 .filter-popover {
   position: absolute;
   top: calc(100% + 6px);
@@ -120,7 +355,6 @@
   background: var(--accent-bg);
 }
 
-/* Filter fields */
 .filter-popover-fields {
   padding: 10px 16px 14px;
   display: flex;
@@ -154,12 +388,10 @@
   min-width: 100%;
 }
 
-/* Number & date range inside popover */
 .filter-popover-range {
   display: flex;
   align-items: center;
   gap: 6px;
-  
 }
 
 .filter-popover-range input {
