@@ -285,7 +285,6 @@ export function InvestmentsTablePage() {
                     <tr key={ch.id}>
                       <td>
                         {ch.name}
-                        {ch.is_pension && <span className="pension-badge">פנסיה</span>}
                       </td>
                       <td>{ch.company}</td>
                       <td>{ch.investment_path}</td>

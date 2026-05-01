@@ -7,7 +7,7 @@
 }
 
 .section-page.section-page-wide {
-  max-width: 1050px;
+  max-width: 1055px;
 }
 
 .section-header {
@@ -954,18 +954,6 @@
 }
 
 /* Investment styles */
-.pension-badge {
-  display: inline-block;
-  font-size: 11px;
-  color: #7c3aed;
-  background: rgba(124, 58, 237, 0.08);
-  border: 1px solid rgba(124, 58, 237, 0.2);
-  border-radius: 4px;
-  padding: 1px 6px;
-  margin-right: 6px;
-  font-weight: 500;
-}
-
 
 .positive-return {
   color: var(--success) !important;
