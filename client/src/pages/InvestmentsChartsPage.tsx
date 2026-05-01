@@ -246,7 +246,11 @@ export function InvestmentsChartsPage() {
       cursor.setDate(0)
     }
 
-    // If no 15th falls in range, use the actual event dates (capped at 12)
+    // Remove the last date if its month hasn't ended yet (i.e. it's in the future)
+    if (monthlyDates.length > 0 && monthlyDates[monthlyDates.length - 1] > todayStr) {
+      monthlyDates.pop()
+    }
+
     const sampledDates = monthlyDates.length > 0
       ? monthlyDates.slice(-12)
       : sortedDates.slice(-12)
