@@ -230,20 +230,21 @@ export function InvestmentsChartsPage() {
 
     // Build list of last-day-of-month dates spanning the range
     const monthlyDates: string[] = []
-    const cursor = new Date(firstD.getFullYear(), firstD.getMonth() + 1, 0) // last day of firstD's month
-    if (cursor < firstD) {
-      // move to last day of next month
-      cursor.setMonth(cursor.getMonth() + 2)
-      cursor.setDate(0)
-    }
-    while (cursor <= endMonthEnd) {
-      const y = cursor.getFullYear()
-      const m = String(cursor.getMonth() + 1).padStart(2, '0')
-      const d = String(cursor.getDate()).padStart(2, '0')
-      monthlyDates.push(`${y}-${m}-${d}`)
-      // Move to last day of next month
-      cursor.setMonth(cursor.getMonth() + 2)
-      cursor.setDate(0)
+    let curYear = firstD.getFullYear()
+    let curMonth = firstD.getMonth() // 0-based
+    // Start from last day of firstD's month
+    while (true) {
+      const lastDay = new Date(curYear, curMonth + 1, 0) // last day of curMonth
+      if (lastDay > endMonthEnd) break
+      if (lastDay >= firstD) {
+        const y = lastDay.getFullYear()
+        const m = String(lastDay.getMonth() + 1).padStart(2, '0')
+        const d = String(lastDay.getDate()).padStart(2, '0')
+        monthlyDates.push(`${y}-${m}-${d}`)
+      }
+      // Advance to next month
+      curMonth++
+      if (curMonth > 11) { curMonth = 0; curYear++ }
     }
 
     // Remove the last date if its month hasn't ended yet (i.e. it's in the future)
