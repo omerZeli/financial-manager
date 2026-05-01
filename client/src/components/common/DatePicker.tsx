@@ -104,10 +104,34 @@ export default function DatePicker({ value, onChange, required, min, placeholder
     const spaceAbove = rect.top
     const dropUp = spaceBelow < dropdownHeight + gap && spaceAbove > spaceBelow
 
+    const dropdownWidth = Math.max(rect.width, 280)
+    const margin = 8 // minimum distance from viewport edge
+
+    // Clamp horizontal position so the dropdown stays within the viewport
+    let left = rect.left
+    if (left + dropdownWidth > window.innerWidth - margin) {
+      left = window.innerWidth - dropdownWidth - margin
+    }
+    if (left < margin) {
+      left = margin
+    }
+
+    // Compute CSS top so the dropdown stays within the viewport
+    let top: number
+    if (dropUp) {
+      top = rect.top - gap - dropdownHeight
+      if (top < margin) top = margin
+    } else {
+      top = rect.bottom + gap
+      if (top + dropdownHeight > window.innerHeight - margin) {
+        top = window.innerHeight - dropdownHeight - margin
+      }
+    }
+
     setPos({
-      top: dropUp ? rect.top - gap : rect.bottom + gap,
-      left: rect.left,
-      width: Math.max(rect.width, 280),
+      top,
+      left,
+      width: dropdownWidth,
       dropUp,
     })
   }, [])
@@ -264,9 +288,7 @@ export default function DatePicker({ value, onChange, required, min, placeholder
     position: 'fixed',
     left: pos.left,
     width: pos.width,
-    ...(pos.dropUp
-      ? { bottom: window.innerHeight - pos.top }
-      : { top: pos.top }),
+    top: pos.top,
   }
 
   const dropdown = open && createPortal(
