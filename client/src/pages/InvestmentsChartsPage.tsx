@@ -51,6 +51,7 @@ export function InvestmentsChartsPage() {
   const [selectedChannels, setSelectedChannels] = useState<string[]>([])
   const [channelsInited, setChannelsInited] = useState(false)
   const [groupBy, setGroupBy] = useState<'channel' | 'path' | 'depositor'>('channel')
+  const [pensionFilter, setPensionFilter] = useState<'all' | 'pension' | 'noPension'>('all')
 
   useEffect(() => { fetchChannels() }, [fetchChannels])
   useEffect(() => { fetchDeposits() }, [fetchDeposits])
@@ -69,36 +70,32 @@ export function InvestmentsChartsPage() {
     }
   }, [channelOptions, channelsInited])
 
-  // Filter deposits and value updates by time range
+  // Set of channel IDs after pension + channel selection filters
+  const filteredChannels = useMemo(() => {
+    let list = channels
+    if (pensionFilter === 'pension') list = list.filter(ch => ch.is_pension)
+    else if (pensionFilter === 'noPension') list = list.filter(ch => !ch.is_pension)
+    if (selectedChannels.length < channels.length) {
+      const set = new Set(selectedChannels)
+      list = list.filter(ch => set.has(ch.id))
+    }
+    return list
+  }, [channels, selectedChannels, pensionFilter])
+
+  const filteredChannelIds = useMemo(() => new Set(filteredChannels.map(ch => ch.id)), [filteredChannels])
+
+  // Filter deposits and value updates by time range and filtered channels
   const filteredDeposits = useMemo(() => {
     const minDate = getMinDate(timeRange, customFrom)
     const maxDate = timeRange === 'custom' && customTo ? customTo : '9999-12-31'
-    let list = deposits.filter(d => d.date >= minDate && d.date <= maxDate)
-    if (selectedChannels.length < channels.length) {
-      const set = new Set(selectedChannels)
-      list = list.filter(d => set.has(d.channel_id))
-    }
-    return list
-  }, [deposits, timeRange, customFrom, customTo, selectedChannels, channels.length])
+    return deposits.filter(d => d.date >= minDate && d.date <= maxDate && filteredChannelIds.has(d.channel_id))
+  }, [deposits, timeRange, customFrom, customTo, filteredChannelIds])
 
   const filteredValues = useMemo(() => {
     const minDate = getMinDate(timeRange, customFrom)
     const maxDate = timeRange === 'custom' && customTo ? customTo : '9999-12-31'
-    let list = valueUpdates.filter(v => v.date >= minDate && v.date <= maxDate)
-    if (selectedChannels.length < channels.length) {
-      const set = new Set(selectedChannels)
-      list = list.filter(v => set.has(v.channel_id))
-    }
-    return list
-  }, [valueUpdates, timeRange, customFrom, customTo, selectedChannels, channels.length])
-
-  const filteredChannels = useMemo(() => {
-    if (selectedChannels.length < channels.length) {
-      const set = new Set(selectedChannels)
-      return channels.filter(ch => set.has(ch.id))
-    }
-    return channels
-  }, [channels, selectedChannels])
+    return valueUpdates.filter(v => v.date >= minDate && v.date <= maxDate && filteredChannelIds.has(v.channel_id))
+  }, [valueUpdates, timeRange, customFrom, customTo, filteredChannelIds])
 
   const isFiltered = timeRange !== 'all'
 
@@ -277,14 +274,16 @@ export function InvestmentsChartsPage() {
     if (selectedChannels.length > 0 && selectedChannels.length < channelOptions.length) return true
     if (timeRange !== 'all') return true
     if (customFrom || customTo) return true
+    if (pensionFilter !== 'all') return true
     return false
-  }, [selectedChannels, channelOptions.length, timeRange, customFrom, customTo])
+  }, [selectedChannels, channelOptions.length, timeRange, customFrom, customTo, pensionFilter])
 
   const clearFilters = () => {
     setSelectedChannels(channelOptions.map(o => o.value))
     setTimeRange('all')
     setCustomFrom('')
     setCustomTo('')
+    setPensionFilter('all')
   }
 
   // Return over time: compute total return % at the last day of each month, excluding cash channels
@@ -382,6 +381,14 @@ export function InvestmentsChartsPage() {
                   placeholder="הכל"
                   onChange={setSelectedChannels}
                 />
+              </div>
+              <div className="filter-popover-field">
+                <div className="filter-popover-label">סוג אפיק</div>
+                <div className="filter-tabs">
+                  <button type="button" className={`filter-tab${pensionFilter === 'all' ? ' active' : ''}`} onClick={() => setPensionFilter('all')}>הכל</button>
+                  <button type="button" className={`filter-tab${pensionFilter === 'pension' ? ' active' : ''}`} onClick={() => setPensionFilter('pension')}>פנסיוני</button>
+                  <button type="button" className={`filter-tab${pensionFilter === 'noPension' ? ' active' : ''}`} onClick={() => setPensionFilter('noPension')}>לא פנסיוני</button>
+                </div>
               </div>
               <div className="filter-popover-field">
                 <div className="filter-popover-label">טווח זמן</div>
