@@ -252,8 +252,8 @@ export function InvestmentsChartsPage() {
     }
 
     const sampledDates = monthlyDates.length > 0
-      ? monthlyDates.slice(-12)
-      : sortedDates.slice(-12)
+      ? monthlyDates.slice(-18)
+      : sortedDates.slice(-18)
 
     const points: { date: string; returnPct: number }[] = []
 

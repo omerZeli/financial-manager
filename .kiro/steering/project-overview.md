@@ -254,6 +254,11 @@ Expense types allow users to group expense categories into named types for use i
 - In UI text, use a regular hyphen (`-`) as a separator, not an em dash (`—`).
 - All text input placeholders must use the format **"הכנס [שם השדה]"** (e.g. `"הכנס שם הוצאה"`). Do not include examples in placeholders.
 
+## Monthly Time-Series Chart Display Limit
+- All charts that display data over time by month (bruto vs neto, expenses by month, total return by month) are limited to showing the **last 18 months** when the data range exceeds 18 months.
+- This is a **display-only** limit — it does not affect summary cards, data cards, category breakdowns, or any other non-time-series charts on the same page. Those continue to use the full filtered data range.
+- Implementation: a `chartFiltered` / `chartByMonth` variable is derived from the full filtered data via `slice(-18)` and used only for rendering the time-series bar/line chart.
+
 ## Database Migrations
 - All Supabase migrations must be saved as `.sql` files in the `supabase/migrations/` folder.
 - Each migration file should be named with a timestamp prefix followed by a descriptive snake_case name (e.g. `20260419120000_create_transactions_table.sql`).

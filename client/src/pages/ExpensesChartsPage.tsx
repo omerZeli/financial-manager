@@ -206,7 +206,13 @@ export function ExpensesChartsPage() {
   const categories = Object.entries(byCategory).sort((a, b) => b[1] - a[1])
   const maxCategory = categories.length ? categories[0][1] : 1
 
-  const maxMonth = byMonth.reduce((m, [, v]) => Math.max(m, v), 0) || 1
+  // For the monthly bar chart, limit to last 18 months if range is larger
+  const chartByMonth = useMemo(() => {
+    if (byMonth.length <= 18) return byMonth
+    return byMonth.slice(-18)
+  }, [byMonth])
+
+  const chartMaxMonth = chartByMonth.reduce((m, [, v]) => Math.max(m, v), 0) || 1
 
   const hasActiveFilters = useMemo(() => {
     if (aggMode !== 'avg') return true
@@ -311,12 +317,12 @@ export function ExpensesChartsPage() {
               <div className="chart-card">
                 <h3>הוצאות חודשיות</h3>
                 <div className="bar-chart">
-                  {byMonth.map(([m, total]) => (
+                  {chartByMonth.map(([m, total]) => (
                     <div className="bar-group" key={m}>
                       <div className="bar-pair">
                         <div
                           className="bar expense-bar"
-                          style={{ height: `${(total / maxMonth) * 100}%` }}
+                          style={{ height: `${(total / chartMaxMonth) * 100}%` }}
                         >
                           <span className="bar-value">{total.toLocaleString('he-IL')}</span>
                         </div>

@@ -150,7 +150,13 @@ export function SalaryChartsPage() {
     }
   }, [filtered, deposits, expenses, fixedExpenses, aggDiff, aggMode, timeRange, customFrom, customTo])
 
-  const maxVal = filtered.reduce((m, r) => Math.max(m, r.bruto, r.neto), 0) || 1
+  // For the monthly bar chart, limit to last 18 months if range is larger
+  const chartFiltered = useMemo(() => {
+    if (filtered.length <= 18) return filtered
+    return filtered.slice(-18)
+  }, [filtered])
+
+  const maxVal = chartFiltered.reduce((m, r) => Math.max(m, r.bruto, r.neto), 0) || 1
 
   const hasActiveFilters = useMemo(() => {
     if (aggMode !== 'avg') return true
@@ -277,7 +283,7 @@ export function SalaryChartsPage() {
               <div className="chart-card">
                 <h3>ברוטו מול נטו</h3>
                 <div className="bar-chart">
-                  {filtered.map(s => (
+                  {chartFiltered.map(s => (
                     <div className="bar-group" key={s.id}>
                       <div className="bar-pair">
                         <div className="bar neto" style={{ height: `${(s.neto / maxVal) * 100}%` }}>
