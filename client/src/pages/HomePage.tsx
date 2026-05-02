@@ -9,6 +9,7 @@ import { useInvestmentValues } from '../contexts/InvestmentValuesContext'
 import { computeChannelSummary, CASH_PATH_LABEL } from '../lib/computeChannelSummary'
 import { ChartFilterPopover } from '../components/common/ChartFilterPopover'
 import DateInput from '../components/common/DatePicker'
+import { formatLocalDate } from '../lib/dateUtils'
 import './HomePage.css'
 import './Section.css'
 
@@ -63,46 +64,74 @@ export function HomePage() {
       ? (now.getMonth() === 0 ? 11 : now.getMonth() - 1)
       : now.getMonth()
     const endOfLast = new Date(lastYear, lastMonth + 1, 0)
-    const maxDate = endOfLast.toISOString().slice(0, 10)
+    const maxDate = formatLocalDate(endOfLast)
     const from = new Date(lastYear, lastMonth - months + 1, 1)
-    const minDate = from.toISOString().slice(0, 10)
+    const minDate = formatLocalDate(from)
     return { minDate, maxDate }
   }, [timeRange, excludeCurrentMonth, customFrom, customTo])
 
   // --- Investments: total current value ---
-  // Investment value is a point-in-time snapshot, so the time filter
-  // only filters the deposits/value-updates fed into the engine.
+  // Investment value is always a point-in-time snapshot — the time filter
+  // does NOT affect it. Only the pension/noPension card filter applies.
   const totalInvestmentValue = useMemo(() => {
     let filtered = channels
     if (investmentFilter === 'pension') filtered = filtered.filter(ch => ch.is_pension)
     else if (investmentFilter === 'noPension') filtered = filtered.filter(ch => !ch.is_pension)
 
-    const filteredDeposits = timeRange === 'all'
-      ? deposits
-      : deposits.filter(d => d.date >= effectiveDateRange.minDate && d.date <= effectiveDateRange.maxDate)
-    const filteredValues = timeRange === 'all'
-      ? valueUpdates
-      : valueUpdates.filter(v => v.date >= effectiveDateRange.minDate && v.date <= effectiveDateRange.maxDate)
-
     let total = 0
     for (const ch of filtered) {
       const isCash = ch.investment_path === CASH_PATH_LABEL
-      const summary = computeChannelSummary(ch.id, filteredDeposits, filteredValues, isCash)
+      const summary = computeChannelSummary(ch.id, deposits, valueUpdates, isCash)
       total += summary.currentValue
     }
     return total
-  }, [channels, deposits, valueUpdates, investmentFilter, timeRange, effectiveDateRange])
+  }, [channels, deposits, valueUpdates, investmentFilter])
 
   // --- Salary: average monthly ---
+  // Salary month field is the work month; you receive it the following month.
+  // So we shift the filter range back by 1 month to match the salary records.
+  const salaryDateRange = useMemo(() => {
+    if (timeRange === 'all') {
+      return { minDate: '0000-01-01', maxDate: '9999-12-31' }
+    }
+    if (timeRange === 'custom') {
+      // Shift custom dates back by 1 month
+      const shiftBack = (dateStr: string) => {
+        if (!dateStr) return ''
+        const d = new Date(dateStr + 'T00:00:00')
+        d.setMonth(d.getMonth() - 1)
+        return formatLocalDate(d)
+      }
+      return {
+        minDate: customFrom ? shiftBack(customFrom) : '0000-01-01',
+        maxDate: customTo ? shiftBack(customTo) : '9999-12-31',
+      }
+    }
+    const now = new Date()
+    const months = timeRange === 'last1' ? 1 : 12
+    const lastYear = excludeCurrentMonth
+      ? (now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear())
+      : now.getFullYear()
+    const lastMonth = excludeCurrentMonth
+      ? (now.getMonth() === 0 ? 11 : now.getMonth() - 1)
+      : now.getMonth()
+    // Shift back by 1 month for salary
+    const salLastMonth = lastMonth === 0 ? 11 : lastMonth - 1
+    const salLastYear = lastMonth === 0 ? lastYear - 1 : lastYear
+    const endOfLast = new Date(salLastYear, salLastMonth + 1, 0)
+    const maxDate = formatLocalDate(endOfLast)
+    const from = new Date(salLastYear, salLastMonth - months + 1, 1)
+    const minDate = formatLocalDate(from)
+    return { minDate, maxDate }
+  }, [timeRange, excludeCurrentMonth, customFrom, customTo])
+
   const avgSalary = useMemo(() => {
-    const filtered = timeRange === 'all'
-      ? salaries
-      : salaries.filter(s => s.month >= effectiveDateRange.minDate && s.month <= effectiveDateRange.maxDate)
+    const filtered = salaries.filter(s => s.month >= salaryDateRange.minDate && s.month <= salaryDateRange.maxDate)
     if (filtered.length === 0) return 0
     const field = salaryFilter === 'bruto' ? 'bruto' : 'neto'
     const total = filtered.reduce((sum, s) => sum + s[field], 0)
     return total / filtered.length
-  }, [salaries, salaryFilter, timeRange, effectiveDateRange])
+  }, [salaries, salaryFilter, salaryDateRange])
 
   // --- Expenses: average monthly ---
   const avgMonthlyExpenses = useMemo(() => {

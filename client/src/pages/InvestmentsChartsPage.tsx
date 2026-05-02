@@ -7,6 +7,7 @@ import { FilterMultiSelect } from '../components/common/FilterMultiSelect'
 import DateInput from '../components/common/DatePicker'
 import { ChartFilterPopover } from '../components/common/ChartFilterPopover'
 import { computeChannelSummary, CASH_PATH_LABEL } from '../lib/computeChannelSummary'
+import { formatLocalDate, todayStr as getTodayStr } from '../lib/dateUtils'
 import './Section.css'
 
 function formatCurrency(n: number) {
@@ -37,7 +38,7 @@ function getMinDate(range: TimeRange, customFrom: string): string {
   const months = range === 'last6' ? 6 : 12
   now.setMonth(now.getMonth() - months)
   now.setDate(1)
-  return now.toISOString().slice(0, 10)
+  return formatLocalDate(now)
 }
 
 export function InvestmentsChartsPage() {
@@ -183,7 +184,7 @@ export function InvestmentsChartsPage() {
         return { label: parts.join(' ו-'), months: totalMonths }
       }
       const minDate = getMinDate(timeRange, customFrom)
-      const maxDate = timeRange === 'custom' && customTo ? customTo : new Date().toISOString().slice(0, 10)
+      const maxDate = timeRange === 'custom' && customTo ? customTo : getTodayStr()
       const start = new Date(minDate)
       const end = new Date(maxDate)
       const totalMonths = Math.max((end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth()), 0)
@@ -311,7 +312,7 @@ export function InvestmentsChartsPage() {
     const sortedDates = [...new Set(allFilteredDates)].sort()
     const firstDate = sortedDates[0]
     const firstD = new Date(firstDate + 'T00:00:00')
-    const todayStr = new Date().toISOString().slice(0, 10)
+    const todayStr = getTodayStr()
     const endDateStr = timeRange === 'custom' && customTo ? customTo : todayStr
     const endD = new Date(endDateStr + 'T00:00:00')
     const endMonthEnd = new Date(endD.getFullYear(), endD.getMonth() + 1, 0)

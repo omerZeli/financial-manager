@@ -8,6 +8,7 @@ import { useSalary } from '../contexts/SalaryContext'
 import { FilterMultiSelect } from '../components/common/FilterMultiSelect'
 import DateInput from '../components/common/DatePicker'
 import { ChartFilterPopover } from '../components/common/ChartFilterPopover'
+import { formatLocalDate } from '../lib/dateUtils'
 import './Section.css'
 
 function formatCurrency(n: number) {
@@ -152,10 +153,10 @@ export function ExpensesChartsPage() {
       : now.getMonth()
     // End of the last month in range
     const endOfLast = new Date(lastYear, lastMonth + 1, 0)
-    const maxDate = endOfLast.toISOString().slice(0, 10)
+    const maxDate = formatLocalDate(endOfLast)
     // First day of the starting month (lastMonth - months + 1)
     const from = new Date(lastYear, lastMonth - months + 1, 1)
-    const minDate = from.toISOString().slice(0, 10)
+    const minDate = formatLocalDate(from)
     return { minDate, maxDate }
   }, [timeRange, customFrom, customTo, excludeCurrentMonth])
 

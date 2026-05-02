@@ -13,6 +13,7 @@ import { DepositForm } from '../components/forms/DepositForm'
 import { ValueUpdateForm } from '../components/forms/ValueUpdateForm'
 import { WithdrawalForm } from '../components/forms/WithdrawalForm'
 import { EditDepositForm } from '../components/forms/EditDepositForm'
+import { todayStr as getTodayStr } from '../lib/dateUtils'
 import { EditValueUpdateForm } from '../components/forms/EditValueUpdateForm'
 import { computeChannelSummary, CASH_PATH_LABEL } from '../lib/computeChannelSummary'
 import './Section.css'
@@ -209,7 +210,7 @@ export function InvestmentsTablePage() {
     const latestValue = valueUpdates
       .filter(v => v.channel_id === channelId)
       .sort((a, b) => b.date.localeCompare(a.date))[0]
-    const today = new Date().toISOString().slice(0, 10)
+    const today = getTodayStr()
     setValueFormInit({
       channelId,
       channelLabel: ch ? `${ch.name} - ${ch.company}` : '',

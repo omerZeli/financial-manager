@@ -251,6 +251,7 @@ Expense types allow users to group expense categories into named types for use i
 - Keep the UI simple, clean, and accessible in Hebrew/RTL.
 - The currency in this project is ILS.
 - All dates displayed to the user must use the **DD/MM/YYYY** format and be stored in ISO format (YYYY-MM-DD) in the database.
+- **Timezone safety:** Never use `date.toISOString().slice(0, 10)` to format a local date as `YYYY-MM-DD`. `toISOString()` converts to UTC, which shifts the date backwards in timezones ahead of UTC (e.g. Israel UTC+3). Always use the shared `formatLocalDate(date)` helper from `src/lib/dateUtils.ts`, or `todayStr()` for today's date. This applies to any code that constructs a date string from `new Date()` or `new Date(year, month, day)`.
 - In UI text, use a regular hyphen (`-`) as a separator, not an em dash (`—`).
 - All text input placeholders must use the format **"הכנס [שם השדה]"** (e.g. `"הכנס שם הוצאה"`). Do not include examples in placeholders.
 

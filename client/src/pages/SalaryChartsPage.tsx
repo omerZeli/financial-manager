@@ -7,6 +7,7 @@ import { useFixedExpenses } from '../contexts/FixedExpensesContext'
 import DateInput from '../components/common/DatePicker'
 import { FilterMultiSelect } from '../components/common/FilterMultiSelect'
 import { ChartFilterPopover } from '../components/common/ChartFilterPopover'
+import { formatLocalDate } from '../lib/dateUtils'
 import './Section.css'
 
 function formatCurrency(n: number) {
@@ -27,7 +28,7 @@ function getMinMonth(range: TimeRange, customFrom: string): string {
   const months = range === 'last1' ? 1 : range === 'last6' ? 6 : 12
   now.setMonth(now.getMonth() - months)
   now.setDate(1)
-  return now.toISOString().slice(0, 10)
+  return formatLocalDate(now)
 }
 
 export function SalaryChartsPage() {

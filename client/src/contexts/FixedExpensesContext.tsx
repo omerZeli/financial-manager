@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useCallback, useMemo, type ReactNode } from 'react'
 import { supabase } from '../lib/supabase'
+import { todayStr as getTodayStr } from '../lib/dateUtils'
 import { useAuth } from './AuthContext'
 import type { Expense } from './ExpensesContext'
 
@@ -31,7 +32,7 @@ const FixedExpensesContext = createContext<FixedExpensesContextType | undefined>
 function inflateFixed(fe: FixedExpense): Expense[] {
   const results: Expense[] = []
   const start = new Date(fe.start_date + 'T00:00:00')
-  const todayStr = new Date().toISOString().slice(0, 10)
+  const todayStr = getTodayStr()
   const limitStr = fe.end_date && fe.end_date < todayStr ? fe.end_date : todayStr
   const limit = new Date(limitStr + 'T00:00:00')
 
