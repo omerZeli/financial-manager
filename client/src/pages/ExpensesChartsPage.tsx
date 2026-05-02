@@ -33,15 +33,6 @@ const CATEGORY_COLORS = [
 type TimeRange = 'last1' | 'last6' | 'last12' | 'custom'
 type AggMode = 'avg' | 'sum'
 
-function getMinDate(range: TimeRange, customFrom: string): string {
-  if (range === 'custom') return customFrom
-  const now = new Date()
-  const months = range === 'last1' ? 1 : range === 'last6' ? 6 : 12
-  now.setMonth(now.getMonth() - months)
-  now.setDate(1)
-  return now.toISOString().slice(0, 10)
-}
-
 export function ExpensesChartsPage() {
   const { expenses, loading, fetchExpenses } = useExpenses()
   const { fixedExpenses, inflatedExpenses, loading: fixedLoading, fetchFixedExpenses } = useFixedExpenses()
@@ -52,6 +43,7 @@ export function ExpensesChartsPage() {
   const [timeRange, setTimeRange] = useState<TimeRange>('last12')
   const [customFrom, setCustomFrom] = useState('')
   const [customTo, setCustomTo] = useState('')
+  const [excludeCurrentMonth, setExcludeCurrentMonth] = useState(false)
   const [selectedTypes, setSelectedTypes] = useState<string[]>([])
   const [typesInited, setTypesInited] = useState(false)
   const [aggMode, setAggMode] = useState<AggMode>('avg')
@@ -144,6 +136,29 @@ export function ExpensesChartsPage() {
     return { cats, hasOthers }
   }, [selectedTypes, typeOptions.length, expenseTypes])
 
+  // Compute effective date range (accounting for excludeCurrentMonth)
+  const effectiveDateRange = useMemo(() => {
+    if (timeRange === 'custom') {
+      return { minDate: customFrom || '0000-01-01', maxDate: customTo || '9999-12-31' }
+    }
+    const now = new Date()
+    const months = timeRange === 'last1' ? 1 : timeRange === 'last6' ? 6 : 12
+    // The "last" month in the range: current month, or previous month when excluding
+    const lastYear = excludeCurrentMonth
+      ? (now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear())
+      : now.getFullYear()
+    const lastMonth = excludeCurrentMonth
+      ? (now.getMonth() === 0 ? 11 : now.getMonth() - 1)
+      : now.getMonth()
+    // End of the last month in range
+    const endOfLast = new Date(lastYear, lastMonth + 1, 0)
+    const maxDate = endOfLast.toISOString().slice(0, 10)
+    // First day of the starting month (lastMonth - months + 1)
+    const from = new Date(lastYear, lastMonth - months + 1, 1)
+    const minDate = from.toISOString().slice(0, 10)
+    return { minDate, maxDate }
+  }, [timeRange, customFrom, customTo, excludeCurrentMonth])
+
   // Filtered expenses
   const filtered = useMemo(() => {
     let list = allExpensesRaw
@@ -156,11 +171,9 @@ export function ExpensesChartsPage() {
       })
     }
     // time range filter
-    const minDate = getMinDate(timeRange, customFrom)
-    const maxDate = timeRange === 'custom' && customTo ? customTo : '9999-12-31'
-    list = list.filter(e => e.date >= minDate && e.date <= maxDate)
+    list = list.filter(e => e.date >= effectiveDateRange.minDate && e.date <= effectiveDateRange.maxDate)
     return list
-  }, [allExpensesRaw, selectedTypeCategories, allTypedCategories, timeRange, customFrom, customTo])
+  }, [allExpensesRaw, selectedTypeCategories, allTypedCategories, effectiveDateRange])
 
   const aggLabel = aggMode === 'avg' ? 'ממוצע' : 'סה"כ'
 
@@ -189,12 +202,10 @@ export function ExpensesChartsPage() {
 
   // Total neto in the same time range
   const totalNetoInRange = useMemo(() => {
-    const minDate = getMinDate(timeRange, customFrom)
-    const maxDate = timeRange === 'custom' && customTo ? customTo : '9999-12-31'
     return salaries
-      .filter(s => s.month >= minDate && s.month <= maxDate)
+      .filter(s => s.month >= effectiveDateRange.minDate && s.month <= effectiveDateRange.maxDate)
       .reduce((s, r) => s + r.neto, 0)
-  }, [salaries, timeRange, customFrom, customTo])
+  }, [salaries, effectiveDateRange])
 
   const pctOfNeto = totalNetoInRange > 0 ? (nonDeductedTotal / totalNetoInRange) * 100 : 0
 
@@ -218,14 +229,16 @@ export function ExpensesChartsPage() {
     if (aggMode !== 'avg') return true
     if (selectedTypes.length > 0 && selectedTypes.length < typeOptions.length) return true
     if (timeRange !== 'last12') return true
+    if (excludeCurrentMonth) return true
     if (customFrom || customTo) return true
     return false
-  }, [aggMode, selectedTypes, typeOptions.length, timeRange, customFrom, customTo])
+  }, [aggMode, selectedTypes, typeOptions.length, timeRange, excludeCurrentMonth, customFrom, customTo])
 
   const clearFilters = () => {
     setAggMode('avg')
     setSelectedTypes(typeOptions.map(o => o.value))
     setTimeRange('last12')
+    setExcludeCurrentMonth(false)
     setCustomFrom('')
     setCustomTo('')
   }
@@ -269,6 +282,20 @@ export function ExpensesChartsPage() {
                     <DateInput value={customFrom} onChange={setCustomFrom} placeholder="מתאריך" />
                     <span className="range-sep">-</span>
                     <DateInput value={customTo} onChange={setCustomTo} placeholder="עד תאריך" />
+                  </div>
+                </div>
+              )}
+              {timeRange !== 'custom' && (
+                <div className="filter-popover-field">
+                  <div className="toggle-row">
+                    <span className="toggle-label">לא כולל החודש הנוכחי</span>
+                    <button
+                      type="button"
+                      className={`toggle-switch${excludeCurrentMonth ? ' active' : ''}`}
+                      onClick={() => setExcludeCurrentMonth(prev => !prev)}
+                    >
+                      <span className="toggle-knob" />
+                    </button>
                   </div>
                 </div>
               )}

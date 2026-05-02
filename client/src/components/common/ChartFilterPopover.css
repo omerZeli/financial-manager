@@ -47,3 +47,7 @@
 .chart-filter-popover .custom-range-row .date-picker-icon {
   left: 6px;
 }
+
+.chart-filter-popover .toggle-row {
+  margin-bottom: 0;
+}
