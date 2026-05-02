@@ -6,8 +6,10 @@ import { usePaybacks } from '../contexts/PaybacksContext'
 import { useInvestmentChannels } from '../contexts/InvestmentChannelsContext'
 import { useInvestmentDeposits } from '../contexts/InvestmentDepositsContext'
 import { useInvestmentValues } from '../contexts/InvestmentValuesContext'
+import { useExpenseTypes } from '../contexts/ExpenseTypesContext'
 import { computeChannelSummary, CASH_PATH_LABEL } from '../lib/computeChannelSummary'
 import { ChartFilterPopover } from '../components/common/ChartFilterPopover'
+import { SankeyChart, type SankeyNode } from '../components/common/SankeyChart'
 import DateInput from '../components/common/DatePicker'
 import { formatLocalDate } from '../lib/dateUtils'
 import './HomePage.css'
@@ -25,11 +27,12 @@ type ExpenseFilter = 'all' | 'regular' | 'fixed'
 export function HomePage() {
   const { salaries, loading: salLoading, fetchSalaries } = useSalary()
   const { expenses, loading: expLoading, fetchExpenses } = useExpenses()
-  const { fixedExpenses, inflatedExpenses, loading: fixLoading, fetchFixedExpenses } = useFixedExpenses()
+  const { inflatedExpenses, loading: fixLoading, fetchFixedExpenses } = useFixedExpenses()
   const { paybacks, loading: pbLoading, fetchPaybacks } = usePaybacks()
   const { channels, loading: chLoading, fetchChannels } = useInvestmentChannels()
   const { deposits, loading: depLoading, fetchDeposits } = useInvestmentDeposits()
   const { valueUpdates, loading: valLoading, fetchValueUpdates } = useInvestmentValues()
+  const { expenseTypes, fetchExpenseTypes } = useExpenseTypes()
 
   const [timeRange, setTimeRange] = useState<TimeRange>('all')
   const [excludeCurrentMonth, setExcludeCurrentMonth] = useState(false)
@@ -46,6 +49,7 @@ export function HomePage() {
   useEffect(() => { fetchChannels() }, [fetchChannels])
   useEffect(() => { fetchDeposits() }, [fetchDeposits])
   useEffect(() => { fetchValueUpdates() }, [fetchValueUpdates])
+  useEffect(() => { fetchExpenseTypes() }, [fetchExpenseTypes])
 
   // Compute effective date range (same logic as expenses chart page)
   const effectiveDateRange = useMemo(() => {
@@ -171,6 +175,187 @@ export function HomePage() {
     const total = items.reduce((sum, i) => sum + i.amount, 0)
     return months.size > 0 ? total / months.size : 0
   }, [expenses, inflatedExpenses, paybacks, expenseFilter, timeRange, effectiveDateRange])
+
+  // --- Sankey chart data ---
+  const INCOME_COLORS = [
+    '#2563eb', '#3b82f6', '#60a5fa', '#93c5fd', '#1d4ed8', '#1e40af',
+  ]
+  const OUTFLOW_COLORS_INVEST = ['#059669', '#10b981']
+  const OUTFLOW_COLORS_EXPENSE = [
+    '#d97706', '#dc2626', '#7c3aed', '#db2777', '#0891b2', '#65a30d',
+    '#ea580c', '#4f46e5', '#0d9488', '#be185d',
+  ]
+
+  const sankeyData = useMemo(() => {
+    // --- LEFT SIDE: Income sources ---
+    // 1. Salary neto per employer (filtered by date range)
+    const filteredSalaries = salaries.filter(
+      s => s.month >= salaryDateRange.minDate && s.month <= salaryDateRange.maxDate
+    )
+    const salaryByEmployer: Record<string, number> = {}
+    for (const s of filteredSalaries) {
+      salaryByEmployer[s.employer] = (salaryByEmployer[s.employer] || 0) + s.neto
+    }
+
+    // 2. Investment deposits from others (depositor !== 'אני', not withdrawals)
+    const filteredDeposits = deposits.filter(d => {
+      if (d.is_withdrawal) return false
+      if (d.depositor === 'אני') return false
+      if (timeRange === 'all') return true
+      return d.date >= effectiveDateRange.minDate && d.date <= effectiveDateRange.maxDate
+    })
+    const depositsByDepositor: Record<string, number> = {}
+    for (const d of filteredDeposits) {
+      depositsByDepositor[d.depositor] = (depositsByDepositor[d.depositor] || 0) + d.amount
+    }
+
+    const leftNodes: SankeyNode[] = []
+    let colorIdx = 0
+
+    // Sort employers by total descending
+    const sortedEmployers = Object.entries(salaryByEmployer)
+      .sort((a, b) => b[1] - a[1])
+    for (const [employer, total] of sortedEmployers) {
+      leftNodes.push({
+        id: `salary_${employer}`,
+        label: employer,
+        value: total,
+        color: INCOME_COLORS[colorIdx % INCOME_COLORS.length],
+      })
+      colorIdx++
+    }
+
+    // Sort depositors by total descending
+    const sortedDepositors = Object.entries(depositsByDepositor)
+      .sort((a, b) => b[1] - a[1])
+    for (const [depositor, total] of sortedDepositors) {
+      leftNodes.push({
+        id: `depositor_${depositor}`,
+        label: `הפקדה - ${depositor}`,
+        value: total,
+        color: INCOME_COLORS[colorIdx % INCOME_COLORS.length],
+      })
+      colorIdx++
+    }
+
+    // --- RIGHT SIDE: Outflows ---
+    // 1. My investment deposits (depositor === 'אני', not withdrawals), split pension/non-pension
+    const myDeposits = deposits.filter(d => {
+      if (d.is_withdrawal) return false
+      if (d.depositor !== 'אני') return false
+      if (timeRange === 'all') return true
+      return d.date >= effectiveDateRange.minDate && d.date <= effectiveDateRange.maxDate
+    })
+
+    // Build channel pension map
+    const channelPensionMap = new Map<string, boolean>()
+    for (const ch of channels) {
+      channelPensionMap.set(ch.id, ch.is_pension)
+    }
+
+    let pensionTotal = 0
+    let nonPensionTotal = 0
+    for (const d of myDeposits) {
+      if (channelPensionMap.get(d.channel_id)) {
+        pensionTotal += d.amount
+      } else {
+        nonPensionTotal += d.amount
+      }
+    }
+
+    // 2. Expenses by expense type (filtered by date range)
+    // Merge regular + inflated expenses, apply payback adjustments
+    const toMeByExpense: Record<string, number> = {}
+    for (const pb of paybacks) {
+      if (pb.direction === 'to_me' && pb.expense_id) {
+        toMeByExpense[pb.expense_id] = (toMeByExpense[pb.expense_id] || 0) + pb.amount
+      }
+    }
+
+    // Build all expense items with category
+    interface ExpItem { category: string; amount: number; date: string }
+    const allExpItems: ExpItem[] = []
+
+    // Regular expenses (adjusted for to_me paybacks)
+    for (const exp of expenses) {
+      const returned = toMeByExpense[exp.id] || 0
+      const adj = exp.amount - returned
+      if (adj > 0) {
+        allExpItems.push({ category: exp.category, amount: adj, date: exp.date })
+      }
+    }
+
+    // Inflated fixed expenses
+    for (const ie of inflatedExpenses) {
+      allExpItems.push({ category: ie.category, amount: ie.amount, date: ie.date })
+    }
+
+    // by_me paybacks as expenses
+    for (const pb of paybacks) {
+      if (pb.direction === 'by_me' && pb.category) {
+        allExpItems.push({ category: pb.category, amount: pb.amount, date: pb.date })
+      }
+    }
+
+    // Filter by date range
+    const filteredExpItems = timeRange === 'all'
+      ? allExpItems
+      : allExpItems.filter(i => i.date >= effectiveDateRange.minDate && i.date <= effectiveDateRange.maxDate)
+
+    // Group by expense type
+    // Build category → type_name map
+    const categoryToType = new Map<string, string>()
+    for (const et of expenseTypes) {
+      for (const cat of et.categories) {
+        categoryToType.set(cat, et.type_name)
+      }
+    }
+
+    const expenseByType: Record<string, number> = {}
+    for (const item of filteredExpItems) {
+      const typeName = categoryToType.get(item.category) || 'אחר'
+      expenseByType[typeName] = (expenseByType[typeName] || 0) + item.amount
+    }
+
+    const rightNodes: SankeyNode[] = []
+
+    // Investment outflows
+    if (pensionTotal > 0) {
+      rightNodes.push({
+        id: 'invest_pension',
+        label: 'השקעות פנסיוניות',
+        value: pensionTotal,
+        color: OUTFLOW_COLORS_INVEST[0],
+      })
+    }
+    if (nonPensionTotal > 0) {
+      rightNodes.push({
+        id: 'invest_non_pension',
+        label: 'השקעות לא פנסיוניות',
+        value: nonPensionTotal,
+        color: OUTFLOW_COLORS_INVEST[1],
+      })
+    }
+
+    // Expense type outflows, sorted by total descending
+    const sortedExpTypes = Object.entries(expenseByType)
+      .sort((a, b) => b[1] - a[1])
+    let expColorIdx = 0
+    for (const [typeName, total] of sortedExpTypes) {
+      rightNodes.push({
+        id: `expense_${typeName}`,
+        label: typeName,
+        value: total,
+        color: OUTFLOW_COLORS_EXPENSE[expColorIdx % OUTFLOW_COLORS_EXPENSE.length],
+      })
+      expColorIdx++
+    }
+
+    return { leftNodes, rightNodes }
+  }, [
+    salaries, salaryDateRange, deposits, channels, expenses, inflatedExpenses,
+    paybacks, expenseTypes, timeRange, effectiveDateRange,
+  ])
 
   const anyLoading = salLoading || expLoading || fixLoading || pbLoading || chLoading || depLoading || valLoading
 
@@ -305,6 +490,16 @@ export function HomePage() {
           </div>
         </div>
       </div>
+
+      {!anyLoading && (
+        <SankeyChart
+          incomeNodes={sankeyData.leftNodes}
+          outflowNodes={sankeyData.rightNodes}
+          incomeLabel="הכנסות"
+          outflowLabel="הוצאות והשקעות"
+          formatValue={formatCurrency}
+        />
+      )}
     </div>
   )
 }

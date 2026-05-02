@@ -1,0 +1,76 @@
+.sankey-card {
+  overflow: hidden;
+}
+
+.sankey-totals {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+  padding: 0 8px;
+}
+
+.sankey-total {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sankey-total-end {
+  text-align: left;
+}
+
+.sankey-total-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.sankey-total-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-h);
+  font-variant-numeric: tabular-nums;
+  direction: ltr;
+}
+
+.sankey-total-income {
+  text-align: right;
+}
+
+.sankey-total-outflow {
+  text-align: left;
+}
+
+.sankey-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.sankey-link {
+  transition: opacity 0.2s;
+  cursor: default;
+}
+
+.sankey-link:hover {
+  opacity: 0.45 !important;
+}
+
+.sankey-node-group rect {
+  transition: opacity 0.15s;
+}
+
+.sankey-node-label {
+  font-size: 12px;
+  font-weight: 600;
+  fill: var(--text-h);
+  font-family: var(--sans);
+}
+
+.sankey-node-value {
+  font-size: 11px;
+  font-weight: 500;
+  fill: var(--text);
+  font-family: var(--sans);
+  font-variant-numeric: tabular-nums;
+}
