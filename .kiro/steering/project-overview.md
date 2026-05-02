@@ -17,7 +17,8 @@ A personal financial manager built with React + Supabase.
 - **Styling:** Plain CSS
 
 ## Current State
-- Login and registration pages
+- Login, registration, forgot password, and reset password pages
+- Change password page (protected)
 - Auth context and protected routes
 - A `profiles` table linked to `auth.users` (auto-created on signup)
 - Placeholder home page (דשבורד)
@@ -36,6 +37,7 @@ A personal financial manager built with React + Supabase.
 - Fields: email (dir="ltr"), password (dir="ltr")
 - Submit calls `supabase.auth.signInWithPassword`, navigates to `/` on success
 - Error displayed in `.auth-error` banner
+- "שכחת סיסמה?" link to `/forgot-password`
 - Link to register page at the bottom
 
 ### Register Page (`/register` — `src/pages/RegisterPage.tsx`)
@@ -43,6 +45,28 @@ A personal financial manager built with React + Supabase.
 - Submit calls `supabase.auth.signUp` with `display_name` in user metadata
 - Error displayed in `.auth-error` banner
 - Link to login page at the bottom
+
+### Forgot Password Page (`/forgot-password` — `src/pages/ForgotPasswordPage.tsx`)
+- Guest-only page (wrapped in `GuestRoute`)
+- Field: email (dir="ltr")
+- Submit calls `supabase.auth.resetPasswordForEmail` with `redirectTo` set to `{origin}/reset-password`
+- On success, shows a green `.auth-success` banner instructing the user to check their inbox
+- Link back to login page
+
+### Reset Password Page (`/reset-password` — `src/pages/ResetPasswordPage.tsx`)
+- Public page (not wrapped in `GuestRoute` or `ProtectedRoute` — the user arrives via the email recovery link)
+- Listens for the `PASSWORD_RECOVERY` auth state event to confirm the recovery token is valid
+- If the token is invalid or expired, shows an error with a link to `/forgot-password`
+- Fields: new password (dir="ltr", minLength=6), confirm password (dir="ltr", minLength=6)
+- Client-side validation: passwords must match
+- Submit calls `supabase.auth.updateUser({ password })`, navigates to `/` on success
+
+### Change Password Page (`/change-password` — `src/pages/ChangePasswordPage.tsx`)
+- Protected page (inside the authenticated layout)
+- Accessible via the "שינוי סיסמה" button in the nav bar
+- Fields: new password (dir="ltr", minLength=6), confirm password (dir="ltr", minLength=6)
+- Client-side validation: passwords must match
+- Submit calls `supabase.auth.updateUser({ password })`, shows a green `.auth-success` banner, then redirects to `/` after 2 seconds
 
 ### Auth Styles (`src/pages/Auth.css`)
 - `.auth-container` — centered full-viewport flex container with `var(--bg-subtle)` background
@@ -52,6 +76,8 @@ A personal financial manager built with React + Supabase.
 - `.auth-form input` — 12px/14px padding, border with focus ring using `var(--accent)`
 - `.auth-form button[type="submit"]` — accent-colored, 15px bold, hover/active/disabled states
 - `.auth-error` — red-tinted banner for error messages
+- `.auth-success` — green-tinted banner for success messages
+- `.auth-subtitle` — centered subtitle text below the heading
 - `.auth-link` — centered link text with accent-colored anchor
 - `.auth-loading` — centered full-viewport loading text
 
@@ -92,7 +118,7 @@ A personal financial manager built with React + Supabase.
 ### App Layout (`src/components/common/AppLayout.tsx` + `.css`)
 - Sticky top nav bar (56px height) with border-bottom
 - Nav links: each is a `NavLink` with icon SVG + Hebrew label, active state uses accent colors
-- User section: greeting based on time of day + display name, sign-out button
+- User section: greeting based on time of day + display name, followed by a circular user avatar icon button that toggles a dropdown menu. The dropdown shows a "שינוי סיסמה" option (navigates to `/change-password`) and a "התנתקות" option (sign out, hover turns red). The dropdown closes on outside click.
 - `<Outlet />` renders child routes in `<main className="app-content">`
 
 ## Page Structure
@@ -111,6 +137,9 @@ Each section contains two sub-pages, toggled via a tab-style switcher within the
 - `/expenses/charts` → Expenses charts
 - `/investments` → Investments section (default tab: table)
 - `/investments/charts` → Investments charts
+- `/change-password` → Change password (protected)
+- `/forgot-password` → Forgot password (guest only)
+- `/reset-password` → Reset password via email link (public)
 
 ### Shared Patterns
 - Each section follows the same two-tab layout (table + charts).

@@ -5,6 +5,9 @@ import { ProtectedRoute } from './components/ProtectedRoute'
 import { AppLayout } from './components/common/AppLayout'
 import { LoginPage } from './pages/LoginPage'
 import { RegisterPage } from './pages/RegisterPage'
+import { ForgotPasswordPage } from './pages/ForgotPasswordPage'
+import { ResetPasswordPage } from './pages/ResetPasswordPage'
+import { ChangePasswordPage } from './pages/ChangePasswordPage'
 import { HomePage } from './pages/HomePage'
 import { SalaryTablePage } from './pages/SalaryTablePage'
 import { SalaryChartsPage } from './pages/SalaryChartsPage'
@@ -69,6 +72,7 @@ function App() {
             <Route path="/expenses/charts" element={<ExpensesChartsPage />} />
             <Route path="/investments" element={<InvestmentsTablePage />} />
             <Route path="/investments/charts" element={<InvestmentsChartsPage />} />
+            <Route path="/change-password" element={<ChangePasswordPage />} />
           </Route>
           <Route
             path="/login"
@@ -86,6 +90,15 @@ function App() {
               </GuestRoute>
             }
           />
+          <Route
+            path="/forgot-password"
+            element={
+              <GuestRoute>
+                <ForgotPasswordPage />
+              </GuestRoute>
+            }
+          />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AuthProvider>

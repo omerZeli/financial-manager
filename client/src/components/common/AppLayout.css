@@ -45,26 +45,7 @@
   color: var(--accent);
 }
 
-.nav-signout {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
-  background: var(--bg);
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text);
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
-}
-
-.nav-signout:hover {
-  background: var(--error-bg);
-  color: var(--error);
-  border-color: var(--error);
-}
+/* User section */
 
 .nav-user {
   display: flex;
@@ -76,6 +57,71 @@
   font-size: 13px;
   font-weight: 500;
   color: var(--text-h);
+}
+
+/* User menu */
+
+.nav-user-menu {
+  position: relative;
+}
+
+.nav-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.nav-avatar:hover {
+  background: var(--bg-subtle);
+  color: var(--text-h);
+  border-color: var(--text);
+}
+
+.nav-dropdown {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 6px);
+  min-width: 200px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+  padding: 6px 0;
+  z-index: 20;
+}
+
+.nav-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 14px;
+  border: none;
+  background: none;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  text-align: right;
+}
+
+.nav-dropdown-item:hover {
+  background: var(--bg-subtle);
+  color: var(--text-h);
+}
+
+.nav-dropdown-signout:hover {
+  background: var(--error-bg);
+  color: var(--error);
 }
 
 .app-content {

@@ -1,9 +1,13 @@
-import { NavLink, Outlet } from 'react-router-dom'
+import { useState, useRef, useEffect } from 'react'
+import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import './AppLayout.css'
 
 export function AppLayout() {
   const { user, profile, signOut } = useAuth()
+  const navigate = useNavigate()
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
 
   const displayName = profile?.display_name || user?.email || ''
 
@@ -15,6 +19,18 @@ export function AppLayout() {
     if (hour >= 18 && hour < 21) return 'ערב טוב'
     return 'לילה טוב'
   }
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false)
+      }
+    }
+    if (menuOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [menuOpen])
 
   return (
     <div className="app-layout">
@@ -47,12 +63,29 @@ export function AppLayout() {
         </div>
         <div className="nav-user">
           <span className="nav-username">{getGreeting()}, {displayName}</span>
-          <button className="nav-signout" onClick={signOut}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" />
+          <div className="nav-user-menu" ref={menuRef}>
+          <button className="nav-avatar" onClick={() => setMenuOpen(prev => !prev)} aria-label="תפריט משתמש">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
             </svg>
-            יציאה
           </button>
+          {menuOpen && (
+            <div className="nav-dropdown">
+              <button className="nav-dropdown-item" onClick={() => { setMenuOpen(false); navigate('/change-password') }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                </svg>
+                שינוי סיסמה
+              </button>
+              <button className="nav-dropdown-item nav-dropdown-signout" onClick={() => { setMenuOpen(false); signOut() }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" />
+                </svg>
+                התנתקות
+              </button>
+            </div>
+          )}
+          </div>
         </div>
       </nav>
       <main className="app-content">

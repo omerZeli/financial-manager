@@ -59,6 +59,10 @@ export function LoginPage() {
         </button>
 
         <p className="auth-link">
+          <Link to="/forgot-password">שכחת סיסמה?</Link>
+        </p>
+
+        <p className="auth-link">
           אין לך חשבון? <Link to="/register">הרשמה</Link>
         </p>
       </form>
