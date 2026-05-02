@@ -41,36 +41,77 @@
   text-align: left;
 }
 
+/* Body: labels | SVG | labels */
+.sankey-body {
+  display: flex;
+  position: relative;
+  gap: 8px;
+}
+
+.sankey-labels {
+  flex: 0 0 140px;
+  position: relative;
+  min-width: 0;
+}
+
 .sankey-svg {
-  width: 100%;
-  height: auto;
+  flex: 1;
+  min-width: 0;
+  height: 100%;
   display: block;
 }
 
+/* Each label is absolutely positioned at the node's vertical center */
+.sankey-label-item {
+  position: absolute;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.sankey-labels-right .sankey-label-item {
+  left: 0;
+}
+
+.sankey-labels-left .sankey-label-item {
+  right: 0;
+}
+
+.sankey-label-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-h);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+}
+
+.sankey-label-val {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.3;
+}
+
+.sankey-labels-right .sankey-label-name,
+.sankey-labels-right .sankey-label-val {
+  text-align: left;
+}
+
+.sankey-labels-left .sankey-label-name,
+.sankey-labels-left .sankey-label-val {
+  text-align: right;
+}
+
+/* Ribbons */
 .sankey-link {
   transition: opacity 0.2s;
   cursor: default;
 }
 
 .sankey-link:hover {
-  opacity: 0.45 !important;
-}
-
-.sankey-node-group rect {
-  transition: opacity 0.15s;
-}
-
-.sankey-node-label {
-  font-size: 12px;
-  font-weight: 600;
-  fill: var(--text-h);
-  font-family: var(--sans);
-}
-
-.sankey-node-value {
-  font-size: 11px;
-  font-weight: 500;
-  fill: var(--text);
-  font-family: var(--sans);
-  font-variant-numeric: tabular-nums;
+  opacity: 0.4 !important;
 }
