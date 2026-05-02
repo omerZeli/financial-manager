@@ -7,12 +7,16 @@ import { useInvestmentChannels } from '../contexts/InvestmentChannelsContext'
 import { useInvestmentDeposits } from '../contexts/InvestmentDepositsContext'
 import { useInvestmentValues } from '../contexts/InvestmentValuesContext'
 import { computeChannelSummary, CASH_PATH_LABEL } from '../lib/computeChannelSummary'
+import { ChartFilterPopover } from '../components/common/ChartFilterPopover'
+import DateInput from '../components/common/DatePicker'
 import './HomePage.css'
+import './Section.css'
 
 function formatCurrency(n: number) {
   return n.toLocaleString('he-IL', { style: 'currency', currency: 'ILS', minimumFractionDigits: 0 })
 }
 
+type TimeRange = 'last1' | 'last12' | 'all' | 'custom'
 type InvestmentFilter = 'all' | 'pension' | 'noPension'
 type SalaryFilter = 'neto' | 'bruto'
 type ExpenseFilter = 'all' | 'regular' | 'fixed'
@@ -26,6 +30,10 @@ export function HomePage() {
   const { deposits, loading: depLoading, fetchDeposits } = useInvestmentDeposits()
   const { valueUpdates, loading: valLoading, fetchValueUpdates } = useInvestmentValues()
 
+  const [timeRange, setTimeRange] = useState<TimeRange>('all')
+  const [excludeCurrentMonth, setExcludeCurrentMonth] = useState(false)
+  const [customFrom, setCustomFrom] = useState('')
+  const [customTo, setCustomTo] = useState('')
   const [investmentFilter, setInvestmentFilter] = useState<InvestmentFilter>('all')
   const [salaryFilter, setSalaryFilter] = useState<SalaryFilter>('neto')
   const [expenseFilter, setExpenseFilter] = useState<ExpenseFilter>('all')
@@ -38,32 +46,66 @@ export function HomePage() {
   useEffect(() => { fetchDeposits() }, [fetchDeposits])
   useEffect(() => { fetchValueUpdates() }, [fetchValueUpdates])
 
+  // Compute effective date range (same logic as expenses chart page)
+  const effectiveDateRange = useMemo(() => {
+    if (timeRange === 'all') {
+      return { minDate: '0000-01-01', maxDate: '9999-12-31' }
+    }
+    if (timeRange === 'custom') {
+      return { minDate: customFrom || '0000-01-01', maxDate: customTo || '9999-12-31' }
+    }
+    const now = new Date()
+    const months = timeRange === 'last1' ? 1 : 12
+    const lastYear = excludeCurrentMonth
+      ? (now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear())
+      : now.getFullYear()
+    const lastMonth = excludeCurrentMonth
+      ? (now.getMonth() === 0 ? 11 : now.getMonth() - 1)
+      : now.getMonth()
+    const endOfLast = new Date(lastYear, lastMonth + 1, 0)
+    const maxDate = endOfLast.toISOString().slice(0, 10)
+    const from = new Date(lastYear, lastMonth - months + 1, 1)
+    const minDate = from.toISOString().slice(0, 10)
+    return { minDate, maxDate }
+  }, [timeRange, excludeCurrentMonth, customFrom, customTo])
+
   // --- Investments: total current value ---
+  // Investment value is a point-in-time snapshot, so the time filter
+  // only filters the deposits/value-updates fed into the engine.
   const totalInvestmentValue = useMemo(() => {
     let filtered = channels
     if (investmentFilter === 'pension') filtered = filtered.filter(ch => ch.is_pension)
     else if (investmentFilter === 'noPension') filtered = filtered.filter(ch => !ch.is_pension)
 
+    const filteredDeposits = timeRange === 'all'
+      ? deposits
+      : deposits.filter(d => d.date >= effectiveDateRange.minDate && d.date <= effectiveDateRange.maxDate)
+    const filteredValues = timeRange === 'all'
+      ? valueUpdates
+      : valueUpdates.filter(v => v.date >= effectiveDateRange.minDate && v.date <= effectiveDateRange.maxDate)
+
     let total = 0
     for (const ch of filtered) {
       const isCash = ch.investment_path === CASH_PATH_LABEL
-      const summary = computeChannelSummary(ch.id, deposits, valueUpdates, isCash)
+      const summary = computeChannelSummary(ch.id, filteredDeposits, filteredValues, isCash)
       total += summary.currentValue
     }
     return total
-  }, [channels, deposits, valueUpdates, investmentFilter])
+  }, [channels, deposits, valueUpdates, investmentFilter, timeRange, effectiveDateRange])
 
   // --- Salary: average monthly ---
   const avgSalary = useMemo(() => {
-    if (salaries.length === 0) return 0
+    const filtered = timeRange === 'all'
+      ? salaries
+      : salaries.filter(s => s.month >= effectiveDateRange.minDate && s.month <= effectiveDateRange.maxDate)
+    if (filtered.length === 0) return 0
     const field = salaryFilter === 'bruto' ? 'bruto' : 'neto'
-    const total = salaries.reduce((sum, s) => sum + s[field], 0)
-    return total / salaries.length
-  }, [salaries, salaryFilter])
+    const total = filtered.reduce((sum, s) => sum + s[field], 0)
+    return total / filtered.length
+  }, [salaries, salaryFilter, timeRange, effectiveDateRange])
 
   // --- Expenses: average monthly ---
   const avgMonthlyExpenses = useMemo(() => {
-    // Build to_me payback totals per expense
     const toMeByExpense: Record<string, number> = {}
     for (const pb of paybacks) {
       if (pb.direction === 'to_me' && pb.expense_id) {
@@ -71,7 +113,6 @@ export function HomePage() {
       }
     }
 
-    // by_me paybacks as virtual expenses
     const byMeExpenses = paybacks
       .filter(pb => pb.direction === 'by_me')
       .map(pb => ({ amount: pb.amount, date: pb.date }))
@@ -90,22 +131,77 @@ export function HomePage() {
       items = [...items, ...inflatedExpenses.map(ie => ({ amount: ie.amount, date: ie.date }))]
     }
 
+    // Apply time filter
+    if (timeRange !== 'all') {
+      items = items.filter(i => i.date >= effectiveDateRange.minDate && i.date <= effectiveDateRange.maxDate)
+    }
+
     if (items.length === 0) return 0
 
-    // Group by month and compute average
     const months = new Set(items.map(i => i.date.slice(0, 7)))
     const total = items.reduce((sum, i) => sum + i.amount, 0)
     return months.size > 0 ? total / months.size : 0
-  }, [expenses, inflatedExpenses, paybacks, expenseFilter])
+  }, [expenses, inflatedExpenses, paybacks, expenseFilter, timeRange, effectiveDateRange])
 
-  const investmentLoading = chLoading || depLoading || valLoading
-  const salaryLoading = salLoading
-  const expenseLoading = expLoading || fixLoading || pbLoading
+  const anyLoading = salLoading || expLoading || fixLoading || pbLoading || chLoading || depLoading || valLoading
+
+  const hasActiveFilters = useMemo(() => {
+    if (timeRange !== 'all') return true
+    if (excludeCurrentMonth) return true
+    if (customFrom || customTo) return true
+    return false
+  }, [timeRange, excludeCurrentMonth, customFrom, customTo])
+
+  const clearFilters = () => {
+    setTimeRange('all')
+    setExcludeCurrentMonth(false)
+    setCustomFrom('')
+    setCustomTo('')
+  }
 
   return (
     <div className="home-page">
-      <div className="home-header">
+      <div className="section-header">
         <h1>דשבורד</h1>
+        <div className="section-header-actions">
+          {!anyLoading && (
+            <ChartFilterPopover hasActive={hasActiveFilters} onClear={clearFilters}>
+              <div className="filter-popover-field">
+                <div className="filter-popover-label">טווח זמן</div>
+                <div className="filter-tabs">
+                  <button type="button" className={`filter-tab${timeRange === 'last1' ? ' active' : ''}`} onClick={() => setTimeRange('last1')}>חודש אחרון</button>
+                  <button type="button" className={`filter-tab${timeRange === 'last12' ? ' active' : ''}`} onClick={() => setTimeRange('last12')}>שנה</button>
+                  <button type="button" className={`filter-tab${timeRange === 'all' ? ' active' : ''}`} onClick={() => setTimeRange('all')}>הכל</button>
+                  <button type="button" className={`filter-tab${timeRange === 'custom' ? ' active' : ''}`} onClick={() => setTimeRange('custom')}>מותאם</button>
+                </div>
+              </div>
+              {timeRange === 'custom' && (
+                <div className="filter-popover-field">
+                  <div className="filter-popover-label">טווח מותאם</div>
+                  <div className="custom-range-row">
+                    <DateInput value={customFrom} onChange={setCustomFrom} placeholder="מתאריך" />
+                    <span className="range-sep">-</span>
+                    <DateInput value={customTo} onChange={setCustomTo} placeholder="עד תאריך" />
+                  </div>
+                </div>
+              )}
+              {timeRange !== 'custom' && (
+                <div className="filter-popover-field">
+                  <div className="toggle-row">
+                    <span className="toggle-label">לא כולל החודש הנוכחי</span>
+                    <button
+                      type="button"
+                      className={`toggle-switch${excludeCurrentMonth ? ' active' : ''}`}
+                      onClick={() => setExcludeCurrentMonth(prev => !prev)}
+                    >
+                      <span className="toggle-knob" />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </ChartFilterPopover>
+          )}
+        </div>
       </div>
 
       <div className="home-cards">
@@ -113,7 +209,7 @@ export function HomePage() {
         <div className="home-card">
           <div className="home-card-info">
             <span className="home-card-label">שווי השקעות</span>
-            {investmentLoading
+            {chLoading || depLoading || valLoading
               ? <span className="home-card-loading">טוען...</span>
               : <span className="home-card-value">{formatCurrency(totalInvestmentValue)}</span>
             }
@@ -124,13 +220,13 @@ export function HomePage() {
               onClick={() => setInvestmentFilter('all')}
             >הכל</button>
             <button
-              className={`home-card-filter-btn${investmentFilter === 'pension' ? ' active' : ''}`}
-              onClick={() => setInvestmentFilter('pension')}
-            >פנסיוני</button>
-            <button
               className={`home-card-filter-btn${investmentFilter === 'noPension' ? ' active' : ''}`}
               onClick={() => setInvestmentFilter('noPension')}
             >לא פנסיוני</button>
+            <button
+              className={`home-card-filter-btn${investmentFilter === 'pension' ? ' active' : ''}`}
+              onClick={() => setInvestmentFilter('pension')}
+            >פנסיוני</button>
           </div>
         </div>
 
@@ -138,7 +234,7 @@ export function HomePage() {
         <div className="home-card">
           <div className="home-card-info">
             <span className="home-card-label">משכורת ממוצעת</span>
-            {salaryLoading
+            {salLoading
               ? <span className="home-card-loading">טוען...</span>
               : <span className="home-card-value">{formatCurrency(avgSalary)}</span>
             }
@@ -159,7 +255,7 @@ export function HomePage() {
         <div className="home-card">
           <div className="home-card-info">
             <span className="home-card-label">הוצאות חודשיות ממוצעות</span>
-            {expenseLoading
+            {expLoading || fixLoading || pbLoading
               ? <span className="home-card-loading">טוען...</span>
               : <span className="home-card-value">{formatCurrency(avgMonthlyExpenses)}</span>
             }

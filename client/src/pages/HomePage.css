@@ -5,15 +5,6 @@
   width: 100%;
 }
 
-.home-header {
-  margin-bottom: 1.25rem;
-}
-
-.home-header h1 {
-  font-size: 22px;
-  margin: 0;
-}
-
 .home-cards {
   display: flex;
   gap: 1rem;
