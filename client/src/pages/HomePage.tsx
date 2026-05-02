@@ -239,9 +239,8 @@ export function HomePage() {
     }
 
     // --- RIGHT SIDE: Outflows ---
-    // 1. My investment deposits (depositor === 'אני', not withdrawals), split pension/non-pension
-    const myDeposits = deposits.filter(d => {
-      if (d.is_withdrawal) return false
+    // 1. My investment deposits net of withdrawals, split pension/non-pension
+    const myDepositsAndWithdrawals = deposits.filter(d => {
       if (d.depositor !== 'אני') return false
       if (timeRange === 'all') return true
       return d.date >= effectiveDateRange.minDate && d.date <= effectiveDateRange.maxDate
@@ -255,13 +254,17 @@ export function HomePage() {
 
     let pensionTotal = 0
     let nonPensionTotal = 0
-    for (const d of myDeposits) {
+    for (const d of myDepositsAndWithdrawals) {
+      const amount = d.is_withdrawal ? -d.amount : d.amount
       if (channelPensionMap.get(d.channel_id)) {
-        pensionTotal += d.amount
+        pensionTotal += amount
       } else {
-        nonPensionTotal += d.amount
+        nonPensionTotal += amount
       }
     }
+    // Floor at 0 — net withdrawals shouldn't show as negative outflow
+    pensionTotal = Math.max(pensionTotal, 0)
+    nonPensionTotal = Math.max(nonPensionTotal, 0)
 
     // 2. Expenses by expense type (filtered by date range)
     // Merge regular + inflated expenses, apply payback adjustments
