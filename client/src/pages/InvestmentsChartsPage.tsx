@@ -51,6 +51,7 @@ export function InvestmentsChartsPage() {
   const [selectedChannels, setSelectedChannels] = useState<string[]>([])
   const [channelsInited, setChannelsInited] = useState(false)
   const [groupBy, setGroupBy] = useState<'channel' | 'path' | 'depositor'>('channel')
+  const [returnChartMode, setReturnChartMode] = useState<'return' | 'value'>('return')
   const [pensionFilter, setPensionFilter] = useState<'all' | 'pension' | 'noPension'>('all')
 
   useEffect(() => { fetchChannels() }, [fetchChannels])
@@ -286,28 +287,30 @@ export function InvestmentsChartsPage() {
     setPensionFilter('all')
   }
 
-  // Return over time: compute total return % at the last day of each month, excluding cash channels
-  const returnOverTime = useMemo(() => {
-    const channelSet = new Set(nonCashChannels.map(ch => ch.id))
+  // Return over time & value over time: compute at the last day of each month
+  const { returnOverTime, valueOverTime } = useMemo(() => {
+    const nonCashChannelSet = new Set(nonCashChannels.map(ch => ch.id))
 
     // All deposits and value updates for selected non-cash channels (unfiltered by time)
-    const channelDeposits = deposits.filter(d => channelSet.has(d.channel_id))
-    const channelValues = valueUpdates.filter(v => channelSet.has(v.channel_id))
+    const nonCashAllDeposits = deposits.filter(d => nonCashChannelSet.has(d.channel_id))
+    const nonCashAllValues = valueUpdates.filter(v => nonCashChannelSet.has(v.channel_id))
 
-    // All events within the filtered range (non-cash deposits + value updates)
-    const nonCashFilteredDeposits = filteredDeposits.filter(d => channelSet.has(d.channel_id))
-    const nonCashFilteredValues = filteredValues.filter(v => channelSet.has(v.channel_id))
+    // All deposits and value updates for ALL selected channels (including cash) — for value chart
+    const allChannelSet = new Set(filteredChannels.map(ch => ch.id))
+    const allChannelDeposits = deposits.filter(d => allChannelSet.has(d.channel_id))
+    const allChannelValues = valueUpdates.filter(v => allChannelSet.has(v.channel_id))
+
+    // Events within the filtered range (all channels)
     const allFilteredDates = [
-      ...nonCashFilteredDeposits.map(d => d.date),
-      ...nonCashFilteredValues.map(v => v.date),
+      ...filteredDeposits.map(d => d.date),
+      ...filteredValues.map(v => v.date),
     ]
-    if (allFilteredDates.length === 0) return []
+    if (allFilteredDates.length === 0) return { returnOverTime: [], valueOverTime: [] }
 
     // Determine date range from all filtered events
     const sortedDates = [...new Set(allFilteredDates)].sort()
     const firstDate = sortedDates[0]
     const firstD = new Date(firstDate + 'T00:00:00')
-    // Extend sampling to today (or custom filter end), not just the last event date
     const todayStr = new Date().toISOString().slice(0, 10)
     const endDateStr = timeRange === 'custom' && customTo ? customTo : todayStr
     const endD = new Date(endDateStr + 'T00:00:00')
@@ -316,10 +319,9 @@ export function InvestmentsChartsPage() {
     // Build list of last-day-of-month dates spanning the range
     const monthlyDates: string[] = []
     let curYear = firstD.getFullYear()
-    let curMonth = firstD.getMonth() // 0-based
-    // Start from last day of firstD's month
+    let curMonth = firstD.getMonth()
     while (true) {
-      const lastDay = new Date(curYear, curMonth + 1, 0) // last day of curMonth
+      const lastDay = new Date(curYear, curMonth + 1, 0)
       if (lastDay > endMonthEnd) break
       if (lastDay >= firstD) {
         const y = lastDay.getFullYear()
@@ -327,12 +329,10 @@ export function InvestmentsChartsPage() {
         const d = String(lastDay.getDate()).padStart(2, '0')
         monthlyDates.push(`${y}-${m}-${d}`)
       }
-      // Advance to next month
       curMonth++
       if (curMonth > 11) { curMonth = 0; curYear++ }
     }
 
-    // Remove the last date if its month hasn't ended yet (i.e. it's in the future)
     if (monthlyDates.length > 0 && monthlyDates[monthlyDates.length - 1] > todayStr) {
       monthlyDates.pop()
     }
@@ -341,30 +341,44 @@ export function InvestmentsChartsPage() {
       ? monthlyDates.slice(-18)
       : sortedDates.slice(-18)
 
-    const points: { date: string; returnPct: number }[] = []
+    const returnPoints: { date: string; returnPct: number }[] = []
+    const valuePoints: { date: string; totalValue: number }[] = []
 
     for (const date of sampledDates) {
-      // Use the event sourcing engine with events up to this date
-      const depositsToDate = channelDeposits.filter(d => d.date <= date)
-      const valuesToDate = channelValues.filter(v => v.date <= date)
+      // Return chart: non-cash channels only
+      const ncDepositsToDate = nonCashAllDeposits.filter(d => d.date <= date)
+      const ncValuesToDate = nonCashAllValues.filter(v => v.date <= date)
 
       let totalInvested = 0
-      let totalValue = 0
+      let totalNonCashValue = 0
 
       for (const ch of nonCashChannels) {
-        const summary = computeChannelSummary(ch.id, depositsToDate, valuesToDate, false)
+        const summary = computeChannelSummary(ch.id, ncDepositsToDate, ncValuesToDate, false)
         totalInvested += summary.totalDeposits
-        totalValue += summary.currentValue
+        totalNonCashValue += summary.currentValue
       }
 
-      if (totalInvested <= 0) continue
+      if (totalInvested > 0) {
+        const pct = ((totalNonCashValue - totalInvested) / totalInvested) * 100
+        returnPoints.push({ date, returnPct: pct })
+      }
 
-      const pct = ((totalValue - totalInvested) / totalInvested) * 100
-      points.push({ date, returnPct: pct })
+      // Value chart: all channels (including cash)
+      const allDepositsToDate = allChannelDeposits.filter(d => d.date <= date)
+      const allValuesToDate = allChannelValues.filter(v => v.date <= date)
+
+      let totalAllValue = 0
+      for (const ch of filteredChannels) {
+        const isCash = ch.investment_path === CASH_PATH_LABEL
+        const summary = computeChannelSummary(ch.id, allDepositsToDate, allValuesToDate, isCash)
+        totalAllValue += summary.currentValue
+      }
+
+      valuePoints.push({ date, totalValue: totalAllValue })
     }
 
-    return points
-  }, [filteredDeposits, filteredValues, nonCashChannels, deposits, valueUpdates, timeRange, customTo])
+    return { returnOverTime: returnPoints, valueOverTime: valuePoints }
+  }, [filteredDeposits, filteredValues, filteredChannels, nonCashChannels, deposits, valueUpdates, timeRange, customTo])
 
   return (
     <div className="section-page">
@@ -457,24 +471,41 @@ export function InvestmentsChartsPage() {
             </div>
           </div>
 
-          {returnOverTime.length >= 2 && (() => {
-            const minPct = Math.min(...returnOverTime.map(p => p.returnPct))
-            const maxPct = Math.max(...returnOverTime.map(p => p.returnPct))
-            const rawRange = maxPct - minPct || 1
+          {(returnOverTime.length >= 2 || valueOverTime.length >= 2) && (() => {
+            const showReturn = returnChartMode === 'return'
+            const activeData = showReturn ? returnOverTime : valueOverTime
+            if (activeData.length < 2) return null
 
-            // Pick a nice step size: 0.5, 1, 2, 5, 10, 20, 50...
-            const niceSteps = [0.5, 1, 2, 5, 10, 20, 50]
-            const idealStep = rawRange / 5
-            const step = niceSteps.find(s => s >= idealStep) ?? Math.ceil(idealStep / 10) * 10
+            const values = showReturn
+              ? (activeData as typeof returnOverTime).map(p => p.returnPct)
+              : (activeData as typeof valueOverTime).map(p => p.totalValue)
 
-            // Round min/max to step boundaries
-            const yMin = Math.floor(minPct / step) * step - step
-            const yMax = Math.ceil(maxPct / step) * step + step
+            const minVal = Math.min(...values)
+            const maxVal = Math.max(...values)
+            const rawRange = maxVal - minVal || 1
+
+            // Pick a nice step size
+            let niceSteps: number[]
+            let step: number
+            if (showReturn) {
+              niceSteps = [0.5, 1, 2, 5, 10, 20, 50]
+              const idealStep = rawRange / 5
+              step = niceSteps.find(s => s >= idealStep) ?? Math.ceil(idealStep / 10) * 10
+            } else {
+              // Currency values — pick steps in thousands
+              const idealStep = rawRange / 5
+              const magnitude = Math.pow(10, Math.floor(Math.log10(idealStep)))
+              const candidates = [1, 2, 5, 10].map(m => m * magnitude)
+              step = candidates.find(s => s >= idealStep) ?? candidates[candidates.length - 1]
+            }
+
+            const yMin = Math.floor(minVal / step) * step - step
+            const yMax = Math.ceil(maxVal / step) * step + step
             const yRange = yMax - yMin
 
             const svgW = 800
             const svgH = 240
-            const padL = 60
+            const padL = showReturn ? 60 : 80
             const padR = 40
             const padT = 28
             const padB = 32
@@ -482,38 +513,58 @@ export function InvestmentsChartsPage() {
             const chartH = svgH - padT - padB
 
             const dataInset = 12
-            const toX = (i: number) => padL + dataInset + (i / (returnOverTime.length - 1)) * (chartW - dataInset)
-            const toY = (pct: number) => padT + (1 - (pct - yMin) / yRange) * chartH
+            const toX = (i: number) => padL + dataInset + (i / (activeData.length - 1)) * (chartW - dataInset)
+            const toY = (v: number) => padT + (1 - (v - yMin) / yRange) * chartH
 
-            const pathD = returnOverTime
-              .map((p, i) => `${i === 0 ? 'M' : 'L'}${toX(i).toFixed(1)},${toY(p.returnPct).toFixed(1)}`)
+            const pathD = activeData
+              .map((p, i) => {
+                const v = showReturn ? (p as typeof returnOverTime[0]).returnPct : (p as typeof valueOverTime[0]).totalValue
+                return `${i === 0 ? 'M' : 'L'}${toX(i).toFixed(1)},${toY(v).toFixed(1)}`
+              })
               .join(' ')
 
-            // Y-axis gridlines at nice step intervals
-            const gridLines: { pct: number; y: number }[] = []
+            // Y-axis gridlines
+            const gridLines: { val: number; y: number }[] = []
             for (let v = yMin; v <= yMax; v += step) {
-              gridLines.push({ pct: v, y: toY(v) })
+              gridLines.push({ val: v, y: toY(v) })
             }
 
-            // Format grid label: show decimal only if step is 0.5
-            const fmtGrid = (v: number) => (step < 1 ? v.toFixed(1) : v.toFixed(0)) + '%'
+            const fmtGrid = (v: number) => {
+              if (showReturn) return ((step < 1 ? v.toFixed(1) : v.toFixed(0)) + '%')
+              return v >= 1000 ? `${(v / 1000).toLocaleString('he-IL')}K` : v.toLocaleString('he-IL')
+            }
 
-            // X-axis labels — show every data point
-            const labelIndices = returnOverTime.map((_, i) => i)
+            const fmtDot = (v: number) => {
+              if (showReturn) return v.toFixed(1) + '%'
+              return formatCurrency(v)
+            }
 
-            // Zero line
-            const zeroY = yMin <= 0 && yMax >= 0 ? toY(0) : null
+            const labelIndices = activeData.map((_, i) => i)
+
+            // Zero line (only for return mode)
+            const zeroY = showReturn && yMin <= 0 && yMax >= 0 ? toY(0) : null
+
+            const returnChartLabels: Record<string, string> = {
+              return: 'תשואה כוללת',
+              value: 'שווי כולל',
+            }
 
             return (
               <div className="chart-card">
-                <h3>תשואה כוללת לאורך זמן</h3>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                  <h3 style={{ margin: 0 }}>{returnChartLabels[returnChartMode]} לאורך זמן</h3>
+                  <div className="filter-tabs" style={{ width: 'auto' }}>
+                    <button type="button" className={`filter-tab${returnChartMode === 'return' ? ' active' : ''}`} onClick={() => setReturnChartMode('return')}>תשואה</button>
+                    <button type="button" className={`filter-tab${returnChartMode === 'value' ? ' active' : ''}`} onClick={() => setReturnChartMode('value')}>שווי</button>
+                  </div>
+                </div>
                 <svg viewBox={`0 0 ${svgW} ${svgH}`} className="line-chart-svg">
                   {/* Grid lines */}
                   {gridLines.map((g, i) => (
                     <g key={i}>
                       <line x1={padL} x2={svgW - padR} y1={g.y} y2={g.y} stroke="var(--border-light)" strokeWidth="1" />
                       <text x={padL - 8} y={g.y + 4} textAnchor="end" fontSize="11" fill="var(--text)" fontFamily="var(--sans)" direction="ltr">
-                        {fmtGrid(g.pct)}
+                        {fmtGrid(g.val)}
                       </text>
                     </g>
                   ))}
@@ -524,17 +575,20 @@ export function InvestmentsChartsPage() {
                   {/* Line */}
                   <path d={pathD} fill="none" stroke="var(--accent)" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
                   {/* Dots + labels */}
-                  {returnOverTime.map((p, i) => (
-                    <g key={i}>
-                      <circle cx={toX(i)} cy={toY(p.returnPct)} r="3.5" fill="var(--accent)" />
-                      <text x={toX(i)} y={toY(p.returnPct) - 10} textAnchor="middle" fontSize="10" fontWeight="600" fill="var(--text-h)" fontFamily="var(--sans)" direction="ltr">
-                        {p.returnPct.toFixed(1)}%
-                      </text>
-                    </g>
-                  ))}
+                  {activeData.map((p, i) => {
+                    const v = showReturn ? (p as typeof returnOverTime[0]).returnPct : (p as typeof valueOverTime[0]).totalValue
+                    return (
+                      <g key={i}>
+                        <circle cx={toX(i)} cy={toY(v)} r="3.5" fill="var(--accent)" />
+                        <text x={toX(i)} y={toY(v) - 10} textAnchor="middle" fontSize="10" fontWeight="600" fill="var(--text-h)" fontFamily="var(--sans)" direction="ltr">
+                          {fmtDot(v)}
+                        </text>
+                      </g>
+                    )
+                  })}
                   {/* X-axis labels */}
                   {labelIndices.map(i => {
-                    const p = returnOverTime[i]
+                    const p = activeData[i]
                     const d = new Date(p.date + 'T00:00:00')
                     const label = d.toLocaleDateString('he-IL', { month: 'short', year: '2-digit' })
                     return (
