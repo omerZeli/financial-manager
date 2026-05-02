@@ -218,7 +218,7 @@ export function HomePage() {
     for (const [employer, total] of sortedEmployers) {
       leftNodes.push({
         id: `salary_${employer}`,
-        label: employer,
+        label: `משכורת - ${employer}`,
         value: total,
         color: INCOME_COLORS[colorIdx % INCOME_COLORS.length],
       })
@@ -231,7 +231,7 @@ export function HomePage() {
     for (const [depositor, total] of sortedDepositors) {
       leftNodes.push({
         id: `depositor_${depositor}`,
-        label: `הפקדה - ${depositor}`,
+        label: `הפקדות - ${depositor}`,
         value: total,
         color: INCOME_COLORS[colorIdx % INCOME_COLORS.length],
       })
@@ -316,7 +316,7 @@ export function HomePage() {
 
     const expenseByType: Record<string, number> = {}
     for (const item of filteredExpItems) {
-      const typeName = categoryToType.get(item.category) || 'אחר'
+      const typeName = categoryToType.get(item.category) || 'אחרות'
       expenseByType[typeName] = (expenseByType[typeName] || 0) + item.amount
     }
 
@@ -326,7 +326,7 @@ export function HomePage() {
     if (pensionTotal > 0) {
       rightNodes.push({
         id: 'invest_pension',
-        label: 'השקעות פנסיוניות',
+        label: 'הפקדות לפנסיה',
         value: pensionTotal,
         color: OUTFLOW_COLORS_INVEST[0],
       })
@@ -334,7 +334,7 @@ export function HomePage() {
     if (nonPensionTotal > 0) {
       rightNodes.push({
         id: 'invest_non_pension',
-        label: 'השקעות לא פנסיוניות',
+        label: 'הפקדות להשקעות',
         value: nonPensionTotal,
         color: OUTFLOW_COLORS_INVEST[1],
       })
@@ -347,7 +347,7 @@ export function HomePage() {
     for (const [typeName, total] of sortedExpTypes) {
       rightNodes.push({
         id: `expense_${typeName}`,
-        label: typeName,
+        label: `הוצאות ${typeName}`,
         value: total,
         color: OUTFLOW_COLORS_EXPENSE[expColorIdx % OUTFLOW_COLORS_EXPENSE.length],
       })
