@@ -202,9 +202,6 @@ export function InvestmentsTablePage() {
   const depositTable = useTableControls(deposits, depositCols, 'date', 'desc', getDepositValue)
   const valueTable = useTableControls(valueUpdates, valueCols, 'date', 'desc', getValueUpdateValue)
 
-  const activeTableCtrl = activeTab === 'channels' ? channelTable : activeTab === 'deposits' ? depositTable : valueTable
-  const activeCols = activeTab === 'channels' ? channelCols : activeTab === 'deposits' ? depositCols : valueCols
-
   const openValueFormForChannel = (channelId: string) => {
     const ch = channels.find(c => c.id === channelId)
     const latestValue = valueUpdates

@@ -292,9 +292,6 @@ export function ExpensesTablePage() {
   const fixedExpTable = useTableControls(fixedExpenses, fixedExpCols, 'start_date', 'desc', getFixedExpValue)
   const paybackTable = useTableControls(paybacks, paybackCols, 'date', 'desc', getPaybackValue)
 
-  const activeTable = activeTab === 'all' ? allExpTable : activeTab === 'regular' ? regularExpTable : activeTab === 'fixed' ? fixedExpTable : paybackTable
-  const activeCols = activeTab === 'all' ? allExpCols : activeTab === 'regular' ? regularExpCols : activeTab === 'fixed' ? fixedExpCols : paybackCols
-
   // Close picker on outside click
   useEffect(() => {
     if (modal !== 'picker') return
