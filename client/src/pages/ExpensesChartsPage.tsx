@@ -214,7 +214,7 @@ export function ExpensesChartsPage() {
     acc[e.category] = (acc[e.category] || 0) + e.amount
     return acc
   }, {})
-  const categories = Object.entries(byCategory).sort((a, b) => b[1] - a[1])
+  const categories = Object.entries(byCategory).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1])
   const maxCategory = categories.length ? categories[0][1] : 1
 
   // For the monthly bar chart, limit to last 18 months if range is larger
