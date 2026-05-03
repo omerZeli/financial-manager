@@ -107,7 +107,7 @@
   position: absolute;
   left: 0;
   top: calc(100% + 6px);
-  min-width: 200px;
+  min-width: 14%;
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -174,7 +174,8 @@
     top: 56px;
     right: 0;
     bottom: 0;
-    width: 260px;
+    width: 65%;
+    max-width: 300px;
     background: var(--bg);
     border-left: 1px solid var(--border);
     flex-direction: column;

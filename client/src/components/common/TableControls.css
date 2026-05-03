@@ -116,7 +116,7 @@
   box-shadow: var(--shadow-lg);
   z-index: 100;
   padding: 10px;
-  min-width: 220px;
+  min-width: 16%;
   animation: col-filter-in 0.12s ease-out;
 }
 
@@ -312,7 +312,7 @@
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow-lg);
-  min-width: 320px;
+  min-width: 23%;
   max-height: calc(100svh - 160px);
   overflow-y: auto;
   z-index: 30;

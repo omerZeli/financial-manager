@@ -9,7 +9,8 @@
 
 .auth-form {
   width: 100%;
-  max-width: 420px;
+  max-width: 30%;
+  min-width: 320px;
   display: flex;
   flex-direction: column;
   gap: 16px;
