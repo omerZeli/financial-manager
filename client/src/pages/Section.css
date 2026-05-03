@@ -1161,10 +1161,9 @@
     font-size: 15px;
   }
 
-  /* Chart card */
+  /* Chart card — hide on mobile, show only summary cards */
   .chart-card {
-    padding: 1rem;
-    overflow-x: auto;
+    display: none;
   }
 
   /* Bar chart */
