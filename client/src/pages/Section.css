@@ -745,8 +745,8 @@
 }
 
 .h-bar-label {
-  width: 8%;
-  min-width: 55px;
+  width: 13%;
+  min-width: 70px;
   font-size: 13px;
   color: var(--text-h);
   text-align: right;
@@ -1191,8 +1191,8 @@
 
   /* Horizontal bar chart */
   .h-bar-label {
-    width: 12%;
-    min-width: 55px;
+    width: 20%;
+    min-width: 70px;
     font-size: 12px;
   }
 
@@ -1255,8 +1255,8 @@
   }
 
   .h-bar-label {
-    width: 15%;
-    min-width: 45px;
+    width: 22%;
+    min-width: 55px;
     font-size: 11px;
   }
 
