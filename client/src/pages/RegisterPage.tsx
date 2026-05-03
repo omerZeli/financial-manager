@@ -39,7 +39,7 @@ export function RegisterPage() {
 
         {error && <div className="auth-error">{error}</div>}
 
-        <label htmlFor="displayName">שם תצוגה</label>
+        <label htmlFor="displayName">שם</label>
         <input
           id="displayName"
           type="text"
