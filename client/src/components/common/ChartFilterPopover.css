@@ -51,3 +51,12 @@
 .chart-filter-popover .toggle-row {
   margin-bottom: 0;
 }
+
+/* ── Mobile ── */
+@media (max-width: 768px) {
+  .chart-filter-popover {
+    min-width: 0;
+  }
+
+  /* The parent .filter-popover handles full-width bottom-sheet on mobile */
+}

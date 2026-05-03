@@ -610,6 +610,8 @@
   border-radius: var(--radius);
   padding: 1rem 1.25rem;
   box-shadow: var(--shadow-sm);
+  min-width: 0;
+  overflow: hidden;
 }
 
 .summary-card .label {
@@ -623,6 +625,9 @@
   font-weight: 700;
   color: var(--text-h);
   font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .summary-card .value.value-sm {
@@ -1010,4 +1015,253 @@
   width: 100%;
   height: auto;
   display: block;
+}
+
+/* ══════════════════════════════════════════════
+   Mobile responsive
+   ══════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  /* Section layout */
+  .section-page {
+    padding: 1rem;
+  }
+
+  .section-header {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .section-header h1 {
+    font-size: 18px;
+  }
+
+  .section-header-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  /* Tab switcher — scrollable */
+  .section-tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    flex-shrink: 1;
+    min-width: 0;
+  }
+
+  .section-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .section-tab {
+    padding: 6px 12px;
+    font-size: 12px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  /* Sub-tabs — scrollable */
+  .sub-tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    flex-wrap: nowrap;
+  }
+
+  .sub-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .sub-tab {
+    padding: 6px 12px;
+    font-size: 12px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  /* Table area */
+  .section-table-area {
+    max-height: calc(100svh - 200px);
+  }
+
+  .section-table th {
+    padding: 8px 10px;
+    font-size: 11px;
+  }
+
+  .section-table td {
+    padding: 8px 10px;
+    font-size: 13px;
+    max-width: 120px;
+  }
+
+  /* Modal — slide up from bottom */
+  .modal-overlay {
+    padding: 0;
+    align-items: flex-end;
+  }
+
+  .modal-content {
+    padding: 1.5rem 1.25rem;
+    border-radius: var(--radius) var(--radius) 0 0;
+    max-height: 90svh;
+    max-width: 100%;
+  }
+
+  /* FAB */
+  .fab-wrap {
+    bottom: 1.25rem;
+    left: 1.25rem;
+  }
+
+  .section-fab {
+    bottom: 1.25rem;
+    left: 1.25rem;
+    width: 48px;
+    height: 48px;
+    font-size: 24px;
+  }
+
+  /* Charts filters */
+  .charts-filters {
+    padding: 0.75rem 1rem;
+    gap: 0.75rem;
+  }
+
+  .filter-tabs {
+    flex-wrap: wrap;
+  }
+
+  .filter-tab {
+    padding: 5px 10px;
+    font-size: 11px;
+  }
+
+  .custom-range-field .date-picker-display {
+    width: 100px;
+  }
+
+  /* Summary row — 2 per row on tablet, wrap */
+  .summary-row {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .summary-card {
+    flex: 1 1 calc(50% - 0.25rem);
+    min-width: calc(50% - 0.25rem);
+    padding: 0.75rem 1rem;
+  }
+
+  .summary-card .value {
+    font-size: 18px;
+    word-break: break-all;
+  }
+
+  .summary-card .value.value-sm {
+    font-size: 15px;
+  }
+
+  /* Chart card */
+  .chart-card {
+    padding: 1rem;
+    overflow-x: auto;
+  }
+
+  /* Bar chart */
+  .bar-chart {
+    gap: 3px;
+    height: 180px;
+    min-width: 0;
+  }
+
+  .bar {
+    width: 12px;
+  }
+
+  .bar.expense-bar {
+    width: 18px;
+  }
+
+  .bar-value {
+    font-size: 9px;
+  }
+
+  .bar-label {
+    font-size: 10px;
+  }
+
+  /* Horizontal bar chart */
+  .h-bar-label {
+    width: 70px;
+    font-size: 12px;
+  }
+
+  .h-bar-value {
+    width: 70px;
+    font-size: 12px;
+  }
+
+  .h-bar-track {
+    height: 18px;
+  }
+
+  /* Wide filter selects — remove min-width on mobile */
+  .filter-group-wide .custom-select,
+  .filter-group-wide .custom-select-menu,
+  .filter-group-wide .filter-multi-select,
+  .filter-group-wide .filter-multi-menu {
+    min-width: 0;
+  }
+
+  .filter-group .filter-multi-select {
+    min-width: 0;
+  }
+
+  .filter-group .custom-select {
+    min-width: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .section-page {
+    padding: 0.75rem;
+  }
+
+  .section-header {
+    margin-bottom: 0.75rem;
+  }
+
+  /* Summary cards — 1 per row on small phones */
+  .summary-card {
+    flex: 1 1 100%;
+    min-width: 100%;
+  }
+
+  .summary-card .value {
+    font-size: 17px;
+  }
+
+  .bar-chart {
+    height: 150px;
+  }
+
+  .bar {
+    width: 8px;
+  }
+
+  .bar.expense-bar {
+    width: 14px;
+  }
+
+  .h-bar-label {
+    width: 55px;
+    font-size: 11px;
+  }
+
+  .h-bar-value {
+    width: 60px;
+    font-size: 11px;
+  }
 }

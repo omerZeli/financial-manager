@@ -86,3 +86,10 @@
 }
 
 /* Reuse dp- styles for header, months, years */
+
+/* ── Mobile ── */
+@media (max-width: 480px) {
+  .month-picker-dropdown {
+    min-width: 260px;
+  }
+}

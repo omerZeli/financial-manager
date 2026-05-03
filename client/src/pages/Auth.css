@@ -134,3 +134,21 @@
   color: var(--text);
   background: var(--bg-subtle);
 }
+
+/* ── Mobile ── */
+@media (max-width: 480px) {
+  .auth-container {
+    padding: 12px;
+    align-items: flex-start;
+    padding-top: 3rem;
+  }
+
+  .auth-form {
+    padding: 24px 20px;
+    border-radius: var(--radius);
+  }
+
+  .auth-form h1 {
+    font-size: 22px;
+  }
+}

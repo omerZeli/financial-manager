@@ -59,10 +59,12 @@ input[type="number"] {
   display: flex;
   flex-direction: column;
   background: var(--bg);
+  overflow-x: hidden;
 }
 
-body {
+html, body {
   margin: 0;
+  overflow-x: hidden;
 }
 
 h1, h2, h3 {

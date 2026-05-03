@@ -101,3 +101,14 @@
   background: var(--bg-subtle);
   color: var(--text-h);
 }
+
+/* ── Mobile ── */
+@media (max-width: 480px) {
+  .confirm-box {
+    padding: 1.25rem 1.5rem;
+  }
+
+  .confirm-message {
+    font-size: 14px;
+  }
+}

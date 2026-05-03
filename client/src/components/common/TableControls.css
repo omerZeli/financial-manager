@@ -439,3 +439,38 @@
   font-size: 13px;
   flex-shrink: 0;
 }
+
+/* ── Mobile ── */
+@media (max-width: 768px) {
+  .filter-popover {
+    position: fixed;
+    top: auto;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
+    max-height: 80svh;
+    border-radius: var(--radius) var(--radius) 0 0;
+    animation: filter-popover-slide-up 0.2s ease-out;
+  }
+
+  @keyframes filter-popover-slide-up {
+    from { opacity: 0; transform: translateY(100%); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .col-filter-popover {
+    min-width: 180px;
+  }
+
+  .active-filters-bar {
+    padding: 6px 10px;
+    font-size: 11px;
+  }
+
+  .active-filter-chip {
+    font-size: 11px;
+  }
+}

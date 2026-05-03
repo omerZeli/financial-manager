@@ -283,3 +283,10 @@
 .dp-today-btn:hover {
   background: var(--accent-bg);
 }
+
+/* ── Mobile ── */
+@media (max-width: 480px) {
+  .date-picker-dropdown {
+    min-width: 260px;
+  }
+}
