@@ -57,6 +57,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     await supabase.auth.signOut()
+
+    // Clear service worker caches
+    if ('caches' in window) {
+      const keys = await caches.keys()
+      await Promise.all(keys.map(k => caches.delete(k)))
+    }
+
+    // Tell the service worker to clear its caches too
+    if (navigator.serviceWorker?.controller) {
+      navigator.serviceWorker.controller.postMessage({ type: 'CLEAR_CACHES' })
+    }
+
+    // Clear all client-side storage
+    localStorage.clear()
+    sessionStorage.clear()
   }
 
   return (

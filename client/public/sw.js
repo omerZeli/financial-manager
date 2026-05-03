@@ -24,6 +24,17 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
+// Message handler — clear all caches on logout
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'CLEAR_CACHES') {
+    event.waitUntil(
+      caches.keys().then((keys) =>
+        Promise.all(keys.map((k) => caches.delete(k)))
+      )
+    );
+  }
+});
+
 // Fetch — network-first for navigation, cache-first for static assets
 self.addEventListener('fetch', (event) => {
   const { request } = event;
