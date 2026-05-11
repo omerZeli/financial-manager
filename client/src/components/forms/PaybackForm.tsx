@@ -7,10 +7,12 @@ import DateInput from '../common/DatePicker'
 import type { DropdownOption } from '../../hooks/useDropdownOptions'
 import type { Expense } from '../../contexts/ExpensesContext'
 import type { FixedExpense } from '../../contexts/FixedExpensesContext'
+import type { Payback } from '../../contexts/PaybacksContext'
 
 interface PaybackFormProps {
   expenses: Expense[]
   fixedExpenses: FixedExpense[]
+  paybacks: Payback[]
   sortedCategoryOptions: DropdownOption[]
   categoryLoading: boolean
   addCategory: (label: string) => Promise<DropdownOption | null>
@@ -38,6 +40,7 @@ interface PaybackFormProps {
 export function PaybackForm({
   expenses,
   fixedExpenses,
+  paybacks,
   sortedCategoryOptions,
   categoryLoading,
   addCategory,
@@ -65,8 +68,13 @@ export function PaybackForm({
   const expenseNameSuggestions = useMemo(() => {
     const totals: Record<string, number> = {}
     for (const e of expenses) totals[e.name] = (totals[e.name] || 0) + e.amount
+    for (const pb of paybacks) {
+      if (pb.direction === 'by_me' && pb.name) {
+        totals[pb.name] = (totals[pb.name] || 0) + pb.amount
+      }
+    }
     return Object.keys(totals).sort((a, b) => totals[b] - totals[a])
-  }, [expenses])
+  }, [expenses, paybacks])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -121,7 +129,12 @@ export function PaybackForm({
                 onChange={setPbName}
                 onSelect={(val) => {
                   const prev = expenses.find(e => e.name === val)
-                  if (prev) setPbCategory(prev.category)
+                  if (prev) {
+                    setPbCategory(prev.category)
+                  } else {
+                    const prevPb = paybacks.find(p => p.direction === 'by_me' && p.name === val)
+                    if (prevPb && prevPb.category) setPbCategory(prevPb.category)
+                  }
                 }}
                 placeholder="הכנס שם הוצאה"
                 required
