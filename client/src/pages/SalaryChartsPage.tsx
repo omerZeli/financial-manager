@@ -82,9 +82,24 @@ export function SalaryChartsPage() {
     return list.sort((a, b) => a.month.localeCompare(b.month))
   }, [salaries, selectedEmployers, employers.length, timeRange, customFrom, customTo])
 
-  const count = filtered.length
+  // Aggregate salaries by month (sum bruto/neto for same month across employers)
+  const byMonth = useMemo(() => {
+    const map = new Map<string, { month: string; bruto: number; neto: number }>()
+    for (const s of filtered) {
+      const existing = map.get(s.month)
+      if (existing) {
+        existing.bruto += s.bruto
+        existing.neto += s.neto
+      } else {
+        map.set(s.month, { month: s.month, bruto: s.bruto, neto: s.neto })
+      }
+    }
+    return Array.from(map.values()).sort((a, b) => a.month.localeCompare(b.month))
+  }, [filtered])
+
+  const monthCount = byMonth.length
   const aggLabel = aggMode === 'avg' ? 'ממוצע' : 'סה"כ'
-  const agg = (total: number) => count ? (aggMode === 'avg' ? total / count : total) : 0
+  const agg = (total: number) => monthCount ? (aggMode === 'avg' ? total / monthCount : total) : 0
 
   const totalBruto = filtered.reduce((s, r) => s + r.bruto, 0)
   const totalNeto = filtered.reduce((s, r) => s + r.neto, 0)
@@ -153,9 +168,9 @@ export function SalaryChartsPage() {
 
   // For the monthly bar chart, limit to last 18 months if range is larger
   const chartFiltered = useMemo(() => {
-    if (filtered.length <= 18) return filtered
-    return filtered.slice(-18)
-  }, [filtered])
+    if (byMonth.length <= 18) return byMonth
+    return byMonth.slice(-18)
+  }, [byMonth])
 
   const maxVal = chartFiltered.reduce((m, r) => Math.max(m, r.bruto, r.neto), 0) || 1
 
@@ -285,7 +300,7 @@ export function SalaryChartsPage() {
                 <h3>ברוטו מול נטו</h3>
                 <div className="bar-chart">
                   {chartFiltered.map(s => (
-                    <div className="bar-group" key={s.id}>
+                    <div className="bar-group" key={s.month}>
                       <div className="bar-pair">
                         <div className="bar neto" style={{ height: `${(s.neto / maxVal) * 100}%` }}>
                           <span className="bar-value">{s.neto.toLocaleString('he-IL')}</span>
