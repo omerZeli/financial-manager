@@ -61,7 +61,7 @@
 /* Calendar dropdown — rendered as a portal on document.body */
 .date-picker-dropdown {
   position: fixed;
-  min-width: 280px;
+  min-width: 20%;
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -282,4 +282,11 @@
 
 .dp-today-btn:hover {
   background: var(--accent-bg);
+}
+
+/* ── Mobile ── */
+@media (max-width: 480px) {
+  .date-picker-dropdown {
+    min-width: 55%;
+  }
 }

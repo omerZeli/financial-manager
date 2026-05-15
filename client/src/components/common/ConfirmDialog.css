@@ -14,7 +14,8 @@
   border-radius: var(--radius);
   padding: 1.5rem 2rem;
   width: 100%;
-  max-width: 340px;
+  max-width: 25%;
+  min-width: 280px;
   box-shadow: var(--shadow-lg);
   text-align: center;
 }
@@ -100,4 +101,15 @@
 .confirm-no:hover {
   background: var(--bg-subtle);
   color: var(--text-h);
+}
+
+/* ── Mobile ── */
+@media (max-width: 480px) {
+  .confirm-box {
+    padding: 1.25rem 1.5rem;
+  }
+
+  .confirm-message {
+    font-size: 14px;
+  }
 }

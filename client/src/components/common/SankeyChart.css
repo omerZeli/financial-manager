@@ -49,9 +49,10 @@
 }
 
 .sankey-labels {
-  flex: 0 0 140px;
+  flex: 0 0 12%;
   position: relative;
   min-width: 0;
+  overflow: hidden;
 }
 
 .sankey-svg {
@@ -68,6 +69,7 @@
   display: flex;
   flex-direction: column;
   gap: 1px;
+  max-width: 100%;
 }
 
 .sankey-labels-right .sankey-label-item {
@@ -114,4 +116,45 @@
 
 .sankey-link:hover {
   opacity: 0.4 !important;
+}
+
+/* ── Mobile ── */
+@media (max-width: 768px) {
+  .sankey-labels {
+    flex: 0 0 15%;
+  }
+
+  .sankey-total-value {
+    font-size: 16px;
+  }
+
+  .sankey-label-name {
+    font-size: 11px;
+  }
+
+  .sankey-label-val {
+    font-size: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .sankey-labels {
+    flex: 0 0 18%;
+  }
+
+  .sankey-total-value {
+    font-size: 14px;
+  }
+
+  .sankey-label-name {
+    font-size: 10px;
+  }
+
+  .sankey-label-val {
+    font-size: 9px;
+  }
+
+  .sankey-body {
+    gap: 4px;
+  }
 }

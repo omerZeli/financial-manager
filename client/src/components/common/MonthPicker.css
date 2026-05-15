@@ -61,7 +61,7 @@
 /* Dropdown — rendered as a portal on document.body */
 .month-picker-dropdown {
   position: fixed;
-  min-width: 280px;
+  min-width: 20%;
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -86,3 +86,10 @@
 }
 
 /* Reuse dp- styles for header, months, years */
+
+/* ── Mobile ── */
+@media (max-width: 480px) {
+  .month-picker-dropdown {
+    min-width: 55%;
+  }
+}

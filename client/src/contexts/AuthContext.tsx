@@ -1,4 +1,5 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useState, useRef, type ReactNode } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import type { User, Session } from '@supabase/supabase-js'
 
@@ -21,6 +22,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
+  const navigate = useNavigate()
+  const hasRedirectedToReset = useRef(false)
 
   const fetchProfile = async (userId: string) => {
     const { data } = await supabase
@@ -41,7 +44,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false)
     })
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session)
       setUser(session?.user ?? null)
       if (session?.user) {
@@ -50,6 +53,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setProfile(null)
       }
       setLoading(false)
+
+      if (event === 'PASSWORD_RECOVERY' && !hasRedirectedToReset.current) {
+        hasRedirectedToReset.current = true
+        navigate('/reset-password', { replace: true })
+      }
     })
 
     return () => subscription.unsubscribe()
@@ -57,6 +65,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     await supabase.auth.signOut()
+
+    // Clear service worker caches
+    if ('caches' in window) {
+      const keys = await caches.keys()
+      await Promise.all(keys.map(k => caches.delete(k)))
+    }
+
+    // Tell the service worker to clear its caches too
+    if (navigator.serviceWorker?.controller) {
+      navigator.serviceWorker.controller.postMessage({ type: 'CLEAR_CACHES' })
+    }
+
+    // Clear all client-side storage
+    localStorage.clear()
+    sessionStorage.clear()
   }
 
   return (

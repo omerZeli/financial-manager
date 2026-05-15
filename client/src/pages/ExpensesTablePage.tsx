@@ -664,6 +664,7 @@ export function ExpensesTablePage() {
         <PaybackForm
           expenses={expenses}
           fixedExpenses={fixedExpenses}
+          paybacks={paybacks}
           sortedCategoryOptions={sortedCategoryOptions}
           categoryLoading={categoryLoading}
           addCategory={addCategory}

@@ -9,7 +9,8 @@
 
 .auth-form {
   width: 100%;
-  max-width: 420px;
+  max-width: 30%;
+  min-width: 320px;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -133,4 +134,22 @@
   font-size: 16px;
   color: var(--text);
   background: var(--bg-subtle);
+}
+
+/* ── Mobile ── */
+@media (max-width: 480px) {
+  .auth-container {
+    padding: 12px;
+    align-items: flex-start;
+    padding-top: 3rem;
+  }
+
+  .auth-form {
+    padding: 24px 20px;
+    border-radius: var(--radius);
+  }
+
+  .auth-form h1 {
+    font-size: 22px;
+  }
 }
