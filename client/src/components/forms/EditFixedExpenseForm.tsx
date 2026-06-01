@@ -1,20 +1,26 @@
 import { useState } from 'react'
 import DateInput from '../common/DatePicker'
+import { NumberInput } from '../common/NumberInput'
 
 interface EditFixedExpenseFormProps {
   initialEndDate: string
-  onSubmit: (endDate: string | null) => Promise<void>
+  initialAmount: number
+  onSubmit: (fields: { end_date: string | null; amount: number }) => Promise<void>
   onClose: () => void
 }
 
-export function EditFixedExpenseForm({ initialEndDate, onSubmit, onClose }: EditFixedExpenseFormProps) {
+export function EditFixedExpenseForm({ initialEndDate, initialAmount, onSubmit, onClose }: EditFixedExpenseFormProps) {
   const [editFixedEndDate, setEditFixedEndDate] = useState(initialEndDate)
+  const [editFixedAmount, setEditFixedAmount] = useState(String(initialAmount))
   const [editFixedSaving, setEditFixedSaving] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setEditFixedSaving(true)
-    await onSubmit(editFixedEndDate || null)
+    await onSubmit({
+      end_date: editFixedEndDate || null,
+      amount: Number(editFixedAmount),
+    })
     setEditFixedSaving(false)
     onClose()
   }
@@ -25,11 +31,14 @@ export function EditFixedExpenseForm({ initialEndDate, onSubmit, onClose }: Edit
         <button className="modal-close" onClick={onClose} title="סגור">&times;</button>
         <h2>עריכת הוצאה קבועה</h2>
         <form onSubmit={handleSubmit}>
+          <label>סכום</label>
+          <NumberInput value={editFixedAmount} onChange={setEditFixedAmount} placeholder="הכנס סכום" required />
+
           <label>תאריך סיום</label>
           <DateInput value={editFixedEndDate} onChange={setEditFixedEndDate} />
 
           <div className="modal-actions">
-            <button type="submit" className="btn-primary" disabled={editFixedSaving}>
+            <button type="submit" className="btn-primary" disabled={editFixedSaving || !editFixedAmount}>
               {editFixedSaving ? 'שומר...' : 'שמור'}
             </button>
             <button type="button" className="btn-cancel" onClick={onClose}>ביטול</button>

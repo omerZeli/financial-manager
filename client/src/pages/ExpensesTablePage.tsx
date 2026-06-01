@@ -704,7 +704,8 @@ export function ExpensesTablePage() {
         return (
           <EditFixedExpenseForm
             initialEndDate={fe.end_date || ''}
-            onSubmit={async (endDate) => { await updateFixedExpense(editingFixed, { end_date: endDate }) }}
+            initialAmount={fe.amount}
+            onSubmit={async ({ end_date, amount }) => { await updateFixedExpense(editingFixed, { end_date, amount }) }}
             onClose={() => setEditingFixed(null)}
           />
         )
