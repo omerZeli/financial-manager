@@ -48,6 +48,7 @@ export function ExpensesChartsPage() {
   const [selectedTypes, setSelectedTypes] = useState<string[]>([])
   const [typesInited, setTypesInited] = useState(false)
   const [aggMode, setAggMode] = useState<AggMode>('avg')
+  const [chartMode, setChartMode] = useState<'amount' | 'pctNeto'>('amount')
 
   useEffect(() => { fetchExpenses() }, [fetchExpenses])
   useEffect(() => { fetchFixedExpenses() }, [fetchFixedExpenses])
@@ -218,13 +219,34 @@ export function ExpensesChartsPage() {
   const categories = Object.entries(byCategory).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1])
   const maxCategory = categories.length ? categories[0][1] : 1
 
+  // Neto totals by month for percentage calculation
+  const netoByMonth = useMemo(() => {
+    const map: Record<string, number> = {}
+    for (const s of salaries) {
+      const key = s.month.slice(0, 7)
+      map[key] = (map[key] || 0) + s.neto
+    }
+    return map
+  }, [salaries])
+
   // For the monthly bar chart, limit to last 18 months if range is larger
   const chartByMonth = useMemo(() => {
     if (byMonth.length <= 18) return byMonth
     return byMonth.slice(-18)
   }, [byMonth])
 
-  const chartMaxMonth = chartByMonth.reduce((m, [, v]) => Math.max(m, v), 0) || 1
+  // Compute chart values based on mode (absolute amount or % of neto)
+  const chartValues = useMemo(() => {
+    return chartByMonth.map(([m, total]) => {
+      if (chartMode === 'pctNeto') {
+        const neto = netoByMonth[m] || 0
+        return neto > 0 ? (total / neto) * 100 : 0
+      }
+      return total
+    })
+  }, [chartByMonth, chartMode, netoByMonth])
+
+  const chartMaxMonth = chartValues.reduce((m, v) => Math.max(m, v), 0) || 1
 
   const hasActiveFilters = useMemo(() => {
     if (aggMode !== 'avg') return true
@@ -343,21 +365,32 @@ export function ExpensesChartsPage() {
               </div>
 
               <div className="chart-card">
-                <h3>הוצאות חודשיות</h3>
+                <div className="chart-card-header">
+                  <h3>הוצאות חודשיות</h3>
+                  <div className="chart-mode-tabs">
+                    <button type="button" className={`chart-mode-tab${chartMode === 'amount' ? ' active' : ''}`} onClick={() => setChartMode('amount')}>סכום ₪</button>
+                    <button type="button" className={`chart-mode-tab${chartMode === 'pctNeto' ? ' active' : ''}`} onClick={() => setChartMode('pctNeto')}>% מהנטו</button>
+                  </div>
+                </div>
                 <div className="bar-chart">
-                  {chartByMonth.map(([m, total]) => (
-                    <div className="bar-group" key={m}>
-                      <div className="bar-pair">
-                        <div
-                          className="bar expense-bar"
-                          style={{ height: `${(total / chartMaxMonth) * 100}%` }}
-                        >
-                          <span className="bar-value">{total.toLocaleString('he-IL')}</span>
+                  {chartByMonth.map(([m], i) => {
+                    const val = chartValues[i]
+                    return (
+                      <div className="bar-group" key={m}>
+                        <div className="bar-pair">
+                          <div
+                            className="bar expense-bar"
+                            style={{ height: `${(val / chartMaxMonth) * 100}%` }}
+                          >
+                            <span className="bar-value">
+                              {chartMode === 'pctNeto' ? `${val.toFixed(1)}%` : val.toLocaleString('he-IL')}
+                            </span>
+                          </div>
                         </div>
+                        <span className="bar-label">{formatMonth(m + '-01')}</span>
                       </div>
-                      <span className="bar-label">{formatMonth(m + '-01')}</span>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               </div>
 
