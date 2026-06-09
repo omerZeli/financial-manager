@@ -115,23 +115,23 @@ export function SalaryChartsPage() {
     const filteredEmployers = new Set(filtered.map(s => s.employer))
 
     // Investment deductions: deposits linked to a filtered salary where depositor is "אני"
-    const linkedDeposits = deposits.filter(d => d.salary_id && salaryIds.has(d.salary_id))
+    const linkedDeposits = deposits.filter(d => d.salary_id && salaryIds.has(d.salary_id) && d.depositor === 'אני')
     let investmentTotal = 0
     for (const dep of linkedDeposits) {
       investmentTotal += dep.amount
     }
 
     // Employer deposits: all non-withdrawal deposits where the depositor is one of the
-    // filtered employers, within the time range. These are NOT salary deductions — they
-    // are employer contributions tracked by depositor name and date.
-    const minMonth = getMinMonth(timeRange, customFrom)
-    const maxMonth = timeRange === 'custom' && customTo ? customTo : '9999-12-31'
+    // filtered employers, and the deposit date falls within one of the filtered salary months.
+    // This ties employer contributions to the actual salary periods rather than an open-ended date range.
+    const filteredMonths = new Set(filtered.map(s => s.month.slice(0, 7)))
     let employerTotal = 0
     for (const dep of deposits) {
       if (dep.is_withdrawal) continue
       if (dep.depositor === 'אני') continue
       if (!filteredEmployers.has(dep.depositor)) continue
-      if (dep.date >= minMonth && dep.date <= maxMonth) {
+      const depMonth = dep.date.slice(0, 7)
+      if (filteredMonths.has(depMonth)) {
         employerTotal += dep.amount
       }
     }
@@ -164,7 +164,7 @@ export function SalaryChartsPage() {
       expenseDeductions: agg(expenseTotal),
       other: Math.max(0, aggDiff - agg(investmentTotal) - agg(expenseTotal)),
     }
-  }, [filtered, deposits, expenses, fixedExpenses, aggDiff, aggMode, timeRange, customFrom, customTo])
+  }, [filtered, deposits, expenses, fixedExpenses, aggDiff, aggMode])
 
   // For the monthly bar chart, limit to last 18 months if range is larger
   const chartFiltered = useMemo(() => {
