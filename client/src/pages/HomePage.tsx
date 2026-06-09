@@ -236,10 +236,11 @@ export function HomePage() {
       })
     }
 
-    // Employer investment deposits (depositor !== 'אני', not withdrawals)
+    // Employer investment deposits (depositor matches an employer name, not withdrawals)
+    const employerNames = new Set(salaries.map(s => s.employer))
     const filteredEmployerDeposits = deposits.filter(d => {
       if (d.is_withdrawal) return false
-      if (d.depositor === 'אני') return false
+      if (!employerNames.has(d.depositor)) return false
       if (timeRange === 'all') return true
       let effectiveDate: string
       if (d.salary_id && salaryMonthById.has(d.salary_id)) {
@@ -262,6 +263,30 @@ export function HomePage() {
     for (const [depositor, total] of sortedDepositors) {
       leftNodes.push({
         id: `depositor_${depositor}`,
+        label: `הפקדות - ${depositor}`,
+        value: total,
+        color: COLOR_EMPLOYER_DEPOSIT,
+      })
+    }
+
+    // Third-party deposits (not 'אני', not an employer, not withdrawals)
+    const filteredThirdPartyDeposits = deposits.filter(d => {
+      if (d.is_withdrawal) return false
+      if (d.depositor === 'אני') return false
+      if (employerNames.has(d.depositor)) return false
+      if (timeRange === 'all') return true
+      const effectiveDate = getEffectiveDate(d.date, d.salary_id, salaryMonthById)
+      return effectiveDate >= effectiveDateRange.minDate && effectiveDate <= effectiveDateRange.maxDate
+    })
+    const thirdPartyByDepositor: Record<string, number> = {}
+    for (const d of filteredThirdPartyDeposits) {
+      thirdPartyByDepositor[d.depositor] = (thirdPartyByDepositor[d.depositor] || 0) + d.amount
+    }
+    const sortedThirdParty = Object.entries(thirdPartyByDepositor)
+      .sort((a, b) => b[1] - a[1])
+    for (const [depositor, total] of sortedThirdParty) {
+      leftNodes.push({
+        id: `thirdparty_${depositor}`,
         label: `הפקדות - ${depositor}`,
         value: total,
         color: COLOR_EMPLOYER_DEPOSIT,

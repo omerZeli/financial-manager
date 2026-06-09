@@ -71,6 +71,9 @@ export function InvestmentsChartsPage() {
     return map
   }, [salaries])
 
+  // Set of employer names for identifying employer deposits
+  const employerNames = useMemo(() => new Set(salaries.map(s => s.employer)), [salaries])
+
   // Channel filter options
   const channelOptions = useMemo(() =>
     channels.map(ch => ({ value: ch.id, label: `${ch.name} - ${ch.company}` })),
@@ -108,7 +111,7 @@ export function InvestmentsChartsPage() {
       if (d.salary_id && salaryMonthMap.has(d.salary_id)) {
         // Linked to a salary — use that salary's month
         effectiveDate = salaryMonthMap.get(d.salary_id)!
-      } else if (d.depositor !== 'אני' && !d.is_withdrawal) {
+      } else if (employerNames.has(d.depositor) && !d.is_withdrawal) {
         // Employer deposit without salary link — shift back 1 month
         const dt = new Date(d.date + 'T00:00:00')
         dt.setMonth(dt.getMonth() - 1)
@@ -118,7 +121,7 @@ export function InvestmentsChartsPage() {
       }
       return effectiveDate >= minDate && effectiveDate <= maxDate
     })
-  }, [deposits, timeRange, customFrom, customTo, filteredChannelIds, salaryMonthMap])
+  }, [deposits, timeRange, customFrom, customTo, filteredChannelIds, salaryMonthMap, employerNames])
 
   const filteredValues = useMemo(() => {
     const minDate = getMinDate(timeRange, customFrom)
