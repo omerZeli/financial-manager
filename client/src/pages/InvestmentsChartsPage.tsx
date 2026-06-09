@@ -8,7 +8,7 @@ import { FilterMultiSelect } from '../components/common/FilterMultiSelect'
 import DateInput from '../components/common/DatePicker'
 import { ChartFilterPopover } from '../components/common/ChartFilterPopover'
 import { computeChannelSummary, CASH_PATH_LABEL } from '../lib/computeChannelSummary'
-import { formatLocalDate, todayStr as getTodayStr, getEffectiveDate } from '../lib/dateUtils'
+import { formatLocalDate, todayStr as getTodayStr } from '../lib/dateUtils'
 import './Section.css'
 
 function formatCurrency(n: number) {
