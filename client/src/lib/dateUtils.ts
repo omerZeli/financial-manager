@@ -16,3 +16,24 @@ export function formatLocalDate(d: Date): string {
 export function todayStr(): string {
   return formatLocalDate(new Date())
 }
+
+/**
+ * Compute the effective date for an item that may be linked to a salary.
+ * Items deducted from salary are executed the month after the salary month,
+ * so they should be attributed to the salary's month (shifted back by 1 month).
+ *
+ * @param itemDate - The item's own date (YYYY-MM-DD)
+ * @param salaryId - The salary_id FK (nullable)
+ * @param salaryMonthMap - Map of salary ID → salary month (YYYY-MM-DD)
+ * @returns The effective date string to use for filtering
+ */
+export function getEffectiveDate(
+  itemDate: string,
+  salaryId: string | null,
+  salaryMonthMap: Map<string, string>
+): string {
+  if (salaryId && salaryMonthMap.has(salaryId)) {
+    return salaryMonthMap.get(salaryId)!
+  }
+  return itemDate
+}

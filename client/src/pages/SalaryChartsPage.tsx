@@ -122,16 +122,28 @@ export function SalaryChartsPage() {
     }
 
     // Employer deposits: all non-withdrawal deposits where the depositor is one of the
-    // filtered employers, and the deposit date falls within one of the filtered salary months.
-    // This ties employer contributions to the actual salary periods rather than an open-ended date range.
+    // filtered employers. Use linked salary month (or shift deposit date back 1 month)
+    // to attribute the deposit to the correct salary period.
     const filteredMonths = new Set(filtered.map(s => s.month.slice(0, 7)))
+    const salaryMonthMap = new Map<string, string>()
+    for (const s of filtered) {
+      salaryMonthMap.set(s.id, s.month)
+    }
     let employerTotal = 0
     for (const dep of deposits) {
       if (dep.is_withdrawal) continue
       if (dep.depositor === 'אני') continue
       if (!filteredEmployers.has(dep.depositor)) continue
-      const depMonth = dep.date.slice(0, 7)
-      if (filteredMonths.has(depMonth)) {
+      let effectiveMonth: string
+      if (dep.salary_id && salaryMonthMap.has(dep.salary_id)) {
+        effectiveMonth = salaryMonthMap.get(dep.salary_id)!.slice(0, 7)
+      } else {
+        // Shift back 1 month: deposit executed in month M belongs to salary of month M-1
+        const dt = new Date(dep.date + 'T00:00:00')
+        dt.setMonth(dt.getMonth() - 1)
+        effectiveMonth = formatLocalDate(dt).slice(0, 7)
+      }
+      if (filteredMonths.has(effectiveMonth)) {
         employerTotal += dep.amount
       }
     }

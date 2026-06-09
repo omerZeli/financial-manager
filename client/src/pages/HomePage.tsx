@@ -11,7 +11,7 @@ import { computeChannelSummary, CASH_PATH_LABEL } from '../lib/computeChannelSum
 import { ChartFilterPopover } from '../components/common/ChartFilterPopover'
 import { SankeyChart, type SankeyNode } from '../components/common/SankeyChart'
 import DateInput from '../components/common/DatePicker'
-import { formatLocalDate } from '../lib/dateUtils'
+import { formatLocalDate, getEffectiveDate } from '../lib/dateUtils'
 import './HomePage.css'
 import './Section.css'
 
@@ -27,7 +27,7 @@ type ExpenseFilter = 'all' | 'regular' | 'fixed'
 export function HomePage() {
   const { salaries, loading: salLoading, fetchSalaries } = useSalary()
   const { expenses, loading: expLoading, fetchExpenses } = useExpenses()
-  const { inflatedExpenses, loading: fixLoading, fetchFixedExpenses } = useFixedExpenses()
+  const { fixedExpenses, inflatedExpenses, loading: fixLoading, fetchFixedExpenses } = useFixedExpenses()
   const { paybacks, loading: pbLoading, fetchPaybacks } = usePaybacks()
   const { channels, loading: chLoading, fetchChannels } = useInvestmentChannels()
   const { deposits, loading: depLoading, fetchDeposits } = useInvestmentDeposits()
@@ -107,6 +107,15 @@ export function HomePage() {
 
   // --- Expenses: average monthly ---
   const avgMonthlyExpenses = useMemo(() => {
+    // Build salary month map for salary-linked items
+    const salaryMonthMap = new Map<string, string>()
+    for (const s of salaries) {
+      salaryMonthMap.set(s.id, s.month)
+    }
+
+    // Set of fixed expense IDs that are salary-deducted
+    const salaryDeductedFixedIds = new Set(fixedExpenses.filter(fe => fe.salary_employer).map(fe => fe.id))
+
     const toMeByExpense: Record<string, number> = {}
     for (const pb of paybacks) {
       if (pb.direction === 'to_me' && pb.expense_id) {
@@ -116,33 +125,62 @@ export function HomePage() {
 
     const byMeExpenses = paybacks
       .filter(pb => pb.direction === 'by_me')
-      .map(pb => ({ amount: pb.amount, date: pb.date }))
+      .map(pb => ({ amount: pb.amount, date: pb.date, salary_id: null as string | null, _salaryDeductedFixed: false }))
 
-    let items: { amount: number; date: string }[] = []
+    let items: { amount: number; date: string; salary_id: string | null; _salaryDeductedFixed: boolean }[] = []
 
     if (expenseFilter === 'regular' || expenseFilter === 'all') {
       const adjusted = expenses.map(exp => ({
         amount: exp.amount - (toMeByExpense[exp.id] || 0),
         date: exp.date,
+        salary_id: exp.salary_id,
+        _salaryDeductedFixed: false,
       }))
       items = [...items, ...adjusted, ...byMeExpenses]
     }
 
     if (expenseFilter === 'fixed' || expenseFilter === 'all') {
-      items = [...items, ...inflatedExpenses.map(ie => ({ amount: ie.amount, date: ie.date }))]
+      items = [...items, ...inflatedExpenses.map(ie => {
+        const fixedId = ie.id.substring(0, ie.id.lastIndexOf('_'))
+        return { amount: ie.amount, date: ie.date, salary_id: null as string | null, _salaryDeductedFixed: salaryDeductedFixedIds.has(fixedId) }
+      })]
     }
 
-    // Apply time filter
+    // Apply time filter (using salary month for salary-linked items)
     if (timeRange !== 'all') {
-      items = items.filter(i => i.date >= effectiveDateRange.minDate && i.date <= effectiveDateRange.maxDate)
+      items = items.filter(i => {
+        let effectiveDate: string
+        if (i.salary_id) {
+          effectiveDate = getEffectiveDate(i.date, i.salary_id, salaryMonthMap)
+        } else if (i._salaryDeductedFixed) {
+          const dt = new Date(i.date + 'T00:00:00')
+          dt.setMonth(dt.getMonth() - 1)
+          effectiveDate = formatLocalDate(dt)
+        } else {
+          effectiveDate = i.date
+        }
+        return effectiveDate >= effectiveDateRange.minDate && effectiveDate <= effectiveDateRange.maxDate
+      })
     }
 
     if (items.length === 0) return 0
 
-    const months = new Set(items.map(i => i.date.slice(0, 7)))
+    const months = new Set(items.map(i => {
+      let effectiveDate: string
+      if (i.salary_id) {
+        effectiveDate = getEffectiveDate(i.date, i.salary_id, salaryMonthMap)
+      } else if (i._salaryDeductedFixed) {
+        const dt = new Date(i.date + 'T00:00:00')
+        dt.setMonth(dt.getMonth() - 1)
+        effectiveDate = formatLocalDate(dt)
+      } else {
+        effectiveDate = i.date
+      }
+      return effectiveDate.slice(0, 7)
+    }))
     const total = items.reduce((sum, i) => sum + i.amount, 0)
     return months.size > 0 ? total / months.size : 0
-  }, [expenses, inflatedExpenses, paybacks, expenseFilter, timeRange, effectiveDateRange])
+  }, [expenses, inflatedExpenses, fixedExpenses, paybacks, salaries, expenseFilter, timeRange, effectiveDateRange])
 
   // --- Sankey chart data ---
   const INCOME_COLORS = [
@@ -167,7 +205,7 @@ export function HomePage() {
 
     // 2. Investment deposits from others (depositor !== 'אני', not withdrawals)
     // Employer deposits are executed the month after the salary they belong to,
-    // so we attribute them to the previous month (the salary month).
+    // so we attribute them to the salary's month.
     // If linked to a salary, use that salary's month directly.
     // Otherwise, shift the deposit date back by 1 month.
     const salaryMonthById = new Map<string, string>()
@@ -182,7 +220,7 @@ export function HomePage() {
       if (d.salary_id && salaryMonthById.has(d.salary_id)) {
         effectiveDate = salaryMonthById.get(d.salary_id)!
       } else {
-        // Shift back 1 month: deposit executed in month M belongs to salary of month M-1
+        // Employer deposits without salary link: shift back 1 month
         const dt = new Date(d.date + 'T00:00:00')
         dt.setMonth(dt.getMonth() - 1)
         effectiveDate = formatLocalDate(dt)
@@ -228,7 +266,8 @@ export function HomePage() {
     const myDepositsAndWithdrawals = deposits.filter(d => {
       if (d.depositor !== 'אני') return false
       if (timeRange === 'all') return true
-      return d.date >= effectiveDateRange.minDate && d.date <= effectiveDateRange.maxDate
+      const effectiveDate = getEffectiveDate(d.date, d.salary_id, salaryMonthById)
+      return effectiveDate >= effectiveDateRange.minDate && effectiveDate <= effectiveDateRange.maxDate
     })
 
     // Build channel pension map
@@ -261,7 +300,9 @@ export function HomePage() {
     }
 
     // Build all expense items with category
-    interface ExpItem { category: string; amount: number; date: string }
+    // Set of fixed expense IDs that are salary-deducted
+    const salaryDeductedFixedIds = new Set(fixedExpenses.filter(fe => fe.salary_employer).map(fe => fe.id))
+    interface ExpItem { category: string; amount: number; date: string; salary_id: string | null; _salaryDeductedFixed: boolean }
     const allExpItems: ExpItem[] = []
 
     // Regular expenses (adjusted for to_me paybacks)
@@ -269,26 +310,39 @@ export function HomePage() {
       const returned = toMeByExpense[exp.id] || 0
       const adj = exp.amount - returned
       if (adj > 0) {
-        allExpItems.push({ category: exp.category, amount: adj, date: exp.date })
+        allExpItems.push({ category: exp.category, amount: adj, date: exp.date, salary_id: exp.salary_id, _salaryDeductedFixed: false })
       }
     }
 
     // Inflated fixed expenses
     for (const ie of inflatedExpenses) {
-      allExpItems.push({ category: ie.category, amount: ie.amount, date: ie.date })
+      const fixedId = ie.id.substring(0, ie.id.lastIndexOf('_'))
+      allExpItems.push({ category: ie.category, amount: ie.amount, date: ie.date, salary_id: null, _salaryDeductedFixed: salaryDeductedFixedIds.has(fixedId) })
     }
 
     // by_me paybacks as expenses
     for (const pb of paybacks) {
       if (pb.direction === 'by_me' && pb.category) {
-        allExpItems.push({ category: pb.category, amount: pb.amount, date: pb.date })
+        allExpItems.push({ category: pb.category, amount: pb.amount, date: pb.date, salary_id: null, _salaryDeductedFixed: false })
       }
     }
 
-    // Filter by date range
+    // Filter by date range (using salary month for salary-linked items)
     const filteredExpItems = timeRange === 'all'
       ? allExpItems
-      : allExpItems.filter(i => i.date >= effectiveDateRange.minDate && i.date <= effectiveDateRange.maxDate)
+      : allExpItems.filter(i => {
+          let effectiveDate: string
+          if (i.salary_id) {
+            effectiveDate = getEffectiveDate(i.date, i.salary_id, salaryMonthById)
+          } else if (i._salaryDeductedFixed) {
+            const dt = new Date(i.date + 'T00:00:00')
+            dt.setMonth(dt.getMonth() - 1)
+            effectiveDate = formatLocalDate(dt)
+          } else {
+            effectiveDate = i.date
+          }
+          return effectiveDate >= effectiveDateRange.minDate && effectiveDate <= effectiveDateRange.maxDate
+        })
 
     // Group by expense type
     // Build category → type_name map
@@ -341,7 +395,7 @@ export function HomePage() {
 
     return { leftNodes, rightNodes }
   }, [
-    salaries, salaryDateRange, deposits, channels, expenses, inflatedExpenses,
+    salaries, salaryDateRange, deposits, channels, expenses, inflatedExpenses, fixedExpenses,
     paybacks, expenseTypes, timeRange, effectiveDateRange,
   ])
 

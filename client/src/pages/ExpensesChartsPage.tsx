@@ -8,7 +8,7 @@ import { useSalary } from '../contexts/SalaryContext'
 import { FilterMultiSelect } from '../components/common/FilterMultiSelect'
 import DateInput from '../components/common/DatePicker'
 import { ChartFilterPopover } from '../components/common/ChartFilterPopover'
-import { formatLocalDate } from '../lib/dateUtils'
+import { formatLocalDate, getEffectiveDate } from '../lib/dateUtils'
 import './Section.css'
 
 function formatCurrency(n: number) {
@@ -81,6 +81,8 @@ export function ExpensesChartsPage() {
         created_at: pb.created_at,
         _salaryDeducted: false,
         _fixed: false,
+        _effectiveSalaryId: null as string | null,
+        _salaryDeductedFixed: false,
       }))
   }, [paybacks])
 
@@ -92,13 +94,14 @@ export function ExpensesChartsPage() {
   const allExpensesRaw = useMemo(() => {
     const adjusted = expenses.map(exp => {
       const returned = toMeByExpense[exp.id] || 0
-      return { ...exp, amount: exp.amount - returned, _salaryDeducted: !!exp.salary_id, _fixed: false }
+      return { ...exp, amount: exp.amount - returned, _salaryDeducted: !!exp.salary_id, _fixed: false, _effectiveSalaryId: exp.salary_id, _salaryDeductedFixed: false }
     })
     const inflated = inflatedExpenses.map(ie => {
       const fixedId = ie.id.substring(0, ie.id.lastIndexOf('_'))
-      return { ...ie, _salaryDeducted: salaryDeductedFixedIds.has(fixedId), _fixed: true }
+      const isSalaryDeducted = salaryDeductedFixedIds.has(fixedId)
+      return { ...ie, _salaryDeducted: isSalaryDeducted, _fixed: true, _effectiveSalaryId: null as string | null, _salaryDeductedFixed: isSalaryDeducted }
     })
-    return [...adjusted, ...inflated, ...byMeExpenses]
+    return [...adjusted, ...inflated, ...byMeExpenses.map(e => ({ ...e, _salaryDeductedFixed: false }))]
   }, [expenses, inflatedExpenses, byMeExpenses, toMeByExpense, salaryDeductedFixedIds])
 
   // All categories covered by any expense type
@@ -138,6 +141,15 @@ export function ExpensesChartsPage() {
     return { cats, hasOthers }
   }, [selectedTypes, typeOptions.length, expenseTypes])
 
+  // Build salary month map for effective date computation
+  const salaryMonthMap = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const s of salaries) {
+      map.set(s.id, s.month)
+    }
+    return map
+  }, [salaries])
+
   // Compute effective date range (accounting for excludeCurrentMonth)
   const effectiveDateRange = useMemo(() => {
     if (timeRange === 'custom') {
@@ -172,10 +184,24 @@ export function ExpensesChartsPage() {
         return false
       })
     }
-    // time range filter
-    list = list.filter(e => e.date >= effectiveDateRange.minDate && e.date <= effectiveDateRange.maxDate)
+    // time range filter (using salary month for salary-linked items)
+    list = list.filter(e => {
+      let effectiveDate: string
+      if (e._effectiveSalaryId) {
+        // Regular expense linked to a salary — use that salary's month
+        effectiveDate = getEffectiveDate(e.date, e._effectiveSalaryId, salaryMonthMap)
+      } else if (e._salaryDeductedFixed) {
+        // Inflated fixed expense deducted from salary — use prev month
+        const dt = new Date(e.date + 'T00:00:00')
+        dt.setMonth(dt.getMonth() - 1)
+        effectiveDate = formatLocalDate(dt)
+      } else {
+        effectiveDate = e.date
+      }
+      return effectiveDate >= effectiveDateRange.minDate && effectiveDate <= effectiveDateRange.maxDate
+    })
     return list
-  }, [allExpensesRaw, selectedTypeCategories, allTypedCategories, effectiveDateRange])
+  }, [allExpensesRaw, selectedTypeCategories, allTypedCategories, effectiveDateRange, salaryMonthMap])
 
   const aggLabel = aggMode === 'avg' ? 'ממוצע' : 'סה"כ'
 
@@ -183,11 +209,21 @@ export function ExpensesChartsPage() {
   const byMonth = useMemo(() => {
     const map: Record<string, number> = {}
     for (const e of filtered) {
-      const key = e.date.slice(0, 7)
+      let effectiveDate: string
+      if (e._effectiveSalaryId) {
+        effectiveDate = getEffectiveDate(e.date, e._effectiveSalaryId, salaryMonthMap)
+      } else if (e._salaryDeductedFixed) {
+        const dt = new Date(e.date + 'T00:00:00')
+        dt.setMonth(dt.getMonth() - 1)
+        effectiveDate = formatLocalDate(dt)
+      } else {
+        effectiveDate = e.date
+      }
+      const key = effectiveDate.slice(0, 7)
       map[key] = (map[key] || 0) + e.amount
     }
     return Object.entries(map).sort((a, b) => a[0].localeCompare(b[0]))
-  }, [filtered])
+  }, [filtered, salaryMonthMap])
 
   const monthCount = byMonth.length
   const totalAmount = filtered.reduce((s, e) => s + e.amount, 0)

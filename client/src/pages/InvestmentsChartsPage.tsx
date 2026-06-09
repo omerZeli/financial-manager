@@ -3,11 +3,12 @@ import { NavLink } from 'react-router-dom'
 import { useInvestmentChannels } from '../contexts/InvestmentChannelsContext'
 import { useInvestmentDeposits } from '../contexts/InvestmentDepositsContext'
 import { useInvestmentValues } from '../contexts/InvestmentValuesContext'
+import { useSalary } from '../contexts/SalaryContext'
 import { FilterMultiSelect } from '../components/common/FilterMultiSelect'
 import DateInput from '../components/common/DatePicker'
 import { ChartFilterPopover } from '../components/common/ChartFilterPopover'
 import { computeChannelSummary, CASH_PATH_LABEL } from '../lib/computeChannelSummary'
-import { formatLocalDate, todayStr as getTodayStr } from '../lib/dateUtils'
+import { formatLocalDate, todayStr as getTodayStr, getEffectiveDate } from '../lib/dateUtils'
 import './Section.css'
 
 function formatCurrency(n: number) {
@@ -45,6 +46,7 @@ export function InvestmentsChartsPage() {
   const { channels, loading: chLoading, fetchChannels } = useInvestmentChannels()
   const { deposits, loading: depLoading, fetchDeposits } = useInvestmentDeposits()
   const { valueUpdates, loading: valLoading, fetchValueUpdates } = useInvestmentValues()
+  const { salaries, fetchSalaries } = useSalary()
 
   const [timeRange, setTimeRange] = useState<TimeRange>('all')
   const [customFrom, setCustomFrom] = useState('')
@@ -58,6 +60,16 @@ export function InvestmentsChartsPage() {
   useEffect(() => { fetchChannels() }, [fetchChannels])
   useEffect(() => { fetchDeposits() }, [fetchDeposits])
   useEffect(() => { fetchValueUpdates() }, [fetchValueUpdates])
+  useEffect(() => { fetchSalaries() }, [fetchSalaries])
+
+  // Build salary month map for effective date computation
+  const salaryMonthMap = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const s of salaries) {
+      map.set(s.id, s.month)
+    }
+    return map
+  }, [salaries])
 
   // Channel filter options
   const channelOptions = useMemo(() =>
@@ -90,8 +102,23 @@ export function InvestmentsChartsPage() {
   const filteredDeposits = useMemo(() => {
     const minDate = getMinDate(timeRange, customFrom)
     const maxDate = timeRange === 'custom' && customTo ? customTo : '9999-12-31'
-    return deposits.filter(d => d.date >= minDate && d.date <= maxDate && filteredChannelIds.has(d.channel_id))
-  }, [deposits, timeRange, customFrom, customTo, filteredChannelIds])
+    return deposits.filter(d => {
+      if (!filteredChannelIds.has(d.channel_id)) return false
+      let effectiveDate: string
+      if (d.salary_id && salaryMonthMap.has(d.salary_id)) {
+        // Linked to a salary — use that salary's month
+        effectiveDate = salaryMonthMap.get(d.salary_id)!
+      } else if (d.depositor !== 'אני' && !d.is_withdrawal) {
+        // Employer deposit without salary link — shift back 1 month
+        const dt = new Date(d.date + 'T00:00:00')
+        dt.setMonth(dt.getMonth() - 1)
+        effectiveDate = formatLocalDate(dt)
+      } else {
+        effectiveDate = d.date
+      }
+      return effectiveDate >= minDate && effectiveDate <= maxDate
+    })
+  }, [deposits, timeRange, customFrom, customTo, filteredChannelIds, salaryMonthMap])
 
   const filteredValues = useMemo(() => {
     const minDate = getMinDate(timeRange, customFrom)
