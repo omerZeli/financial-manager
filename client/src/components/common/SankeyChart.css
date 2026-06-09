@@ -1,5 +1,5 @@
 .sankey-card {
-  overflow: hidden;
+  overflow: visible;
 }
 
 .sankey-totals {
@@ -41,43 +41,33 @@
   text-align: left;
 }
 
-/* Body: labels | SVG | labels */
+/* Body contains SVG + overlaid labels */
 .sankey-body {
-  display: flex;
   position: relative;
-  gap: 8px;
-}
-
-.sankey-labels {
-  flex: 0 0 12%;
-  position: relative;
-  min-width: 0;
-  overflow: hidden;
 }
 
 .sankey-svg {
-  flex: 1;
-  min-width: 0;
-  height: 100%;
   display: block;
+  width: 100%;
+  height: auto;
 }
 
-/* Each label is absolutely positioned at the node's vertical center */
+/* Labels positioned absolutely next to bars */
 .sankey-label-item {
   position: absolute;
   transform: translateY(-50%);
   display: flex;
   flex-direction: column;
   gap: 1px;
-  max-width: 100%;
+  pointer-events: none;
 }
 
-.sankey-labels-right .sankey-label-item {
-  left: 0;
+.sankey-label-right {
+  text-align: left;
 }
 
-.sankey-labels-left .sankey-label-item {
-  right: 0;
+.sankey-label-left {
+  text-align: right;
 }
 
 .sankey-label-name {
@@ -85,8 +75,6 @@
   font-weight: 600;
   color: var(--text-h);
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
   line-height: 1.3;
 }
 
@@ -96,16 +84,6 @@
   color: var(--text);
   font-variant-numeric: tabular-nums;
   line-height: 1.3;
-}
-
-.sankey-labels-right .sankey-label-name,
-.sankey-labels-right .sankey-label-val {
-  text-align: left;
-}
-
-.sankey-labels-left .sankey-label-name,
-.sankey-labels-left .sankey-label-val {
-  text-align: right;
 }
 
 /* Ribbons */
@@ -118,12 +96,8 @@
   opacity: 0.4 !important;
 }
 
-/* ── Mobile ── */
+/* ── Tablet ── */
 @media (max-width: 768px) {
-  .sankey-labels {
-    flex: 0 0 15%;
-  }
-
   .sankey-total-value {
     font-size: 16px;
   }
@@ -137,11 +111,8 @@
   }
 }
 
+/* ── Mobile ── */
 @media (max-width: 480px) {
-  .sankey-labels {
-    flex: 0 0 18%;
-  }
-
   .sankey-total-value {
     font-size: 14px;
   }
@@ -152,9 +123,5 @@
 
   .sankey-label-val {
     font-size: 9px;
-  }
-
-  .sankey-body {
-    gap: 4px;
   }
 }

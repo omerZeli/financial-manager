@@ -183,36 +183,61 @@ export function HomePage() {
   }, [expenses, inflatedExpenses, fixedExpenses, paybacks, salaries, expenseFilter, timeRange, effectiveDateRange])
 
   // --- Sankey chart data ---
-  const INCOME_COLORS = [
-    '#2563eb', '#3b82f6', '#60a5fa', '#93c5fd', '#1d4ed8', '#1e40af',
-  ]
-  const OUTFLOW_COLORS_INVEST = ['#059669', '#10b981']
-  const OUTFLOW_COLORS_EXPENSE = [
-    '#d97706', '#dc2626', '#7c3aed', '#db2777', '#0891b2', '#65a30d',
-    '#ea580c', '#4f46e5', '#0d9488', '#be185d',
+  // Semantic colors for each node type
+  const COLOR_SALARY = '#2563eb'         // Blue — salary/income
+  const COLOR_EMPLOYER_DEPOSIT = '#0ea5e9' // Sky blue — employer contributions
+  const COLOR_WITHDRAWALS = '#14b8a6'    // Teal — money coming back from investments
+
+  const COLOR_DEDUCT_INVEST = '#7c3aed'  // Purple — investment deductions from salary
+  const COLOR_DEDUCT_OTHER = '#6b7280'   // Gray — tax, social security, etc.
+  const COLOR_MY_DEPOSITS = '#059669'    // Green — personal investment deposits
+
+  // Warm/diverse palette for expense types
+  const EXPENSE_COLORS = [
+    '#f59e0b', // Amber
+    '#ef4444', // Red
+    '#ec4899', // Pink
+    '#f97316', // Orange
+    '#8b5cf6', // Violet
+    '#06b6d4', // Cyan
+    '#e11d48', // Rose
+    '#0891b2', // Dark cyan
+    '#a855f7', // Purple
   ]
 
   const sankeyData = useMemo(() => {
-    // --- LEFT SIDE: Income sources ---
-    // 1. Salary neto per employer (filtered by date range)
+    // --- LEFT SIDE: Bruto salary per employer ---
     const filteredSalaries = salaries.filter(
       s => s.month >= salaryDateRange.minDate && s.month <= salaryDateRange.maxDate
     )
-    const salaryByEmployer: Record<string, number> = {}
+    const brutoByEmployer: Record<string, number> = {}
+    const netoByEmployer: Record<string, number> = {}
     for (const s of filteredSalaries) {
-      salaryByEmployer[s.employer] = (salaryByEmployer[s.employer] || 0) + s.neto
+      brutoByEmployer[s.employer] = (brutoByEmployer[s.employer] || 0) + s.bruto
+      netoByEmployer[s.employer] = (netoByEmployer[s.employer] || 0) + s.neto
     }
 
-    // 2. Investment deposits from others (depositor !== 'אני', not withdrawals)
-    // Employer deposits are executed the month after the salary they belong to,
-    // so we attribute them to the salary's month.
-    // If linked to a salary, use that salary's month directly.
-    // Otherwise, shift the deposit date back by 1 month.
     const salaryMonthById = new Map<string, string>()
     for (const s of salaries) {
       salaryMonthById.set(s.id, s.month)
     }
-    const filteredDeposits = deposits.filter(d => {
+
+    const leftNodes: SankeyNode[] = []
+
+    // Sort employers by total bruto descending
+    const sortedEmployers = Object.entries(brutoByEmployer)
+      .sort((a, b) => b[1] - a[1])
+    for (const [employer, total] of sortedEmployers) {
+      leftNodes.push({
+        id: `salary_${employer}`,
+        label: `משכורת - ${employer}`,
+        value: total,
+        color: COLOR_SALARY,
+      })
+    }
+
+    // Employer investment deposits (depositor !== 'אני', not withdrawals)
+    const filteredEmployerDeposits = deposits.filter(d => {
       if (d.is_withdrawal) return false
       if (d.depositor === 'אני') return false
       if (timeRange === 'all') return true
@@ -220,7 +245,6 @@ export function HomePage() {
       if (d.salary_id && salaryMonthById.has(d.salary_id)) {
         effectiveDate = salaryMonthById.get(d.salary_id)!
       } else {
-        // Employer deposits without salary link: shift back 1 month
         const dt = new Date(d.date + 'T00:00:00')
         dt.setMonth(dt.getMonth() - 1)
         effectiveDate = formatLocalDate(dt)
@@ -228,24 +252,8 @@ export function HomePage() {
       return effectiveDate >= effectiveDateRange.minDate && effectiveDate <= effectiveDateRange.maxDate
     })
     const depositsByDepositor: Record<string, number> = {}
-    for (const d of filteredDeposits) {
+    for (const d of filteredEmployerDeposits) {
       depositsByDepositor[d.depositor] = (depositsByDepositor[d.depositor] || 0) + d.amount
-    }
-
-    const leftNodes: SankeyNode[] = []
-    let colorIdx = 0
-
-    // Sort employers by total descending
-    const sortedEmployers = Object.entries(salaryByEmployer)
-      .sort((a, b) => b[1] - a[1])
-    for (const [employer, total] of sortedEmployers) {
-      leftNodes.push({
-        id: `salary_${employer}`,
-        label: `משכורת - ${employer}`,
-        value: total,
-        color: INCOME_COLORS[colorIdx % INCOME_COLORS.length],
-      })
-      colorIdx++
     }
 
     // Sort depositors by total descending
@@ -256,42 +264,94 @@ export function HomePage() {
         id: `depositor_${depositor}`,
         label: `הפקדות - ${depositor}`,
         value: total,
-        color: INCOME_COLORS[colorIdx % INCOME_COLORS.length],
+        color: COLOR_EMPLOYER_DEPOSIT,
       })
-      colorIdx++
     }
 
-    // --- RIGHT SIDE: Outflows ---
-    // 1. My investment deposits net of withdrawals, split pension/non-pension
-    const myDepositsAndWithdrawals = deposits.filter(d => {
-      if (d.depositor !== 'אני') return false
+    // Withdrawals from investments
+    const filteredWithdrawals = deposits.filter(d => {
+      if (!d.is_withdrawal) return false
       if (timeRange === 'all') return true
       const effectiveDate = getEffectiveDate(d.date, d.salary_id, salaryMonthById)
       return effectiveDate >= effectiveDateRange.minDate && effectiveDate <= effectiveDateRange.maxDate
     })
-
-    // Build channel pension map
-    const channelPensionMap = new Map<string, boolean>()
-    for (const ch of channels) {
-      channelPensionMap.set(ch.id, ch.is_pension)
+    let withdrawalsTotal = 0
+    for (const d of filteredWithdrawals) {
+      withdrawalsTotal += d.amount
+    }
+    if (withdrawalsTotal > 0) {
+      leftNodes.push({
+        id: 'withdrawals',
+        label: 'משיכות מהשקעות',
+        value: withdrawalsTotal,
+        color: COLOR_WITHDRAWALS,
+      })
     }
 
-    let pensionTotal = 0
-    let nonPensionTotal = 0
-    for (const d of myDepositsAndWithdrawals) {
-      const amount = d.is_withdrawal ? -d.amount : d.amount
-      if (channelPensionMap.get(d.channel_id)) {
-        pensionTotal += amount
-      } else {
-        nonPensionTotal += amount
+    // --- RIGHT SIDE: Deductions + My Deposits + Expenses ---
+
+    // 1. Investment deductions: my deposits linked to a salary (depositor === 'אני' + salary_id set)
+    const myLinkedDeposits = deposits.filter(d => {
+      if (d.is_withdrawal) return false
+      if (d.depositor !== 'אני') return false
+      if (!d.salary_id) return false
+      if (timeRange === 'all') return true
+      const effectiveDate = getEffectiveDate(d.date, d.salary_id, salaryMonthById)
+      return effectiveDate >= effectiveDateRange.minDate && effectiveDate <= effectiveDateRange.maxDate
+    })
+    let investDeductionTotal = 0
+    for (const d of myLinkedDeposits) {
+      investDeductionTotal += d.amount
+    }
+
+    // 2. Other deductions = (bruto - neto) - investment deductions - expense deductions
+    //    Expense deductions are already shown in the expenses section, so exclude them here.
+    const totalBruto = Object.values(brutoByEmployer).reduce((s, v) => s + v, 0)
+    const totalNeto = Object.values(netoByEmployer).reduce((s, v) => s + v, 0)
+    const totalDeductions = totalBruto - totalNeto
+
+    // Compute expense deductions: salary-linked regular expenses + salary-deducted fixed expenses
+    const salaryDeductedFixedIds = new Set(fixedExpenses.filter(fe => fe.salary_employer).map(fe => fe.id))
+    let expenseDeductionTotal = 0
+    // Regular expenses linked to a salary in the date range
+    for (const exp of expenses) {
+      if (!exp.salary_id) continue
+      if (timeRange !== 'all') {
+        const effectiveDate = getEffectiveDate(exp.date, exp.salary_id, salaryMonthById)
+        if (effectiveDate < effectiveDateRange.minDate || effectiveDate > effectiveDateRange.maxDate) continue
       }
+      expenseDeductionTotal += exp.amount
     }
-    // Floor at 0 — net withdrawals shouldn't show as negative outflow
-    pensionTotal = Math.max(pensionTotal, 0)
-    nonPensionTotal = Math.max(nonPensionTotal, 0)
+    // Inflated fixed expenses that are salary-deducted, in the date range
+    for (const ie of inflatedExpenses) {
+      const fixedId = ie.id.substring(0, ie.id.lastIndexOf('_'))
+      if (!salaryDeductedFixedIds.has(fixedId)) continue
+      if (timeRange !== 'all') {
+        const dt = new Date(ie.date + 'T00:00:00')
+        dt.setMonth(dt.getMonth() - 1)
+        const effectiveDate = formatLocalDate(dt)
+        if (effectiveDate < effectiveDateRange.minDate || effectiveDate > effectiveDateRange.maxDate) continue
+      }
+      expenseDeductionTotal += ie.amount
+    }
 
-    // 2. Expenses by expense type (filtered by date range)
-    // Merge regular + inflated expenses, apply payback adjustments
+    const otherDeductions = Math.max(totalDeductions - investDeductionTotal - expenseDeductionTotal, 0)
+
+    // 3. My deposits not linked to salary (depositor === 'אני', no salary_id, not withdrawals)
+    const myDeposits = deposits.filter(d => {
+      if (d.depositor !== 'אני') return false
+      if (d.is_withdrawal) return false
+      if (d.salary_id) return false
+      if (timeRange === 'all') return true
+      const effectiveDate = getEffectiveDate(d.date, d.salary_id, salaryMonthById)
+      return effectiveDate >= effectiveDateRange.minDate && effectiveDate <= effectiveDateRange.maxDate
+    })
+    let myDepositsTotal = 0
+    for (const d of myDeposits) {
+      myDepositsTotal += d.amount
+    }
+
+    // 4. Expenses by expense type (filtered by date range)
     const toMeByExpense: Record<string, number> = {}
     for (const pb of paybacks) {
       if (pb.direction === 'to_me' && pb.expense_id) {
@@ -299,13 +359,9 @@ export function HomePage() {
       }
     }
 
-    // Build all expense items with category
-    // Set of fixed expense IDs that are salary-deducted
-    const salaryDeductedFixedIds = new Set(fixedExpenses.filter(fe => fe.salary_employer).map(fe => fe.id))
     interface ExpItem { category: string; amount: number; date: string; salary_id: string | null; _salaryDeductedFixed: boolean }
     const allExpItems: ExpItem[] = []
 
-    // Regular expenses (adjusted for to_me paybacks)
     for (const exp of expenses) {
       const returned = toMeByExpense[exp.id] || 0
       const adj = exp.amount - returned
@@ -314,20 +370,17 @@ export function HomePage() {
       }
     }
 
-    // Inflated fixed expenses
     for (const ie of inflatedExpenses) {
       const fixedId = ie.id.substring(0, ie.id.lastIndexOf('_'))
       allExpItems.push({ category: ie.category, amount: ie.amount, date: ie.date, salary_id: null, _salaryDeductedFixed: salaryDeductedFixedIds.has(fixedId) })
     }
 
-    // by_me paybacks as expenses
     for (const pb of paybacks) {
       if (pb.direction === 'by_me' && pb.category) {
         allExpItems.push({ category: pb.category, amount: pb.amount, date: pb.date, salary_id: null, _salaryDeductedFixed: false })
       }
     }
 
-    // Filter by date range (using salary month for salary-linked items)
     const filteredExpItems = timeRange === 'all'
       ? allExpItems
       : allExpItems.filter(i => {
@@ -344,8 +397,6 @@ export function HomePage() {
           return effectiveDate >= effectiveDateRange.minDate && effectiveDate <= effectiveDateRange.maxDate
         })
 
-    // Group by expense type
-    // Build category → type_name map
     const categoryToType = new Map<string, string>()
     for (const et of expenseTypes) {
       for (const cat of et.categories) {
@@ -361,41 +412,55 @@ export function HomePage() {
 
     const rightNodes: SankeyNode[] = []
 
-    // Investment outflows
-    if (pensionTotal > 0) {
+    // Deduction nodes
+    if (investDeductionTotal > 0) {
       rightNodes.push({
-        id: 'invest_pension',
-        label: 'הפקדות לפנסיה',
-        value: pensionTotal,
-        color: OUTFLOW_COLORS_INVEST[0],
+        id: 'deduct_invest',
+        label: 'ניכויים להשקעות',
+        value: investDeductionTotal,
+        color: COLOR_DEDUCT_INVEST,
       })
     }
-    if (nonPensionTotal > 0) {
+    if (otherDeductions > 0) {
       rightNodes.push({
-        id: 'invest_non_pension',
-        label: 'הפקדות להשקעות',
-        value: nonPensionTotal,
-        color: OUTFLOW_COLORS_INVEST[1],
+        id: 'deduct_other',
+        label: 'ניכויים אחרים',
+        value: otherDeductions,
+        color: COLOR_DEDUCT_OTHER,
       })
     }
 
-    // Expense type outflows, sorted by total descending
+    // My deposits node
+    if (myDepositsTotal > 0) {
+      rightNodes.push({
+        id: 'my_deposits',
+        label: 'הפקדות להשקעות',
+        value: myDepositsTotal,
+        color: COLOR_MY_DEPOSITS,
+      })
+    }
+
+    // Expense type outflows, sorted by total descending, 'אחרות' always last
     const sortedExpTypes = Object.entries(expenseByType)
-      .sort((a, b) => b[1] - a[1])
+      .sort((a, b) => {
+        if (a[0] === 'אחרות') return 1
+        if (b[0] === 'אחרות') return -1
+        return b[1] - a[1]
+      })
     let expColorIdx = 0
     for (const [typeName, total] of sortedExpTypes) {
       rightNodes.push({
         id: `expense_${typeName}`,
         label: `הוצאות ${typeName}`,
         value: total,
-        color: OUTFLOW_COLORS_EXPENSE[expColorIdx % OUTFLOW_COLORS_EXPENSE.length],
+        color: EXPENSE_COLORS[expColorIdx % EXPENSE_COLORS.length],
       })
       expColorIdx++
     }
 
     return { leftNodes, rightNodes }
   }, [
-    salaries, salaryDateRange, deposits, channels, expenses, inflatedExpenses, fixedExpenses,
+    salaries, salaryDateRange, deposits, expenses, inflatedExpenses, fixedExpenses,
     paybacks, expenseTypes, timeRange, effectiveDateRange,
   ])
 
@@ -538,7 +603,7 @@ export function HomePage() {
           incomeNodes={sankeyData.leftNodes}
           outflowNodes={sankeyData.rightNodes}
           incomeLabel="הכנסות"
-          outflowLabel="הוצאות והשקעות"
+          outflowLabel="ניכויים, השקעות והוצאות"
           formatValue={formatCurrency}
         />
       )}

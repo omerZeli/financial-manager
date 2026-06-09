@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useRef, useState, useEffect } from 'react'
 import './SankeyChart.css'
 
 export interface SankeyNode {
@@ -18,8 +18,7 @@ interface Props {
 
 /*
  * Center-merge Sankey: income on the RIGHT, outflows on the LEFT (RTL).
- * Labels are rendered as absolutely-positioned HTML outside the SVG
- * so they never overlap with ribbons.
+ * Labels are absolutely positioned over the SVG, right next to node bars.
  */
 
 const NODE_W = 12
@@ -27,6 +26,7 @@ const NODE_GAP = 6
 const MIN_NODE_H = 22
 const PAD_Y = 24
 const CENTER_W = 8
+const SVG_INNER_W = 600
 
 function bezierRibbon(
   x0: number, y0top: number, y0bot: number,
@@ -42,11 +42,31 @@ function bezierRibbon(
   ].join(' ')
 }
 
-// The SVG only covers the flow area (node bars + ribbons).
-// Labels are rendered as HTML on either side.
-const SVG_INNER_W = 600
-
 export function SankeyChart({ incomeNodes, outflowNodes, incomeLabel, outflowLabel, formatValue }: Props) {
+  const svgRef = useRef<SVGSVGElement>(null)
+  const [svgRect, setSvgRect] = useState<{ width: number; height: number; left: number; top: number } | null>(null)
+
+  useEffect(() => {
+    if (!svgRef.current) return
+    const update = () => {
+      const el = svgRef.current
+      if (!el) return
+      const box = el.getBoundingClientRect()
+      const parent = el.parentElement?.getBoundingClientRect()
+      if (!parent) return
+      setSvgRect({
+        width: box.width,
+        height: box.height,
+        left: box.left - parent.left,
+        top: box.top - parent.top,
+      })
+    }
+    const obs = new ResizeObserver(update)
+    obs.observe(svgRef.current)
+    update()
+    return () => obs.disconnect()
+  }, [])
+
   const layout = useMemo(() => {
     const income = incomeNodes.filter(n => n.value > 0)
     const outflow = outflowNodes.filter(n => n.value > 0)
@@ -68,8 +88,8 @@ export function SankeyChart({ incomeNodes, outflowNodes, incomeLabel, outflowLab
     }
 
     const maxNodes = Math.max(income.length, outflow.length, 1)
-    const baseH = maxNodes * 48 + (maxNodes - 1) * NODE_GAP + PAD_Y * 2
-    const svgH = Math.max(280, baseH)
+    const baseH = maxNodes * 28 + (maxNodes - 1) * NODE_GAP + PAD_Y * 2
+    const svgH = Math.max(140, Math.min(baseH, 240))
     const availH = svgH - PAD_Y * 2
 
     const incomeHeights = computeHeights(income, availH)
@@ -86,14 +106,12 @@ export function SankeyChart({ incomeNodes, outflowNodes, incomeLabel, outflowLab
       })
     }
 
-    // Node bar positions within the SVG inner area
-    const incomeCol = SVG_INNER_W - NODE_W  // right edge
-    const outflowCol = 0                     // left edge
+    const incomeCol = SVG_INNER_W - NODE_W
+    const outflowCol = 0
 
     const incomePositioned = positionColumn(income, incomeHeights)
     const outflowPositioned = positionColumn(outflow, outflowHeights)
 
-    // Center column
     const allIncomeTop = incomePositioned.length > 0 ? incomePositioned[0].y : PAD_Y
     const allIncomeBot = incomePositioned.length > 0
       ? incomePositioned[incomePositioned.length - 1].y + incomePositioned[incomePositioned.length - 1].h
@@ -108,7 +126,6 @@ export function SankeyChart({ incomeNodes, outflowNodes, incomeLabel, outflowLab
     const centerH = centerBot - centerTop
     const centerX = SVG_INNER_W / 2
 
-    // Income ribbons: node → center
     const incomeRibbons: { d: string; color: string }[] = []
     let centerIncomeY = centerTop
     const centerRightX = centerX + CENTER_W / 2
@@ -123,7 +140,6 @@ export function SankeyChart({ incomeNodes, outflowNodes, incomeLabel, outflowLab
       centerIncomeY += share
     }
 
-    // Outflow ribbons: center → node
     const outflowRibbons: { d: string; color: string }[] = []
     let centerOutflowY = centerTop
     const centerLeftX = centerX - CENTER_W / 2
@@ -142,7 +158,6 @@ export function SankeyChart({ incomeNodes, outflowNodes, incomeLabel, outflowLab
       incomePositioned, outflowPositioned,
       incomeRibbons, outflowRibbons,
       svgH, totalIncome, totalOutflow,
-      incomeCol, outflowCol,
       centerTop, centerH, centerX,
     }
   }, [incomeNodes, outflowNodes])
@@ -163,6 +178,10 @@ export function SankeyChart({ incomeNodes, outflowNodes, incomeLabel, outflowLab
     centerTop, centerH, centerX,
   } = layout
 
+  // Compute scale from SVG viewBox to actual rendered pixels
+  const scaleX = svgRect ? svgRect.width / SVG_INNER_W : 0
+  const scaleY = svgRect ? svgRect.height / svgH : 0
+
   return (
     <div className="chart-card sankey-card">
       <h3>תזרים כספי</h3>
@@ -177,23 +196,10 @@ export function SankeyChart({ incomeNodes, outflowNodes, incomeLabel, outflowLab
         </div>
       </div>
 
-      <div className="sankey-body" style={{ height: svgH }}>
-        {/* Right labels (income) — positioned outside the SVG */}
-        <div className="sankey-labels sankey-labels-right">
-          {incomePositioned.map(n => (
-            <div
-              key={n.id}
-              className="sankey-label-item"
-              style={{ top: n.y + n.h / 2 }}
-            >
-              <span className="sankey-label-name">{n.label}</span>
-              <span className="sankey-label-val" dir="ltr">{formatValue(n.value)}</span>
-            </div>
-          ))}
-        </div>
-
+      <div className="sankey-body">
         {/* SVG flow area */}
         <svg
+          ref={svgRef}
           viewBox={`0 0 ${SVG_INNER_W} ${svgH}`}
           className="sankey-svg"
           preserveAspectRatio="xMidYMid meet"
@@ -224,19 +230,37 @@ export function SankeyChart({ incomeNodes, outflowNodes, incomeLabel, outflowLab
           />
         </svg>
 
-        {/* Left labels (outflow) — positioned outside the SVG */}
-        <div className="sankey-labels sankey-labels-left">
-          {outflowPositioned.map(n => (
+        {/* Right labels (income) — positioned next to bars */}
+        {svgRect && incomePositioned.map(n => {
+          const top = svgRect.top + n.y * scaleY + (n.h * scaleY) / 2
+          const right = svgRect.width - (SVG_INNER_W - NODE_W) * scaleX + svgRect.left + 6
+          return (
             <div
               key={n.id}
-              className="sankey-label-item"
-              style={{ top: n.y + n.h / 2 }}
+              className="sankey-label-item sankey-label-right"
+              style={{ top, right }}
             >
               <span className="sankey-label-name">{n.label}</span>
               <span className="sankey-label-val" dir="ltr">{formatValue(n.value)}</span>
             </div>
-          ))}
-        </div>
+          )
+        })}
+
+        {/* Left labels (outflow) — positioned next to bars */}
+        {svgRect && outflowPositioned.map(n => {
+          const top = svgRect.top + n.y * scaleY + (n.h * scaleY) / 2
+          const left = svgRect.left + NODE_W * scaleX + 6
+          return (
+            <div
+              key={n.id}
+              className="sankey-label-item sankey-label-left"
+              style={{ top, left }}
+            >
+              <span className="sankey-label-name">{n.label}</span>
+              <span className="sankey-label-val" dir="ltr">{formatValue(n.value)}</span>
+            </div>
+          )
+        })}
       </div>
     </div>
   )
