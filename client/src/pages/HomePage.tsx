@@ -92,42 +92,10 @@ export function HomePage() {
   }, [channels, deposits, valueUpdates, investmentFilter])
 
   // --- Salary: average monthly ---
-  // Salary month field is the work month; you receive it the following month.
-  // So we shift the filter range back by 1 month to match the salary records.
-  const salaryDateRange = useMemo(() => {
-    if (timeRange === 'all') {
-      return { minDate: '0000-01-01', maxDate: '9999-12-31' }
-    }
-    if (timeRange === 'custom') {
-      // Shift custom dates back by 1 month
-      const shiftBack = (dateStr: string) => {
-        if (!dateStr) return ''
-        const d = new Date(dateStr + 'T00:00:00')
-        d.setMonth(d.getMonth() - 1)
-        return formatLocalDate(d)
-      }
-      return {
-        minDate: customFrom ? shiftBack(customFrom) : '0000-01-01',
-        maxDate: customTo ? shiftBack(customTo) : '9999-12-31',
-      }
-    }
-    const now = new Date()
-    const months = timeRange === 'last1' ? 1 : 12
-    const lastYear = excludeCurrentMonth
-      ? (now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear())
-      : now.getFullYear()
-    const lastMonth = excludeCurrentMonth
-      ? (now.getMonth() === 0 ? 11 : now.getMonth() - 1)
-      : now.getMonth()
-    // Shift back by 1 month for salary
-    const salLastMonth = lastMonth === 0 ? 11 : lastMonth - 1
-    const salLastYear = lastMonth === 0 ? lastYear - 1 : lastYear
-    const endOfLast = new Date(salLastYear, salLastMonth + 1, 0)
-    const maxDate = formatLocalDate(endOfLast)
-    const from = new Date(salLastYear, salLastMonth - months + 1, 1)
-    const minDate = formatLocalDate(from)
-    return { minDate, maxDate }
-  }, [timeRange, excludeCurrentMonth, customFrom, customTo])
+  // Salary uses the same date range as expenses/investments so the Sankey chart
+  // shows matching periods. The salary `month` field already represents the work
+  // month — no shift needed.
+  const salaryDateRange = effectiveDateRange
 
   const avgSalary = useMemo(() => {
     const filtered = salaries.filter(s => s.month >= salaryDateRange.minDate && s.month <= salaryDateRange.maxDate)
@@ -198,11 +166,28 @@ export function HomePage() {
     }
 
     // 2. Investment deposits from others (depositor !== 'אני', not withdrawals)
+    // Employer deposits are executed the month after the salary they belong to,
+    // so we attribute them to the previous month (the salary month).
+    // If linked to a salary, use that salary's month directly.
+    // Otherwise, shift the deposit date back by 1 month.
+    const salaryMonthById = new Map<string, string>()
+    for (const s of salaries) {
+      salaryMonthById.set(s.id, s.month)
+    }
     const filteredDeposits = deposits.filter(d => {
       if (d.is_withdrawal) return false
       if (d.depositor === 'אני') return false
       if (timeRange === 'all') return true
-      return d.date >= effectiveDateRange.minDate && d.date <= effectiveDateRange.maxDate
+      let effectiveDate: string
+      if (d.salary_id && salaryMonthById.has(d.salary_id)) {
+        effectiveDate = salaryMonthById.get(d.salary_id)!
+      } else {
+        // Shift back 1 month: deposit executed in month M belongs to salary of month M-1
+        const dt = new Date(d.date + 'T00:00:00')
+        dt.setMonth(dt.getMonth() - 1)
+        effectiveDate = formatLocalDate(dt)
+      }
+      return effectiveDate >= effectiveDateRange.minDate && effectiveDate <= effectiveDateRange.maxDate
     })
     const depositsByDepositor: Record<string, number> = {}
     for (const d of filteredDeposits) {
