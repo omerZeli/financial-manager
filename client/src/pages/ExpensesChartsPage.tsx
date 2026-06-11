@@ -67,6 +67,19 @@ export function ExpensesChartsPage() {
     return map
   }, [paybacks])
 
+  // Build to_me paybacks linked to fixed expenses (with date info for inflated matching)
+  const toMeByFixed = useMemo(() => {
+    const map: Record<string, { total: number; items: { amount: number; date: string }[] }> = {}
+    for (const pb of paybacks) {
+      if (pb.direction === 'to_me' && pb.fixed_expense_id) {
+        if (!map[pb.fixed_expense_id]) map[pb.fixed_expense_id] = { total: 0, items: [] }
+        map[pb.fixed_expense_id].total += pb.amount
+        map[pb.fixed_expense_id].items.push({ amount: pb.amount, date: pb.date })
+      }
+    }
+    return map
+  }, [paybacks])
+
   // by_me paybacks as virtual expense entries
   const byMeExpenses = useMemo(() => {
     return paybacks
@@ -99,10 +112,23 @@ export function ExpensesChartsPage() {
     const inflated = inflatedExpenses.map(ie => {
       const fixedId = ie.id.substring(0, ie.id.lastIndexOf('_'))
       const isSalaryDeducted = salaryDeductedFixedIds.has(fixedId)
-      return { ...ie, _salaryDeducted: isSalaryDeducted, _fixed: true, _effectiveSalaryId: null as string | null, _salaryDeductedFixed: isSalaryDeducted }
+      return { ...ie, amount: ie.amount, _salaryDeducted: isSalaryDeducted, _fixed: true, _effectiveSalaryId: null as string | null, _salaryDeductedFixed: isSalaryDeducted }
     })
-    return [...adjusted, ...inflated, ...byMeExpenses.map(e => ({ ...e, _salaryDeductedFixed: false }))]
-  }, [expenses, inflatedExpenses, byMeExpenses, toMeByExpense, salaryDeductedFixedIds])
+
+    // Apply to_me paybacks linked to fixed expenses (reduce last inflated entry on or before payback date)
+    for (const [fixedId, data] of Object.entries(toMeByFixed)) {
+      for (const pb of data.items) {
+        const candidates = inflated
+          .filter(ie => ie.id.startsWith(fixedId + '_') && ie.date <= pb.date)
+          .sort((a, b) => b.date.localeCompare(a.date))
+        if (candidates.length > 0) {
+          candidates[0].amount -= pb.amount
+        }
+      }
+    }
+
+    return [...adjusted, ...inflated.filter(e => e.amount !== 0), ...byMeExpenses.map(e => ({ ...e, _salaryDeductedFixed: false }))]
+  }, [expenses, inflatedExpenses, byMeExpenses, toMeByExpense, toMeByFixed, salaryDeductedFixedIds])
 
   // All categories covered by any expense type
   const allTypedCategories = useMemo(() => {
@@ -205,7 +231,7 @@ export function ExpensesChartsPage() {
 
   const aggLabel = aggMode === 'avg' ? 'ממוצע' : 'סה"כ'
 
-  // Monthly totals for aggregation
+  // Monthly totals for aggregation — fill all months in the date range
   const byMonth = useMemo(() => {
     const map: Record<string, number> = {}
     for (const e of filtered) {
@@ -222,8 +248,20 @@ export function ExpensesChartsPage() {
       const key = effectiveDate.slice(0, 7)
       map[key] = (map[key] || 0) + e.amount
     }
+    // Fill in every month between min and max date in the range
+    const minKey = effectiveDateRange.minDate.slice(0, 7)
+    const maxKey = effectiveDateRange.maxDate.slice(0, 7)
+    const [startY, startM] = minKey.split('-').map(Number)
+    const [endY, endM] = maxKey.split('-').map(Number)
+    let y = startY, m = startM
+    while (y < endY || (y === endY && m <= endM)) {
+      const key = `${y}-${String(m).padStart(2, '0')}`
+      if (!(key in map)) map[key] = 0
+      m++
+      if (m > 12) { m = 1; y++ }
+    }
     return Object.entries(map).sort((a, b) => a[0].localeCompare(b[0]))
-  }, [filtered, salaryMonthMap])
+  }, [filtered, salaryMonthMap, effectiveDateRange])
 
   const monthCount = byMonth.length
   const totalAmount = filtered.reduce((s, e) => s + e.amount, 0)
