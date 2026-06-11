@@ -39,7 +39,6 @@ export function ExpensesTablePage() {
   const { paybacks, loading: paybacksLoading, fetchPaybacks, addPayback, updatePayback, deletePayback, removeByExpenseId, removeByFixedExpenseId } = usePaybacks()
   const { salaries, fetchSalaries } = useSalary()
   const { options: categoryOptions, loading: categoryLoading, addOption: addCategory, removeOption: removeCategory } = useDropdownOptions('expense_category')
-  const { options: fixedCategoryOptions, loading: fixedCategoryLoading, addOption: addFixedCategory, removeOption: removeFixedCategory } = useDropdownOptions('fixed_expense_category')
   const { options: personOptions, loading: personLoading, addOption: addPerson, removeOption: removePerson } = useDropdownOptions('payback_person')
   const { options: expenseTypeOptions, loading: etTypeLoading, addOption: addExpenseTypeOption, removeOption: removeExpenseTypeOption } = useDropdownOptions('expense_type')
   const { expenseTypes, fetchExpenseTypes, addExpenseType, updateExpenseType, deleteExpenseType } = useExpenseTypes()
@@ -60,21 +59,14 @@ export function ExpensesTablePage() {
   useEffect(() => { fetchExpenseTypes() }, [fetchExpenseTypes])
   useEffect(() => { fetchSalaries() }, [fetchSalaries])
 
-  // Sort category options by total expense amount (regular + inflated)
+  // Sort category options by total expense amount (regular + fixed + inflated)
   const sortedCategoryOptions = useMemo(() => {
     const totals: Record<string, number> = {}
     for (const e of expenses) totals[e.category] = (totals[e.category] || 0) + e.amount
     for (const ie of inflatedExpenses) totals[ie.category] = (totals[ie.category] || 0) + ie.amount
-    return [...categoryOptions].sort((a, b) => (totals[b.label] || 0) - (totals[a.label] || 0))
-  }, [categoryOptions, expenses, inflatedExpenses])
-
-  // Sort fixed category options by total fixed expense amount
-  const sortedFixedCategoryOptions = useMemo(() => {
-    const totals: Record<string, number> = {}
     for (const fe of fixedExpenses) totals[fe.category] = (totals[fe.category] || 0) + fe.amount
-    for (const ie of inflatedExpenses) totals[ie.category] = (totals[ie.category] || 0) + ie.amount
-    return [...fixedCategoryOptions].sort((a, b) => (totals[b.label] || 0) - (totals[a.label] || 0))
-  }, [fixedCategoryOptions, fixedExpenses, inflatedExpenses])
+    return [...categoryOptions].sort((a, b) => (totals[b.label] || 0) - (totals[a.label] || 0))
+  }, [categoryOptions, expenses, inflatedExpenses, fixedExpenses])
 
   // Sort person options by total payback amount
   const sortedPersonOptions = useMemo(() => {
@@ -330,11 +322,8 @@ export function ExpensesTablePage() {
     const totals: Record<string, number> = {}
     for (const e of expenses) totals[e.category] = (totals[e.category] || 0) + e.amount
     for (const ie of inflatedExpenses) totals[ie.category] = (totals[ie.category] || 0) + ie.amount
-    const set = new Set<string>()
-    for (const o of categoryOptions) set.add(o.label)
-    for (const o of fixedCategoryOptions) set.add(o.label)
-    return Array.from(set).sort((a, b) => (totals[b] || 0) - (totals[a] || 0))
-  }, [categoryOptions, fixedCategoryOptions, expenses, inflatedExpenses])
+    return categoryOptions.map(o => o.label).sort((a, b) => (totals[b] || 0) - (totals[a] || 0))
+  }, [categoryOptions, expenses, inflatedExpenses])
 
   const isLoading = activeTab === 'all'
     ? (loading || fixedLoading || paybacksLoading)
@@ -650,10 +639,10 @@ export function ExpensesTablePage() {
 
       {modal === 'fixed' && (
         <FixedExpenseForm
-          sortedFixedCategoryOptions={sortedFixedCategoryOptions}
-          fixedCategoryLoading={fixedCategoryLoading}
-          addFixedCategory={addFixedCategory}
-          removeFixedCategory={removeFixedCategory}
+          sortedCategoryOptions={sortedCategoryOptions}
+          categoryLoading={categoryLoading}
+          addCategory={addCategory}
+          removeCategory={removeCategory}
           employerOptions={employerOptions}
           onSubmit={addFixedExpense}
           onClose={() => setModal(null)}

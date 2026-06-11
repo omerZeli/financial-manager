@@ -173,7 +173,7 @@ The expenses section supports two types of expenses, managed via a **FAB type pi
 #### Fixed Expenses (`fixed_expenses` table)
 - Fields: `name`, `category`, `amount`, `start_date`, `end_date` (nullable), `salary_employer` (nullable text — employer name for salary deduction)
 - Context: `FixedExpensesContext` (`src/contexts/FixedExpensesContext.tsx`)
-- Dropdown category: `fixed_expense_category`
+- Dropdown category: `expense_category` (shared with regular expenses)
 - The add form has a **toggle switch** ("יש תאריך סיום?") that conditionally shows the end date field.
 - The fixed expenses table has an **edit button** (pencil icon) per row that opens an edit modal with a single end date field.
 - The context exposes `updateFixedExpense` for editing.
@@ -345,8 +345,7 @@ Expense types allow users to group expense categories into named types for use i
 - Each page computes a `useMemo`-based sorted copy of the options array before passing it to the select component. The `useDropdownOptions` hook itself still stores options alphabetically — sorting by money is done at the page level where financial data is available.
 - Sorting rules per dropdown:
   - **employer** (Salary page): total neto salary per employer.
-  - **expense_category** (Expenses page): total expense amount (regular + inflated) per category.
-  - **fixed_expense_category** (Expenses page): total fixed expense amount (including inflated) per category.
+  - **expense_category** (Expenses page): total expense amount (regular + fixed + inflated) per category.
   - **payback_person** (Expenses page): total payback amount per person.
   - **expense_type** (Expenses page + charts): total expense amount across the type's categories.
   - **expense name suggestions** (AutocompleteInput): total expense amount per name.

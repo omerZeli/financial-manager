@@ -6,20 +6,20 @@ import DateInput from '../common/DatePicker'
 import type { DropdownOption } from '../../hooks/useDropdownOptions'
 
 interface FixedExpenseFormProps {
-  sortedFixedCategoryOptions: DropdownOption[]
-  fixedCategoryLoading: boolean
-  addFixedCategory: (label: string) => Promise<DropdownOption | null>
-  removeFixedCategory: (id: string) => Promise<boolean>
+  sortedCategoryOptions: DropdownOption[]
+  categoryLoading: boolean
+  addCategory: (label: string) => Promise<DropdownOption | null>
+  removeCategory: (id: string) => Promise<boolean>
   employerOptions: { value: string; label: string }[]
   onSubmit: (data: { name: string; category: string; amount: number; start_date: string; end_date: string | null; salary_employer: string | null }) => Promise<void>
   onClose: () => void
 }
 
 export function FixedExpenseForm({
-  sortedFixedCategoryOptions,
-  fixedCategoryLoading,
-  addFixedCategory,
-  removeFixedCategory,
+  sortedCategoryOptions,
+  categoryLoading,
+  addCategory,
+  removeCategory,
   employerOptions,
   onSubmit,
   onClose,
@@ -68,13 +68,13 @@ export function FixedExpenseForm({
 
           <label>קטגוריה</label>
           <CustomSelect
-            options={sortedFixedCategoryOptions}
+            options={sortedCategoryOptions}
             value={fixedCategory}
             placeholder="הכנס קטגוריה"
             onChange={setFixedCategory}
-            onAddOption={addFixedCategory}
-            onRemoveOption={removeFixedCategory}
-            loading={fixedCategoryLoading}
+            onAddOption={addCategory}
+            onRemoveOption={removeCategory}
+            loading={categoryLoading}
           />
 
           <label>סכום</label>
