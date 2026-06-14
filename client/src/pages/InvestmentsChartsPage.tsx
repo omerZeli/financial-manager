@@ -15,6 +15,11 @@ function formatCurrency(n: number) {
   return n.toLocaleString('he-IL', { style: 'currency', currency: 'ILS', minimumFractionDigits: 0 })
 }
 
+function formatMonth(dateStr: string) {
+  const d = new Date(dateStr + 'T00:00:00')
+  return d.toLocaleDateString('he-IL', { month: 'short', year: '2-digit' })
+}
+
 function formatPercent(n: number) {
   return n.toLocaleString('he-IL', { style: 'percent', minimumFractionDigits: 1, maximumFractionDigits: 1 })
 }
@@ -152,6 +157,51 @@ export function InvestmentsChartsPage() {
       .reduce((s, d) => s + d.amount, 0)
   }, [filteredDeposits, cashChannelIds])
   const totalCurrentValue = summaries.reduce((s, c) => s + c.currentValue, 0)
+
+  // Monthly net deposits by the user ("אני"): deposits minus withdrawals, grouped by month
+  const myDepositsByMonth = useMemo(() => {
+    const map: Record<string, number> = {}
+    for (const d of filteredDeposits) {
+      if (d.depositor !== 'אני') continue
+      let effectiveDate: string
+      if (d.salary_id && salaryMonthMap.has(d.salary_id)) {
+        effectiveDate = salaryMonthMap.get(d.salary_id)!
+      } else {
+        effectiveDate = d.date
+      }
+      const key = effectiveDate.slice(0, 7)
+      if (d.is_withdrawal) {
+        map[key] = (map[key] || 0) - d.amount
+      } else {
+        map[key] = (map[key] || 0) + d.amount
+      }
+    }
+    // Fill in every month between min and max
+    const keys = Object.keys(map)
+    if (keys.length > 0) {
+      const sorted = keys.sort()
+      const [startY, startM] = sorted[0].split('-').map(Number)
+      const [endY, endM] = sorted[sorted.length - 1].split('-').map(Number)
+      let y = startY, m = startM
+      while (y < endY || (y === endY && m <= endM)) {
+        const key = `${y}-${String(m).padStart(2, '0')}`
+        if (!(key in map)) map[key] = 0
+        m++
+        if (m > 12) { m = 1; y++ }
+      }
+    }
+    return Object.entries(map).sort((a, b) => a[0].localeCompare(b[0]))
+  }, [filteredDeposits, salaryMonthMap])
+
+  // For the monthly bar chart, limit to last 18 months if range is larger
+  const chartMyDeposits = useMemo(() => {
+    if (myDepositsByMonth.length <= 18) return myDepositsByMonth
+    return myDepositsByMonth.slice(-18)
+  }, [myDepositsByMonth])
+
+  const chartMyDepositsMax = useMemo(() => {
+    return chartMyDeposits.reduce((mx, [, v]) => Math.max(mx, Math.abs(v)), 0) || 1
+  }, [chartMyDeposits])
 
   // Compute total return correctly for filtered time ranges.
   // When a time filter is active, we compare the portfolio value at the start
@@ -668,6 +718,35 @@ export function InvestmentsChartsPage() {
               })}
             </div>
           </div>
+
+          {chartMyDeposits.length > 0 && (
+            <div className="chart-card">
+              <h3>הפקדות חודשיות שלי (הפקדות בניכוי משיכות)</h3>
+              <div className="bar-chart">
+                {chartMyDeposits.map(([m, val]) => {
+                  const heightPct = (Math.abs(val) / chartMyDepositsMax) * 100
+                  return (
+                    <div className="bar-group" key={m}>
+                      <div className="bar-pair">
+                        <div
+                          className="bar expense-bar"
+                          style={{
+                            height: `${heightPct}%`,
+                            background: val < 0 ? 'var(--error)' : undefined,
+                          }}
+                        >
+                          <span className="bar-value">
+                            {val.toLocaleString('he-IL')}
+                          </span>
+                        </div>
+                      </div>
+                      <span className="bar-label">{formatMonth(m + '-01')}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
