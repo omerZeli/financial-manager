@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { NavLink } from 'react-router-dom'
+import { NavLink, useNavigate } from 'react-router-dom'
 import { useExpenses } from '../contexts/ExpensesContext'
 import { useFixedExpenses } from '../contexts/FixedExpensesContext'
 import { usePaybacks } from '../contexts/PaybacksContext'
@@ -9,6 +9,7 @@ import { FilterMultiSelect } from '../components/common/FilterMultiSelect'
 import DateInput from '../components/common/DatePicker'
 import { ChartFilterPopover } from '../components/common/ChartFilterPopover'
 import { usePersistedState } from '../hooks/usePersistedState'
+import { useFilters } from '../contexts/FiltersContext'
 import { formatLocalDate, getEffectiveDate } from '../lib/dateUtils'
 import './Section.css'
 
@@ -41,6 +42,8 @@ export function ExpensesChartsPage() {
   const { paybacks, loading: paybacksLoading, fetchPaybacks } = usePaybacks()
   const { expenseTypes, fetchExpenseTypes } = useExpenseTypes()
   const { salaries, fetchSalaries } = useSalary()
+  const navigate = useNavigate()
+  const { set } = useFilters()
 
   const [timeRange, setTimeRange] = usePersistedState<TimeRange>('expenses-charts-timeRange', 'last12')
   const [customFrom, setCustomFrom] = usePersistedState('expenses-charts-customFrom', '')
@@ -231,6 +234,20 @@ export function ExpensesChartsPage() {
     })
     return list
   }, [allExpensesRaw, selectedTypeCategories, allTypedCategories, effectiveDateRange, salaryMonthMap])
+
+  // Category names matching the active type filter (for passing to table on click)
+  const activeCategoryFilter = useMemo((): string[] => {
+    if (!selectedTypeCategories) return [] // all types selected — no filter needed
+    // Gather explicit categories from selected types
+    const cats = new Set<string>(selectedTypeCategories.cats)
+    // If "others" is selected, add all categories in the data that are NOT in any type
+    if (selectedTypeCategories.hasOthers) {
+      for (const e of allExpensesRaw) {
+        if (!allTypedCategories.has(e.category)) cats.add(e.category)
+      }
+    }
+    return Array.from(cats)
+  }, [selectedTypeCategories, allExpensesRaw, allTypedCategories])
 
   const aggLabel = aggMode === 'avg' ? 'ממוצע' : 'סה"כ'
 
@@ -453,7 +470,22 @@ export function ExpensesChartsPage() {
                   {chartByMonth.map(([m], i) => {
                     const val = chartValues[i]
                     return (
-                      <div className="bar-group" key={m}>
+                      <div className="bar-group clickable" key={m} onClick={() => {
+                        const lastDay = new Date(Number(m.split('-')[0]), Number(m.split('-')[1]), 0)
+                        const from = m + '-01'
+                        const to = formatLocalDate(lastDay)
+                        set('expenses-table-all', {
+                          sortKey: 'date',
+                          sortDir: 'desc',
+                          filters: {
+                            stringFilters: activeCategoryFilter.length > 0 ? { category: activeCategoryFilter } : {},
+                            numberFilters: {},
+                            dateFilters: { date: { from, to } },
+                          },
+                        })
+                        set('expenses-table-activeTab', 'all')
+                        navigate('/expenses')
+                      }}>
                         <div className="bar-pair">
                           <div
                             className="bar expense-bar"
@@ -479,7 +511,19 @@ export function ExpensesChartsPage() {
                     const widthPct = (total / maxCategory) * 100
                     const narrow = widthPct < 12
                     return (
-                      <div className="h-bar-row" key={cat}>
+                      <div className="h-bar-row clickable" key={cat} onClick={() => {
+                        set('expenses-table-all', {
+                          sortKey: 'date',
+                          sortDir: 'desc',
+                          filters: {
+                            stringFilters: { category: [cat] },
+                            numberFilters: {},
+                            dateFilters: { date: { from: effectiveDateRange.minDate === '0000-01-01' ? '' : effectiveDateRange.minDate, to: effectiveDateRange.maxDate === '9999-12-31' ? '' : effectiveDateRange.maxDate } },
+                          },
+                        })
+                        set('expenses-table-activeTab', 'all')
+                        navigate('/expenses')
+                      }}>
                         <span className="h-bar-label">{cat}</span>
                         <div className="h-bar-track">
                           <div

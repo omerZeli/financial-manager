@@ -699,6 +699,14 @@
   justify-content: flex-end;
 }
 
+.bar-group.clickable {
+  cursor: pointer;
+}
+
+.bar-group.clickable:hover .bar {
+  opacity: 0.8;
+}
+
 .bar-pair {
   display: flex;
   gap: 3px;
@@ -785,6 +793,14 @@
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.h-bar-row.clickable {
+  cursor: pointer;
+}
+
+.h-bar-row.clickable:hover .h-bar-fill {
+  opacity: 0.8;
 }
 
 .h-bar-label {

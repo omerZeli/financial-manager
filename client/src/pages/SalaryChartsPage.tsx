@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { NavLink } from 'react-router-dom'
+import { NavLink, useNavigate } from 'react-router-dom'
 import { useSalary } from '../contexts/SalaryContext'
 import { useInvestmentDeposits } from '../contexts/InvestmentDepositsContext'
 import { useExpenses } from '../contexts/ExpensesContext'
@@ -8,6 +8,7 @@ import DateInput from '../components/common/DatePicker'
 import { FilterMultiSelect } from '../components/common/FilterMultiSelect'
 import { ChartFilterPopover } from '../components/common/ChartFilterPopover'
 import { usePersistedState } from '../hooks/usePersistedState'
+import { useFilters } from '../contexts/FiltersContext'
 import { formatLocalDate } from '../lib/dateUtils'
 import './Section.css'
 
@@ -37,6 +38,8 @@ export function SalaryChartsPage() {
   const { deposits, loading: depLoading, fetchDeposits } = useInvestmentDeposits()
   const { expenses, loading: expLoading, fetchExpenses } = useExpenses()
   const { fixedExpenses, loading: fixLoading, fetchFixedExpenses } = useFixedExpenses()
+  const navigate = useNavigate()
+  const { set } = useFilters()
 
   const [timeRange, setTimeRange] = usePersistedState<TimeRange>('salary-charts-timeRange', 'last12')
   const [customFrom, setCustomFrom] = usePersistedState('salary-charts-customFrom', '')
@@ -315,7 +318,18 @@ export function SalaryChartsPage() {
                 <h3>ברוטו מול נטו</h3>
                 <div className="bar-chart">
                   {chartFiltered.map(s => (
-                    <div className="bar-group" key={s.month}>
+                    <div className="bar-group clickable" key={s.month} onClick={() => {
+                      set('salary-table', {
+                        sortKey: 'month',
+                        sortDir: 'desc',
+                        filters: {
+                          stringFilters: selectedEmployers.length < employers.length ? { employer: selectedEmployers } : {},
+                          numberFilters: {},
+                          dateFilters: { month: { from: s.month, to: s.month } },
+                        },
+                      })
+                      navigate('/salary')
+                    }}>
                       <div className="bar-pair">
                         <div className="bar neto" style={{ height: `${(s.neto / maxVal) * 100}%` }}>
                           <span className="bar-value">{s.neto.toLocaleString('he-IL')}</span>

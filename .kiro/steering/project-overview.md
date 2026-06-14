@@ -289,6 +289,24 @@ Expense types allow users to group expense categories into named types for use i
 - This is a **display-only** limit — it does not affect summary cards, data cards, category breakdowns, or any other non-time-series charts on the same page. Those continue to use the full filtered data range.
 - Implementation: a `chartFiltered` / `chartByMonth` variable is derived from the full filtered data via `slice(-18)` and used only for rendering the time-series bar/line chart.
 
+## Chart Bar Click-to-Navigate
+- Every bar chart (vertical or horizontal) in a charts page is **clickable**. Clicking a bar navigates the user to the corresponding table page with filters pre-applied to show only the rows matching the clicked bar.
+- The bar element uses the CSS class `clickable` (`.bar-group.clickable` for vertical bars, `.h-bar-row.clickable` for horizontal bars) which adds `cursor: pointer` and a hover opacity effect.
+- **All active page-level filters** (time range, expense type, employer, channel selection, pension filter, etc.) must be carried over to the table filter state. The table should show only what the chart was displaying for that bar.
+- Implementation pattern:
+  1. Use `useNavigate()` from react-router-dom and `useFilters()` from `FiltersContext`.
+  2. Before navigating, call `set(persistKey, { sortKey, sortDir, filters: { stringFilters, numberFilters, dateFilters } })` to pre-populate the table's persisted filter state.
+  3. If the target table has sub-tabs, also set the active tab via `set(tabPersistKey, tabValue)`.
+  4. Navigate to the table route.
+- Filter mapping rules:
+  - **Month bar click** → date filter on the specific month (`from: YYYY-MM-01`, `to: YYYY-MM-lastDay`).
+  - **Category/path/depositor/employer bar click** → string filter on the corresponding column.
+  - **Page-level category/type filter** → translate to a `category` string filter with the matching category names.
+  - **Page-level employer/channel filter** → pass as a string filter on the `employer`/`channel`/`name` column.
+  - **Page-level pension filter** → reflected via the filtered channel list (only channels matching the pension filter are included in the channel string filter).
+  - **Page-level time range** → pass as a date filter when relevant (e.g. depositor click includes the date range).
+- When adding a new bar chart to any charts page, always implement this click-to-navigate pattern with all active page filters carried over.
+
 ## Database Migrations
 - All Supabase migrations must be saved as `.sql` files in the `supabase/migrations/` folder.
 - Each migration file should be named with a timestamp prefix followed by a descriptive snake_case name (e.g. `20260419120000_create_transactions_table.sql`).

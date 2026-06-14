@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { NavLink } from 'react-router-dom'
+import { NavLink, useNavigate } from 'react-router-dom'
 import { useInvestmentChannels } from '../contexts/InvestmentChannelsContext'
 import { useInvestmentDeposits } from '../contexts/InvestmentDepositsContext'
 import { useInvestmentValues } from '../contexts/InvestmentValuesContext'
@@ -8,6 +8,7 @@ import { FilterMultiSelect } from '../components/common/FilterMultiSelect'
 import DateInput from '../components/common/DatePicker'
 import { ChartFilterPopover } from '../components/common/ChartFilterPopover'
 import { usePersistedState } from '../hooks/usePersistedState'
+import { useFilters } from '../contexts/FiltersContext'
 import { computeChannelSummary, CASH_PATH_LABEL } from '../lib/computeChannelSummary'
 import { formatLocalDate, todayStr as getTodayStr } from '../lib/dateUtils'
 import './Section.css'
@@ -53,6 +54,8 @@ export function InvestmentsChartsPage() {
   const { deposits, loading: depLoading, fetchDeposits } = useInvestmentDeposits()
   const { valueUpdates, loading: valLoading, fetchValueUpdates } = useInvestmentValues()
   const { salaries, fetchSalaries } = useSalary()
+  const navigate = useNavigate()
+  const { set } = useFilters()
 
   const [timeRange, setTimeRange] = usePersistedState<TimeRange>('investments-charts-timeRange', 'all')
   const [customFrom, setCustomFrom] = usePersistedState('investments-charts-customFrom', '')
@@ -109,6 +112,11 @@ export function InvestmentsChartsPage() {
   }, [channels, selectedChannels, pensionFilter])
 
   const filteredChannelIds = useMemo(() => new Set(filteredChannels.map(ch => ch.id)), [filteredChannels])
+
+  // Channel labels for the deposits/values table filter (format matches getDepositValue)
+  const filteredChannelLabels = useMemo(() =>
+    filteredChannels.map(ch => `${ch.name} - ${ch.company}`),
+  [filteredChannels])
 
   // Filter deposits and value updates by time range and filtered channels
   const filteredDeposits = useMemo(() => {
@@ -728,7 +736,54 @@ export function InvestmentsChartsPage() {
                 const pct = (entry.value / chartTotal) * 100
                 const narrow = widthPct < 12
                 return (
-                  <div className="h-bar-row" key={entry.label}>
+                  <div className="h-bar-row clickable" key={entry.label} onClick={() => {
+                    if (groupBy === 'channel') {
+                      set('investments-table-channels', {
+                        sortKey: 'currentValue',
+                        sortDir: 'desc',
+                        filters: {
+                          stringFilters: { name: [entry.label] },
+                          numberFilters: {},
+                          dateFilters: {},
+                        },
+                      })
+                      set('investments-table-activeTab', 'channels')
+                    } else if (groupBy === 'path') {
+                      const channelNames = filteredChannels.length < channels.length
+                        ? filteredChannels.map(ch => ch.name)
+                        : undefined
+                      set('investments-table-channels', {
+                        sortKey: 'currentValue',
+                        sortDir: 'desc',
+                        filters: {
+                          stringFilters: {
+                            investment_path: [entry.label],
+                            ...(channelNames ? { name: channelNames } : {}),
+                          },
+                          numberFilters: {},
+                          dateFilters: {},
+                        },
+                      })
+                      set('investments-table-activeTab', 'channels')
+                    } else {
+                      const minDate = getMinDate(timeRange, customFrom)
+                      const maxDate = timeRange === 'custom' && customTo ? customTo : ''
+                      set('investments-table-deposits', {
+                        sortKey: 'date',
+                        sortDir: 'desc',
+                        filters: {
+                          stringFilters: {
+                            depositor: [entry.label],
+                            ...(filteredChannelLabels.length < channels.length ? { channel: filteredChannelLabels } : {}),
+                          },
+                          numberFilters: {},
+                          dateFilters: minDate !== '0000-01-01' || maxDate ? { date: { from: minDate === '0000-01-01' ? '' : minDate, to: maxDate } } : {},
+                        },
+                      })
+                      set('investments-table-activeTab', 'deposits')
+                    }
+                    navigate('/investments')
+                  }}>
                     <span className="h-bar-label">{entry.label}</span>
                     <div className="h-bar-track">
                       <div
@@ -763,7 +818,25 @@ export function InvestmentsChartsPage() {
                   const val = chartMyDepositsValues[i]
                   const heightPct = (Math.abs(val) / chartMyDepositsValuesMax) * 100
                   return (
-                    <div className="bar-group" key={m}>
+                    <div className="bar-group clickable" key={m} onClick={() => {
+                      const lastDay = new Date(Number(m.split('-')[0]), Number(m.split('-')[1]), 0)
+                      const from = m + '-01'
+                      const to = formatLocalDate(lastDay)
+                      set('investments-table-deposits', {
+                        sortKey: 'date',
+                        sortDir: 'desc',
+                        filters: {
+                          stringFilters: {
+                            depositor: ['אני'],
+                            ...(filteredChannelLabels.length < channels.length ? { channel: filteredChannelLabels } : {}),
+                          },
+                          numberFilters: {},
+                          dateFilters: { date: { from, to } },
+                        },
+                      })
+                      set('investments-table-activeTab', 'deposits')
+                      navigate('/investments')
+                    }}>
                       <div className="bar-pair">
                         <div
                           className="bar expense-bar"
