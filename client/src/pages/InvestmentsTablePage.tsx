@@ -35,7 +35,7 @@ function formatPercent(n: number) {
   return n.toLocaleString('he-IL', { style: 'percent', minimumFractionDigits: 1, maximumFractionDigits: 1 })
 }
 
-type ModalType = null | 'picker' | 'channel' | 'deposit' | 'value' | 'withdrawal'
+type ModalType = null | 'picker' | 'channel' | 'deposit' | 'value' | 'valuePicker' | 'withdrawal'
 type ActiveTab = 'channels' | 'deposits' | 'values'
 
 export function InvestmentsTablePage() {
@@ -126,6 +126,12 @@ export function InvestmentsTablePage() {
       .sort((a, b) => b.totalDeposits - a.totalDeposits)
       .map(ch => ({ value: ch.id, label: `${ch.name} - ${ch.company}` }))
   }, [channelSummaries])
+
+  const channelPathsMap = useMemo(() => {
+    const map: Record<string, string> = {}
+    for (const ch of channels) map[ch.id] = ch.investment_path
+    return map
+  }, [channels])
 
   const allSalaries = useMemo(() => [...salaries], [salaries])
 
@@ -473,6 +479,12 @@ export function InvestmentsTablePage() {
               </svg>
               משיכה
             </button>
+            <button className="fab-menu-item" onClick={() => { setModal('valuePicker') }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" /><path d="m15 5 4 4" />
+              </svg>
+              עדכון שווי
+            </button>
           </div>
         )}
         <button className="section-fab" onClick={() => setModal(modal === 'picker' ? null : 'picker')} title="הוסף">+</button>
@@ -535,6 +547,28 @@ export function InvestmentsTablePage() {
         <WithdrawalForm
           sortedChannelSelectOptions={sortedChannelSelectOptions}
           onSubmit={async (data) => { await addWithdrawal(data) }}
+          onClose={() => setModal(null)}
+        />
+      )}
+
+      {modal === 'valuePicker' && (
+        <ValueUpdateForm
+          sortedChannelSelectOptions={sortedChannelSelectOptions}
+          channelPaths={channelPathsMap}
+          initialValue=""
+          initialPath=""
+          initialDate={getTodayStr()}
+          sortedPathOptions={sortedPathOptions}
+          pathLoading={pathLoading}
+          addPath={addPath}
+          removePath={removePath}
+          onSubmit={async (data) => {
+            const ch = channels.find(c => c.id === data.channel_id)
+            if (ch && data.investment_path && data.investment_path !== ch.investment_path) {
+              await updateChannel(data.channel_id, { investment_path: data.investment_path })
+            }
+            await addValueUpdate({ channel_id: data.channel_id, value: data.value, date: data.date })
+          }}
           onClose={() => setModal(null)}
         />
       )}

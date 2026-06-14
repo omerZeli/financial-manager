@@ -1,13 +1,16 @@
 import { useState } from 'react'
 import { CustomSelect } from '../common/CustomSelect'
 import { NumberInput } from '../common/NumberInput'
+import { ReadOnlySelect } from '../common/ReadOnlySelect'
 import DateInput from '../common/DatePicker'
 import { CASH_PATH_LABEL } from '../../lib/computeChannelSummary'
 import type { DropdownOption } from '../../hooks/useDropdownOptions'
 
 interface ValueUpdateFormProps {
-  channelId: string
-  channelLabel: string
+  channelId?: string
+  channelLabel?: string
+  sortedChannelSelectOptions?: { value: string; label: string }[]
+  channelPaths?: Record<string, string>
   initialValue: string
   initialPath: string
   initialDate: string
@@ -22,6 +25,8 @@ interface ValueUpdateFormProps {
 export function ValueUpdateForm({
   channelId,
   channelLabel,
+  sortedChannelSelectOptions,
+  channelPaths,
   initialValue,
   initialPath,
   initialDate,
@@ -32,16 +37,26 @@ export function ValueUpdateForm({
   onSubmit,
   onClose,
 }: ValueUpdateFormProps) {
+  const [selectedChannel, setSelectedChannel] = useState(channelId || '')
   const [valValue, setValValue] = useState(initialValue)
   const [valPath, setValPath] = useState(initialPath)
   const [valDate, setValDate] = useState(initialDate)
   const [valSaving, setValSaving] = useState(false)
 
+  const showChannelPicker = !channelId && sortedChannelSelectOptions
+
+  const handleChannelChange = (value: string) => {
+    setSelectedChannel(value)
+    if (channelPaths && channelPaths[value]) {
+      setValPath(channelPaths[value])
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!valValue || !valPath || !valDate) return
+    if (!selectedChannel || !valValue || !valPath || !valDate) return
     setValSaving(true)
-    await onSubmit({ channel_id: channelId, value: Number(valValue), date: valDate, investment_path: valPath })
+    await onSubmit({ channel_id: selectedChannel, value: Number(valValue), date: valDate, investment_path: valPath })
     setValSaving(false)
     onClose()
   }
@@ -51,8 +66,20 @@ export function ValueUpdateForm({
       <div className="modal-content" onClick={e => e.stopPropagation()}>
         <button className="modal-close" onClick={onClose} title="סגור">&times;</button>
         <h2>עדכון שווי</h2>
-        <div className="modal-subtitle">{channelLabel}</div>
+        {channelLabel && <div className="modal-subtitle">{channelLabel}</div>}
         <form onSubmit={handleSubmit}>
+          {showChannelPicker && (
+            <>
+              <label>אפיק השקעה</label>
+              <ReadOnlySelect
+                options={sortedChannelSelectOptions}
+                value={selectedChannel}
+                placeholder="בחר אפיק"
+                onChange={handleChannelChange}
+              />
+            </>
+          )}
+
           <label>שווי נוכחי</label>
           <NumberInput placeholder="הכנס שווי" value={valValue} onChange={setValValue} required />
 
