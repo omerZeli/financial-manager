@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { SalaryProvider } from './contexts/SalaryContext'
+import { FiltersProvider } from './contexts/FiltersContext'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { AppLayout } from './components/common/AppLayout'
 import { LoginPage } from './pages/LoginPage'
@@ -45,6 +46,7 @@ function App() {
           <Route
             element={
               <ProtectedRoute>
+                <FiltersProvider>
                 <SalaryProvider>
                   <ExpensesProvider>
                     <FixedExpensesProvider>
@@ -62,6 +64,7 @@ function App() {
                     </FixedExpensesProvider>
                   </ExpensesProvider>
                 </SalaryProvider>
+                </FiltersProvider>
               </ProtectedRoute>
             }
           >

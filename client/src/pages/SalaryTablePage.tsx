@@ -44,7 +44,7 @@ export function SalaryTablePage() {
     return null
   }, [])
 
-  const table = useTableControls(salaries, salaryColumns, 'month', 'desc', getSalaryValue)
+  const table = useTableControls(salaries, salaryColumns, 'month', 'desc', getSalaryValue, 'salary-table')
   const [showModal, setShowModal] = useState(false)
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
   const [editingSalary, setEditingSalary] = useState<string | null>(null)

@@ -7,6 +7,7 @@ import { useExpenseTypes } from '../contexts/ExpenseTypesContext'
 import { useSalary } from '../contexts/SalaryContext'
 import { useDropdownOptions } from '../hooks/useDropdownOptions'
 import { useTableControls, type ColumnDef } from '../hooks/useTableControls'
+import { usePersistedState } from '../hooks/usePersistedState'
 import { ConfirmDialog } from '../components/common/ConfirmDialog'
 import { ColumnHeader, ActiveFiltersBar } from '../components/common/TableControls'
 import { ExpenseForm } from '../components/forms/ExpenseForm'
@@ -44,7 +45,7 @@ export function ExpensesTablePage() {
   const { expenseTypes, fetchExpenseTypes, addExpenseType, updateExpenseType, deleteExpenseType } = useExpenseTypes()
 
   const [modal, setModal] = useState<ModalType>(null)
-  const [activeTab, setActiveTab] = useState<ActiveTab>('all')
+  const [activeTab, setActiveTab] = usePersistedState<ActiveTab>('expenses-table-activeTab', 'all')
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
   const [pendingDeleteType, setPendingDeleteType] = useState<'expense' | 'fixed' | 'payback' | null>(null)
   const [editingFixed, setEditingFixed] = useState<string | null>(null)
@@ -295,10 +296,10 @@ export function ExpensesTablePage() {
     return null
   }, [getPaybackDetails, getPaybackCategory])
 
-  const allExpTable = useTableControls(allExpenses, allExpCols, 'date', 'desc', getAllExpValue)
-  const regularExpTable = useTableControls(expenses, regularExpCols, 'date', 'desc', getRegularExpValue)
-  const fixedExpTable = useTableControls(fixedExpenses, fixedExpCols, 'start_date', 'desc', getFixedExpValue)
-  const paybackTable = useTableControls(paybacks, paybackCols, 'date', 'desc', getPaybackValue)
+  const allExpTable = useTableControls(allExpenses, allExpCols, 'date', 'desc', getAllExpValue, 'expenses-table-all')
+  const regularExpTable = useTableControls(expenses, regularExpCols, 'date', 'desc', getRegularExpValue, 'expenses-table-regular')
+  const fixedExpTable = useTableControls(fixedExpenses, fixedExpCols, 'start_date', 'desc', getFixedExpValue, 'expenses-table-fixed')
+  const paybackTable = useTableControls(paybacks, paybackCols, 'date', 'desc', getPaybackValue, 'expenses-table-paybacks')
 
   // Close picker on outside click
   useEffect(() => {

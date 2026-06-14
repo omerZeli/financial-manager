@@ -1,4 +1,5 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
+import { useFilters } from '../contexts/FiltersContext'
 
 export type SortDir = 'asc' | 'desc'
 export type ColumnType = 'string' | 'number' | 'date'
@@ -18,20 +19,38 @@ export interface FilterState {
   dateFilters: Record<string, { from: string; to: string }>
 }
 
+interface PersistedTableState {
+  sortKey: string
+  sortDir: SortDir
+  filters: FilterState
+}
+
 export function useTableControls<T>(
   data: T[],
   columns: ColumnDef[],
   defaultSortKey: string,
   defaultSortDir: SortDir = 'desc',
   getValue: (item: T, key: string) => string | number | null,
+  persistKey?: string,
 ) {
-  const [sortKey, setSortKey] = useState(defaultSortKey)
-  const [sortDir, setSortDir] = useState<SortDir>(defaultSortDir)
-  const [filters, setFilters] = useState<FilterState>({
-    stringFilters: {},
-    numberFilters: {},
-    dateFilters: {},
-  })
+  const { get, set } = useFilters()
+
+  const persisted = persistKey ? get<PersistedTableState>(persistKey) : undefined
+
+  const [sortKey, setSortKey] = useState(persisted?.sortKey ?? defaultSortKey)
+  const [sortDir, setSortDir] = useState<SortDir>(persisted?.sortDir ?? defaultSortDir)
+  const [filters, setFilters] = useState<FilterState>(
+    persisted?.filters ?? { stringFilters: {}, numberFilters: {}, dateFilters: {} }
+  )
+
+  // Persist state changes back to context
+  const persistRef = useRef(persistKey)
+  persistRef.current = persistKey
+
+  useEffect(() => {
+    if (!persistRef.current) return
+    set<PersistedTableState>(persistRef.current, { sortKey, sortDir, filters })
+  }, [sortKey, sortDir, filters, set])
 
   const toggleSort = useCallback((key: string) => {
     if (key === sortKey) {

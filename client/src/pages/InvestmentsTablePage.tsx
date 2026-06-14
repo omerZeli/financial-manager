@@ -6,6 +6,7 @@ import { useInvestmentValues } from '../contexts/InvestmentValuesContext'
 import { useSalary } from '../contexts/SalaryContext'
 import { useDropdownOptions } from '../hooks/useDropdownOptions'
 import { useTableControls, type ColumnDef } from '../hooks/useTableControls'
+import { usePersistedState } from '../hooks/usePersistedState'
 import { ConfirmDialog } from '../components/common/ConfirmDialog'
 import { ColumnHeader, ActiveFiltersBar } from '../components/common/TableControls'
 import { ChannelForm } from '../components/forms/ChannelForm'
@@ -47,7 +48,7 @@ export function InvestmentsTablePage() {
   const { salaries, fetchSalaries } = useSalary()
 
   const [modal, setModal] = useState<ModalType>(null)
-  const [activeTab, setActiveTab] = useState<ActiveTab>('channels')
+  const [activeTab, setActiveTab] = usePersistedState<ActiveTab>('investments-table-activeTab', 'channels')
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
   const [pendingDeleteType, setPendingDeleteType] = useState<'channel' | 'deposit' | 'value' | null>(null)
   const [editingDeposit, setEditingDeposit] = useState<string | null>(null)
@@ -198,9 +199,9 @@ export function InvestmentsTablePage() {
     return null
   }, [channels])
 
-  const channelTable = useTableControls(channelSummaries, channelCols, 'currentValue', 'desc', getChannelValue)
-  const depositTable = useTableControls(deposits, depositCols, 'date', 'desc', getDepositValue)
-  const valueTable = useTableControls(valueUpdates, valueCols, 'date', 'desc', getValueUpdateValue)
+  const channelTable = useTableControls(channelSummaries, channelCols, 'currentValue', 'desc', getChannelValue, 'investments-table-channels')
+  const depositTable = useTableControls(deposits, depositCols, 'date', 'desc', getDepositValue, 'investments-table-deposits')
+  const valueTable = useTableControls(valueUpdates, valueCols, 'date', 'desc', getValueUpdateValue, 'investments-table-values')
 
   const openValueFormForChannel = (channelId: string) => {
     const ch = channels.find(c => c.id === channelId)

@@ -7,6 +7,7 @@ import { useSalary } from '../contexts/SalaryContext'
 import { FilterMultiSelect } from '../components/common/FilterMultiSelect'
 import DateInput from '../components/common/DatePicker'
 import { ChartFilterPopover } from '../components/common/ChartFilterPopover'
+import { usePersistedState } from '../hooks/usePersistedState'
 import { computeChannelSummary, CASH_PATH_LABEL } from '../lib/computeChannelSummary'
 import { formatLocalDate, todayStr as getTodayStr } from '../lib/dateUtils'
 import './Section.css'
@@ -53,15 +54,15 @@ export function InvestmentsChartsPage() {
   const { valueUpdates, loading: valLoading, fetchValueUpdates } = useInvestmentValues()
   const { salaries, fetchSalaries } = useSalary()
 
-  const [timeRange, setTimeRange] = useState<TimeRange>('all')
-  const [customFrom, setCustomFrom] = useState('')
-  const [customTo, setCustomTo] = useState('')
-  const [selectedChannels, setSelectedChannels] = useState<string[]>([])
+  const [timeRange, setTimeRange] = usePersistedState<TimeRange>('investments-charts-timeRange', 'all')
+  const [customFrom, setCustomFrom] = usePersistedState('investments-charts-customFrom', '')
+  const [customTo, setCustomTo] = usePersistedState('investments-charts-customTo', '')
+  const [selectedChannels, setSelectedChannels] = usePersistedState<string[]>('investments-charts-selectedChannels', [])
   const [channelsInited, setChannelsInited] = useState(false)
-  const [groupBy, setGroupBy] = useState<'channel' | 'path' | 'depositor'>('channel')
-  const [returnChartMode, setReturnChartMode] = useState<'return' | 'value'>('return')
-  const [pensionFilter, setPensionFilter] = useState<'all' | 'pension' | 'noPension'>('all')
-  const [myDepositsMode, setMyDepositsMode] = useState<'amount' | 'pctNeto'>('amount')
+  const [groupBy, setGroupBy] = usePersistedState<'channel' | 'path' | 'depositor'>('investments-charts-groupBy', 'channel')
+  const [returnChartMode, setReturnChartMode] = usePersistedState<'return' | 'value'>('investments-charts-returnChartMode', 'return')
+  const [pensionFilter, setPensionFilter] = usePersistedState<'all' | 'pension' | 'noPension'>('investments-charts-pensionFilter', 'all')
+  const [myDepositsMode, setMyDepositsMode] = usePersistedState<'amount' | 'pctNeto'>('investments-charts-myDepositsMode', 'amount')
 
   useEffect(() => { fetchChannels() }, [fetchChannels])
   useEffect(() => { fetchDeposits() }, [fetchDeposits])
@@ -85,13 +86,15 @@ export function InvestmentsChartsPage() {
     channels.map(ch => ({ value: ch.id, label: `${ch.name} - ${ch.company}` })),
   [channels])
 
-  // Init selected channels to all when data loads
+  // Init selected channels to all when data loads (skip if already persisted)
   useEffect(() => {
     if (!channelsInited && channelOptions.length > 0) {
-      setSelectedChannels(channelOptions.map(o => o.value))
+      if (selectedChannels.length === 0) {
+        setSelectedChannels(channelOptions.map(o => o.value))
+      }
       setChannelsInited(true)
     }
-  }, [channelOptions, channelsInited])
+  }, [channelOptions, channelsInited, selectedChannels.length])
 
   // Set of channel IDs after pension + channel selection filters
   const filteredChannels = useMemo(() => {

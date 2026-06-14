@@ -8,6 +8,7 @@ import { useSalary } from '../contexts/SalaryContext'
 import { FilterMultiSelect } from '../components/common/FilterMultiSelect'
 import DateInput from '../components/common/DatePicker'
 import { ChartFilterPopover } from '../components/common/ChartFilterPopover'
+import { usePersistedState } from '../hooks/usePersistedState'
 import { formatLocalDate, getEffectiveDate } from '../lib/dateUtils'
 import './Section.css'
 
@@ -41,14 +42,14 @@ export function ExpensesChartsPage() {
   const { expenseTypes, fetchExpenseTypes } = useExpenseTypes()
   const { salaries, fetchSalaries } = useSalary()
 
-  const [timeRange, setTimeRange] = useState<TimeRange>('last12')
-  const [customFrom, setCustomFrom] = useState('')
-  const [customTo, setCustomTo] = useState('')
-  const [excludeCurrentMonth, setExcludeCurrentMonth] = useState(false)
-  const [selectedTypes, setSelectedTypes] = useState<string[]>([])
+  const [timeRange, setTimeRange] = usePersistedState<TimeRange>('expenses-charts-timeRange', 'last12')
+  const [customFrom, setCustomFrom] = usePersistedState('expenses-charts-customFrom', '')
+  const [customTo, setCustomTo] = usePersistedState('expenses-charts-customTo', '')
+  const [excludeCurrentMonth, setExcludeCurrentMonth] = usePersistedState('expenses-charts-excludeCurrentMonth', false)
+  const [selectedTypes, setSelectedTypes] = usePersistedState<string[]>('expenses-charts-selectedTypes', [])
   const [typesInited, setTypesInited] = useState(false)
-  const [aggMode, setAggMode] = useState<AggMode>('avg')
-  const [chartMode, setChartMode] = useState<'amount' | 'pctNeto'>('amount')
+  const [aggMode, setAggMode] = usePersistedState<AggMode>('expenses-charts-aggMode', 'avg')
+  const [chartMode, setChartMode] = usePersistedState<'amount' | 'pctNeto'>('expenses-charts-chartMode', 'amount')
 
   useEffect(() => { fetchExpenses() }, [fetchExpenses])
   useEffect(() => { fetchFixedExpenses() }, [fetchFixedExpenses])
@@ -145,13 +146,15 @@ export function ExpensesChartsPage() {
     ...(expenseTypes.length > 0 ? [{ value: '__others__', label: 'אחר' }] : []),
   ], [expenseTypes])
 
-  // Init selected types to all when data loads
+  // Init selected types to all when data loads (skip if already persisted)
   useEffect(() => {
     if (!typesInited && typeOptions.length > 0) {
-      setSelectedTypes(typeOptions.map(o => o.value))
+      if (selectedTypes.length === 0) {
+        setSelectedTypes(typeOptions.map(o => o.value))
+      }
       setTypesInited(true)
     }
-  }, [typeOptions, typesInited])
+  }, [typeOptions, typesInited, selectedTypes.length])
 
   // Categories for selected expense types
   const selectedTypeCategories = useMemo(() => {

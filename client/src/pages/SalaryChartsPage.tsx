@@ -7,6 +7,7 @@ import { useFixedExpenses } from '../contexts/FixedExpensesContext'
 import DateInput from '../components/common/DatePicker'
 import { FilterMultiSelect } from '../components/common/FilterMultiSelect'
 import { ChartFilterPopover } from '../components/common/ChartFilterPopover'
+import { usePersistedState } from '../hooks/usePersistedState'
 import { formatLocalDate } from '../lib/dateUtils'
 import './Section.css'
 
@@ -37,12 +38,12 @@ export function SalaryChartsPage() {
   const { expenses, loading: expLoading, fetchExpenses } = useExpenses()
   const { fixedExpenses, loading: fixLoading, fetchFixedExpenses } = useFixedExpenses()
 
-  const [timeRange, setTimeRange] = useState<TimeRange>('last12')
-  const [customFrom, setCustomFrom] = useState('')
-  const [customTo, setCustomTo] = useState('')
-  const [selectedEmployers, setSelectedEmployers] = useState<string[]>([])
+  const [timeRange, setTimeRange] = usePersistedState<TimeRange>('salary-charts-timeRange', 'last12')
+  const [customFrom, setCustomFrom] = usePersistedState('salary-charts-customFrom', '')
+  const [customTo, setCustomTo] = usePersistedState('salary-charts-customTo', '')
+  const [selectedEmployers, setSelectedEmployers] = usePersistedState<string[]>('salary-charts-selectedEmployers', [])
   const [employersInited, setEmployersInited] = useState(false)
-  const [aggMode, setAggMode] = useState<AggMode>('avg')
+  const [aggMode, setAggMode] = usePersistedState<AggMode>('salary-charts-aggMode', 'avg')
 
   useEffect(() => { fetchSalaries(); fetchDeposits(); fetchExpenses(); fetchFixedExpenses() }, [fetchSalaries, fetchDeposits, fetchExpenses, fetchFixedExpenses])
 
@@ -52,13 +53,15 @@ export function SalaryChartsPage() {
     return Array.from(set).sort()
   }, [salaries])
 
-  // Init selected employers to all when data loads
+  // Init selected employers to all when data loads (skip if already persisted)
   useEffect(() => {
     if (!employersInited && employers.length > 0) {
-      setSelectedEmployers(employers)
+      if (selectedEmployers.length === 0) {
+        setSelectedEmployers(employers)
+      }
       setEmployersInited(true)
     }
-  }, [employers, employersInited])
+  }, [employers, employersInited, selectedEmployers.length])
 
   const employerOptions = useMemo(() => {
     const totals: Record<string, number> = {}
