@@ -61,6 +61,7 @@ export function InvestmentsChartsPage() {
   const [groupBy, setGroupBy] = useState<'channel' | 'path' | 'depositor'>('channel')
   const [returnChartMode, setReturnChartMode] = useState<'return' | 'value'>('return')
   const [pensionFilter, setPensionFilter] = useState<'all' | 'pension' | 'noPension'>('all')
+  const [myDepositsMode, setMyDepositsMode] = useState<'amount' | 'pctNeto'>('amount')
 
   useEffect(() => { fetchChannels() }, [fetchChannels])
   useEffect(() => { fetchDeposits() }, [fetchDeposits])
@@ -199,9 +200,35 @@ export function InvestmentsChartsPage() {
     return myDepositsByMonth.slice(-18)
   }, [myDepositsByMonth])
 
-  const chartMyDepositsMax = useMemo(() => {
-    return chartMyDeposits.reduce((mx, [, v]) => Math.max(mx, Math.abs(v)), 0) || 1
-  }, [chartMyDeposits])
+  // Neto salary totals by month (for % of neto calculation on deposits chart)
+  const netoByMonth = useMemo(() => {
+    const map: Record<string, number> = {}
+    for (const s of salaries) {
+      const key = s.month.slice(0, 7)
+      map[key] = (map[key] || 0) + s.neto
+    }
+    return map
+  }, [salaries])
+
+  // Compute chart values based on mode (absolute amount or % of previous month neto)
+  const chartMyDepositsValues = useMemo(() => {
+    return chartMyDeposits.map(([m, val]) => {
+      if (myDepositsMode === 'pctNeto') {
+        // Get previous month's neto
+        const [y, mo] = m.split('-').map(Number)
+        const prevMonth = mo === 1
+          ? `${y - 1}-12`
+          : `${y}-${String(mo - 1).padStart(2, '0')}`
+        const neto = netoByMonth[prevMonth] || 0
+        return neto > 0 ? (val / neto) * 100 : 0
+      }
+      return val
+    })
+  }, [chartMyDeposits, myDepositsMode, netoByMonth])
+
+  const chartMyDepositsValuesMax = useMemo(() => {
+    return chartMyDepositsValues.reduce((mx, v) => Math.max(mx, Math.abs(v)), 0) || 1
+  }, [chartMyDepositsValues])
 
   // Compute total return correctly for filtered time ranges.
   // When a time filter is active, we compare the portfolio value at the start
@@ -721,10 +748,17 @@ export function InvestmentsChartsPage() {
 
           {chartMyDeposits.length > 0 && (
             <div className="chart-card">
-              <h3>הפקדות חודשיות שלי (הפקדות בניכוי משיכות)</h3>
+              <div className="chart-card-header">
+                <h3>הפקדות חודשיות שלי (הפקדות בניכוי משיכות)</h3>
+                <div className="chart-mode-tabs">
+                  <button type="button" className={`chart-mode-tab${myDepositsMode === 'amount' ? ' active' : ''}`} onClick={() => setMyDepositsMode('amount')}>סכום ₪</button>
+                  <button type="button" className={`chart-mode-tab${myDepositsMode === 'pctNeto' ? ' active' : ''}`} onClick={() => setMyDepositsMode('pctNeto')}>% מהנטו</button>
+                </div>
+              </div>
               <div className="bar-chart">
-                {chartMyDeposits.map(([m, val]) => {
-                  const heightPct = (Math.abs(val) / chartMyDepositsMax) * 100
+                {chartMyDeposits.map(([m], i) => {
+                  const val = chartMyDepositsValues[i]
+                  const heightPct = (Math.abs(val) / chartMyDepositsValuesMax) * 100
                   return (
                     <div className="bar-group" key={m}>
                       <div className="bar-pair">
@@ -736,7 +770,7 @@ export function InvestmentsChartsPage() {
                           }}
                         >
                           <span className="bar-value">
-                            {val.toLocaleString('he-IL')}
+                            {myDepositsMode === 'pctNeto' ? `${val.toFixed(1)}%` : val.toLocaleString('he-IL')}
                           </span>
                         </div>
                       </div>
