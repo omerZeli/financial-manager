@@ -75,6 +75,22 @@ export function ExpensesTablePage() {
     return [...personOptions].sort((a, b) => (totals[b.label] || 0) - (totals[a.label] || 0))
   }, [personOptions, paybacks])
 
+  // Shared expense name suggestions (regular + fixed), sorted by total amount
+  const expenseNameSuggestions = useMemo(() => {
+    const totals: Record<string, number> = {}
+    for (const e of expenses) totals[e.name] = (totals[e.name] || 0) + e.amount
+    for (const fe of fixedExpenses) totals[fe.name] = (totals[fe.name] || 0) + fe.amount
+    return Object.keys(totals).sort((a, b) => totals[b] - totals[a])
+  }, [expenses, fixedExpenses])
+
+  // Map expense name → most recent category (for auto-fill on select)
+  const categoryByName = useMemo(() => {
+    const map: Record<string, string> = {}
+    for (const e of expenses) map[e.name] = e.category
+    for (const fe of fixedExpenses) map[fe.name] = fe.category
+    return map
+  }, [expenses, fixedExpenses])
+
   // Sort expense type options by total expense amount for that type
   const sortedExpenseTypeOptions = useMemo(() => {
     const catTotals: Record<string, number> = {}
@@ -639,6 +655,8 @@ export function ExpensesTablePage() {
 
       {modal === 'fixed' && (
         <FixedExpenseForm
+          expenseNameSuggestions={expenseNameSuggestions}
+          categoryByName={categoryByName}
           sortedCategoryOptions={sortedCategoryOptions}
           categoryLoading={categoryLoading}
           addCategory={addCategory}

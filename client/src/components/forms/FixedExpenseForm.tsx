@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { AutocompleteInput } from '../common/AutocompleteInput'
 import { CustomSelect } from '../common/CustomSelect'
 import { NumberInput } from '../common/NumberInput'
 import { ReadOnlySelect } from '../common/ReadOnlySelect'
@@ -6,6 +7,8 @@ import DateInput from '../common/DatePicker'
 import type { DropdownOption } from '../../hooks/useDropdownOptions'
 
 interface FixedExpenseFormProps {
+  expenseNameSuggestions: string[]
+  categoryByName: Record<string, string>
   sortedCategoryOptions: DropdownOption[]
   categoryLoading: boolean
   addCategory: (label: string) => Promise<DropdownOption | null>
@@ -16,6 +19,8 @@ interface FixedExpenseFormProps {
 }
 
 export function FixedExpenseForm({
+  expenseNameSuggestions,
+  categoryByName,
   sortedCategoryOptions,
   categoryLoading,
   addCategory,
@@ -64,7 +69,16 @@ export function FixedExpenseForm({
         <h2>הוסף הוצאה קבועה</h2>
         <form onSubmit={handleSubmit}>
           <label>שם הוצאה</label>
-          <input type="text" placeholder="הכנס שם הוצאה" value={fixedName} onChange={e => setFixedName(e.target.value)} required />
+          <AutocompleteInput
+            suggestions={expenseNameSuggestions}
+            value={fixedName}
+            onChange={setFixedName}
+            onSelect={(val) => {
+              if (categoryByName[val]) setFixedCategory(categoryByName[val])
+            }}
+            placeholder="הכנס שם הוצאה"
+            required
+          />
 
           <label>קטגוריה</label>
           <CustomSelect
