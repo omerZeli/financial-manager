@@ -24,7 +24,7 @@ interface Props {
 const NODE_W = 12
 const NODE_GAP = 6
 const MIN_NODE_H = 22
-const PAD_Y = 24
+const PAD_Y = 36
 const CENTER_W = 8
 const SVG_INNER_W = 600
 
