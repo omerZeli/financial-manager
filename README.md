@@ -47,7 +47,7 @@ Manage channels, deposits, withdrawals & value updates with event-sourcing balan
 <td width="50%">
 
 **🎨 Charts & Analysis**
-Visualize financial data with bar charts, line charts, and Sankey diagrams
+Visualize financial data with bar charts, line charts, and Sankey diagrams — clickable bars navigate to filtered table views
 
 </td>
 <td width="50%">
@@ -63,7 +63,7 @@ User-managed option lists for categories, employers, companies — sorted by mon
 
 | Layer | Technology |
 |:------|:-----------|
-| **Frontend** | React 19 · TypeScript · Vite 8 |
+| **Frontend** | React 19 · TypeScript 6 · Vite 8 |
 | **Backend** | Supabase (Auth + PostgreSQL) |
 | **Routing** | React Router v7 |
 | **Styling** | Plain CSS with custom properties |
@@ -133,11 +133,11 @@ client/
 │   ├── pages/               # Route pages (auth, salary, expenses, investments)
 │   ├── App.tsx              # Router & layout setup
 │   └── main.tsx             # Entry point
-├── public/                  # Static assets (favicon, icons SVG)
+├── public/                  # Static assets (favicon, icons SVG, PWA manifest)
 └── index.html               # HTML shell (lang="he", dir="rtl")
 
 supabase/
-├── migrations/              # SQL migration files (20 migrations)
+├── migrations/              # SQL migration files (24 migrations)
 └── config.toml              # Supabase CLI config
 ```
 
@@ -198,12 +198,14 @@ supabase/
 
 > **Cascade Deletes** — Parent deletions cascade to children both in the DB (`ON DELETE CASCADE`) and in client-side context caches via `removeBy*Id` helpers.
 
-> **Timezone Safety** — All date formatting uses a shared `formatLocalDate` helper to avoid UTC shift issues in `toISOString()`.
+> **Timezone Safety** — All date formatting uses a shared `formatLocalDate` helper to avoid UTC shift issues with `toISOString()`.
+
+> **Chart Navigation** — Clicking any bar chart navigates to the table page with filters pre-applied to match the clicked data point.
 
 ---
 
 <div align="center">
 
-**Built with ❤️ for personal finance clarity**
+**Built for personal finance clarity**
 
 </div>

@@ -277,6 +277,7 @@ Expense types allow users to group expense categories into named types for use i
 
 ## Key Principles
 - **This file is the single source of truth for project-wide decisions.** Whenever a change is made that affects the overall architecture, data model, shared patterns, or conventions of the project, this file must be updated automatically to reflect it.
+- **Always update the root `README.md`** whenever a change is made that affects features, tech stack, project structure, database schema, architecture patterns, or migration count. The README must stay in sync with the actual state of the project.
 - Keep the UI simple, clean, and accessible in Hebrew/RTL.
 - The currency in this project is ILS.
 - All dates displayed to the user must use the **DD/MM/YYYY** format and be stored in ISO format (YYYY-MM-DD) in the database.
