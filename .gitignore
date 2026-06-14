@@ -14,6 +14,9 @@ dist-ssr
 .DS_Store
 Thumbs.db
 
+# Kiro MCP settings (contains secrets)
+.kiro/settings/
+
 # Editor / IDE
 .idea
 *.suo
