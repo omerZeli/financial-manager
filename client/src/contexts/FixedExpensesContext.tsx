@@ -36,13 +36,21 @@ function inflateFixed(fe: FixedExpense): Expense[] {
   const limitStr = fe.end_date && fe.end_date < todayStr ? fe.end_date : todayStr
   const limit = new Date(limitStr + 'T00:00:00')
 
-  const day = start.getDate()
-  let cursor = new Date(start)
+  const originalDay = start.getDate()
+  let year = start.getFullYear()
+  let month = start.getMonth() // 0-indexed
 
-  while (cursor <= limit) {
+  while (true) {
+    // Clamp day to the last day of the current month
+    const daysInMonth = new Date(year, month + 1, 0).getDate()
+    const day = Math.min(originalDay, daysInMonth)
+
+    const cursor = new Date(year, month, day)
+    if (cursor > limit) break
+
     const yyyy = cursor.getFullYear()
     const mm = String(cursor.getMonth() + 1).padStart(2, '0')
-    const dd = String(day).padStart(2, '0')
+    const dd = String(cursor.getDate()).padStart(2, '0')
     const dateStr = `${yyyy}-${mm}-${dd}`
 
     results.push({
@@ -57,7 +65,11 @@ function inflateFixed(fe: FixedExpense): Expense[] {
     })
 
     // advance to next month
-    cursor.setMonth(cursor.getMonth() + 1)
+    month++
+    if (month > 11) {
+      month = 0
+      year++
+    }
   }
 
   return results
