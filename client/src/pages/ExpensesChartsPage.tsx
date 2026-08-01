@@ -84,24 +84,38 @@ export function ExpensesChartsPage() {
     return map
   }, [paybacks])
 
-  // by_me paybacks as virtual expense entries
+  const toMeByPayback = useMemo(() => {
+    const map: Record<string, number> = {}
+    for (const pb of paybacks) {
+      if (pb.direction === 'to_me' && pb.payback_id) {
+        map[pb.payback_id] = (map[pb.payback_id] || 0) + pb.amount
+      }
+    }
+    return map
+  }, [paybacks])
+
+  // by_me paybacks as virtual expense entries (reduced by to_me paybacks linked to them)
   const byMeExpenses = useMemo(() => {
     return paybacks
       .filter(pb => pb.direction === 'by_me')
-      .map(pb => ({
-        id: `payback_${pb.id}`,
-        user_id: pb.user_id,
-        name: pb.name || '',
-        category: pb.category || '',
-        amount: pb.amount,
-        date: pb.date,
-        created_at: pb.created_at,
-        _salaryDeducted: false,
-        _fixed: false,
-        _effectiveSalaryId: null as string | null,
-        _salaryDeductedFixed: false,
-      }))
-  }, [paybacks])
+      .map(pb => {
+        const returned = toMeByPayback[pb.id] || 0
+        return {
+          id: `payback_${pb.id}`,
+          user_id: pb.user_id,
+          name: pb.name || '',
+          category: pb.category || '',
+          amount: pb.amount - returned,
+          date: pb.date,
+          created_at: pb.created_at,
+          _salaryDeducted: false,
+          _fixed: false,
+          _effectiveSalaryId: null as string | null,
+          _salaryDeductedFixed: false,
+        }
+      })
+      .filter(e => e.amount !== 0)
+  }, [paybacks, toMeByPayback])
 
   // Set of fixed expense IDs that are salary-deducted
   const salaryDeductedFixedIds = useMemo(() => {

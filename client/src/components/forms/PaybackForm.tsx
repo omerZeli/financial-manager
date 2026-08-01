@@ -24,6 +24,7 @@ interface PaybackFormProps {
   paybackExpenseOptions: { value: string; label: string }[]
   toMeByExpense: Record<string, number>
   toMeByFixed: Record<string, { total: number; items: { amount: number; date: string }[] }>
+  toMeByPayback: Record<string, number>
   onSubmit: (data: {
     direction: 'by_me' | 'to_me'
     name: string | null
@@ -33,6 +34,7 @@ interface PaybackFormProps {
     person: string
     expense_id: string | null
     fixed_expense_id: string | null
+    payback_id: string | null
   }) => Promise<void>
   onClose: () => void
 }
@@ -52,6 +54,7 @@ export function PaybackForm({
   paybackExpenseOptions,
   toMeByExpense,
   toMeByFixed,
+  toMeByPayback,
   onSubmit,
   onClose,
 }: PaybackFormProps) {
@@ -63,6 +66,7 @@ export function PaybackForm({
   const [pbPerson, setPbPerson] = useState('')
   const [pbExpenseId, setPbExpenseId] = useState('')
   const [pbFixedExpenseId, setPbFixedExpenseId] = useState('')
+  const [pbPaybackId, setPbPaybackId] = useState('')
   const [pbSaving, setPbSaving] = useState(false)
 
   const expenseNameSuggestions = useMemo(() => {
@@ -80,17 +84,18 @@ export function PaybackForm({
     e.preventDefault()
     if (!pbAmount || !pbDate || !pbPerson) return
     if (pbDirection === 'by_me' && (!pbName || !pbCategory)) return
-    if (pbDirection === 'to_me' && !pbExpenseId && !pbFixedExpenseId) return
+    if (pbDirection === 'to_me' && !pbExpenseId && !pbFixedExpenseId && !pbPaybackId) return
     setPbSaving(true)
     await onSubmit({
       direction: pbDirection,
-      name: pbDirection === 'by_me' ? pbName : null,
-      category: pbDirection === 'by_me' ? pbCategory : null,
+      name: pbDirection === 'by_me' ? pbName : (pbPaybackId ? paybacks.find(p => p.id === pbPaybackId)?.name || null : null),
+      category: pbDirection === 'by_me' ? pbCategory : (pbPaybackId ? paybacks.find(p => p.id === pbPaybackId)?.category || null : null),
       amount: Number(pbAmount),
       date: pbDate,
       person: pbPerson,
       expense_id: pbDirection === 'to_me' && pbExpenseId ? pbExpenseId : null,
       fixed_expense_id: pbDirection === 'to_me' && pbFixedExpenseId ? pbFixedExpenseId : null,
+      payback_id: pbDirection === 'to_me' && pbPaybackId ? pbPaybackId : null,
     })
     setPbSaving(false)
     onClose()
@@ -114,7 +119,7 @@ export function PaybackForm({
             <button
               type="button"
               className={`direction-btn${pbDirection === 'by_me' ? ' active' : ''}`}
-              onClick={() => { setPbDirection('by_me'); setPbExpenseId(''); setPbFixedExpenseId('') }}
+              onClick={() => { setPbDirection('by_me'); setPbExpenseId(''); setPbFixedExpenseId(''); setPbPaybackId('') }}
             >
               שילמתי לאחר
             </button>
@@ -156,13 +161,14 @@ export function PaybackForm({
               <label>הוצאה מקורית</label>
               <ReadOnlySelect
                 options={paybackExpenseOptions}
-                value={pbExpenseId ? `expense:${pbExpenseId}` : pbFixedExpenseId ? `fixed:${pbFixedExpenseId}` : ''}
+                value={pbExpenseId ? `expense:${pbExpenseId}` : pbFixedExpenseId ? `fixed:${pbFixedExpenseId}` : pbPaybackId ? `payback:${pbPaybackId}` : ''}
                 placeholder="חפש הוצאה"
                 onChange={(val) => {
                   if (val.startsWith('expense:')) {
                     const id = val.slice(8)
                     setPbExpenseId(id)
                     setPbFixedExpenseId('')
+                    setPbPaybackId('')
                     const exp = expenses.find(e => e.id === id)
                     if (exp) {
                       setPbDate(exp.date)
@@ -173,10 +179,22 @@ export function PaybackForm({
                     const id = val.slice(6)
                     setPbFixedExpenseId(id)
                     setPbExpenseId('')
+                    setPbPaybackId('')
                     const fe = fixedExpenses.find(e => e.id === id)
                     if (fe) {
                       const returned = toMeByFixed[id]?.total || 0
                       setPbAmount(String(fe.amount - returned))
+                    }
+                  } else if (val.startsWith('payback:')) {
+                    const id = val.slice(8)
+                    setPbPaybackId(id)
+                    setPbExpenseId('')
+                    setPbFixedExpenseId('')
+                    const pb = paybacks.find(p => p.id === id)
+                    if (pb) {
+                      setPbDate(pb.date)
+                      const returned = toMeByPayback[id] || 0
+                      setPbAmount(String(pb.amount - returned))
                     }
                   }
                 }}
@@ -207,7 +225,7 @@ export function PaybackForm({
             <button
               type="submit"
               className="btn-primary"
-              disabled={pbSaving || !pbPerson || (pbDirection === 'by_me' ? !pbCategory : (!pbExpenseId && !pbFixedExpenseId))}
+              disabled={pbSaving || !pbPerson || (pbDirection === 'by_me' ? !pbCategory : (!pbExpenseId && !pbFixedExpenseId && !pbPaybackId))}
             >
               {pbSaving ? 'שומר...' : 'שמור'}
             </button>

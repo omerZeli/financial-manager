@@ -37,7 +37,7 @@ type ActiveTab = 'all' | 'regular' | 'fixed' | 'paybacks'
 export function ExpensesTablePage() {
   const { expenses, loading, fetchExpenses, addExpense, updateExpense, deleteExpense } = useExpenses()
   const { fixedExpenses, inflatedExpenses, loading: fixedLoading, fetchFixedExpenses, addFixedExpense, updateFixedExpense, deleteFixedExpense } = useFixedExpenses()
-  const { paybacks, loading: paybacksLoading, fetchPaybacks, addPayback, updatePayback, deletePayback, removeByExpenseId, removeByFixedExpenseId } = usePaybacks()
+  const { paybacks, loading: paybacksLoading, fetchPaybacks, addPayback, updatePayback, deletePayback, removeByExpenseId, removeByFixedExpenseId, removeByPaybackId } = usePaybacks()
   const { salaries, fetchSalaries } = useSalary()
   const { options: categoryOptions, loading: categoryLoading, addOption: addCategory, removeOption: removeCategory } = useDropdownOptions('expense_category')
   const { options: personOptions, loading: personLoading, addOption: addPerson, removeOption: removePerson } = useDropdownOptions('payback_person')
@@ -128,23 +128,38 @@ export function ExpensesTablePage() {
     return map
   }, [paybacks])
 
-  // "by_me" paybacks as virtual expense rows
+  // Build a map of "to_me" paybacks linked to "by_me" paybacks (total returned per by_me payback)
+  const toMeByPayback = useMemo(() => {
+    const map: Record<string, number> = {}
+    for (const pb of paybacks) {
+      if (pb.direction === 'to_me' && pb.payback_id) {
+        map[pb.payback_id] = (map[pb.payback_id] || 0) + pb.amount
+      }
+    }
+    return map
+  }, [paybacks])
+
+  // "by_me" paybacks as virtual expense rows (reduced by to_me paybacks linked to them)
   const byMeAsExpenses = useMemo(() => {
     return paybacks
       .filter(pb => pb.direction === 'by_me')
-      .map(pb => ({
-        id: `payback_${pb.id}`,
-        user_id: pb.user_id,
-        name: pb.name || '',
-        category: pb.category || '',
-        amount: pb.amount,
-        date: pb.date,
-        created_at: pb.created_at,
-        _paybackPerson: pb.person,
-      }))
-  }, [paybacks])
+      .map(pb => {
+        const returned = toMeByPayback[pb.id] || 0
+        return {
+          id: `payback_${pb.id}`,
+          user_id: pb.user_id,
+          name: pb.name || '',
+          category: pb.category || '',
+          amount: pb.amount - returned,
+          date: pb.date,
+          created_at: pb.created_at,
+          _paybackPerson: pb.person,
+        }
+      })
+      .filter(e => e.amount !== 0)
+  }, [paybacks, toMeByPayback])
 
-  // Options for the "to_me" payback expense dropdown: regular (not fully paid) + fixed expenses
+  // Options for the "to_me" payback expense dropdown: regular (not fully paid) + fixed expenses + by_me paybacks
   const paybackExpenseOptions = useMemo(() => {
     const regularOpts = expenses
       .filter(exp => {
@@ -173,8 +188,25 @@ export function ExpensesTablePage() {
       }
     })
 
-    return [...regularOpts, ...fixedOpts].sort((a, b) => b._date.localeCompare(a._date))
-  }, [expenses, fixedExpenses, toMeByExpense, toMeByFixed])
+    const byMeOpts = paybacks
+      .filter(pb => {
+        if (pb.direction !== 'by_me') return false
+        const returned = toMeByPayback[pb.id] || 0
+        return pb.amount - returned > 0
+      })
+      .map(pb => {
+        const returned = toMeByPayback[pb.id] || 0
+        const remaining = pb.amount - returned
+        return {
+          value: `payback:${pb.id}`,
+          label: `${pb.name} - ${formatCurrency(remaining)} (${formatDate(pb.date)})`,
+          _date: pb.date,
+          _amount: remaining,
+        }
+      })
+
+    return [...regularOpts, ...fixedOpts, ...byMeOpts].sort((a, b) => b._date.localeCompare(a._date))
+  }, [expenses, fixedExpenses, paybacks, toMeByExpense, toMeByFixed, toMeByPayback])
 
   // Merge real + inflated + by_me paybacks, adjust amounts for to_me paybacks
   const allExpenses = useMemo(() => {
@@ -276,15 +308,27 @@ export function ExpensesTablePage() {
     if (pb.direction === 'by_me') return pb.name || ''
     const linkedExp = pb.expense_id ? expenses.find(e => e.id === pb.expense_id) : null
     const linkedFixed = pb.fixed_expense_id ? fixedExpenses.find(e => e.id === pb.fixed_expense_id) : null
-    return linkedExp ? linkedExp.name : linkedFixed ? `${linkedFixed.name} (קבועה)` : 'הוצאה שנמחקה'
-  }, [expenses, fixedExpenses])
+    if (linkedExp) return linkedExp.name
+    if (linkedFixed) return `${linkedFixed.name} (קבועה)`
+    if (pb.payback_id) {
+      const linkedPayback = paybacks.find(p => p.id === pb.payback_id)
+      return linkedPayback?.name || pb.name || ''
+    }
+    return 'הוצאה שנמחקה'
+  }, [expenses, fixedExpenses, paybacks])
 
   const getPaybackCategory = useCallback((pb: (typeof paybacks)[0]) => {
     if (pb.direction === 'by_me') return pb.category || ''
     const linkedExp = pb.expense_id ? expenses.find(e => e.id === pb.expense_id) : null
     const linkedFixed = pb.fixed_expense_id ? fixedExpenses.find(e => e.id === pb.fixed_expense_id) : null
-    return linkedExp ? linkedExp.category : linkedFixed ? linkedFixed.category : '-'
-  }, [expenses, fixedExpenses])
+    if (linkedExp) return linkedExp.category
+    if (linkedFixed) return linkedFixed.category
+    if (pb.payback_id) {
+      const linkedPayback = paybacks.find(p => p.id === pb.payback_id)
+      return linkedPayback?.category || pb.category || '-'
+    }
+    return '-'
+  }, [expenses, fixedExpenses, paybacks])
 
   const getPaybackValue = useCallback((item: (typeof paybacks)[0], key: string) => {
     if (key === 'direction') return item.direction === 'by_me' ? 'שילמתי' : 'קיבלתי'
@@ -519,6 +563,7 @@ export function ExpensesTablePage() {
                   {paybackTable.processed.map(pb => {
                     const linkedExp = pb.direction === 'to_me' && pb.expense_id ? expenses.find(e => e.id === pb.expense_id) : null
                     const linkedFixed = pb.direction === 'to_me' && pb.fixed_expense_id ? fixedExpenses.find(e => e.id === pb.fixed_expense_id) : null
+                    const linkedPayback = pb.direction === 'to_me' && pb.payback_id ? paybacks.find(p => p.id === pb.payback_id) : null
                     return (
                     <tr key={pb.id}>
                       <td>
@@ -529,10 +574,10 @@ export function ExpensesTablePage() {
                       <td>
                         {pb.direction === 'by_me'
                           ? pb.name
-                          : linkedExp ? linkedExp.name : linkedFixed ? `${linkedFixed.name} (קבועה)` : 'הוצאה שנמחקה'
+                          : linkedExp ? linkedExp.name : linkedFixed ? `${linkedFixed.name} (קבועה)` : linkedPayback ? linkedPayback.name : pb.payback_id && pb.name ? pb.name : 'הוצאה שנמחקה'
                         }
                       </td>
-                      <td>{pb.direction === 'by_me' ? pb.category : (linkedExp ? linkedExp.category : linkedFixed ? linkedFixed.category : '-')}</td>
+                      <td>{pb.direction === 'by_me' ? pb.category : (linkedExp ? linkedExp.category : linkedFixed ? linkedFixed.category : linkedPayback ? linkedPayback.category || '-' : pb.payback_id && pb.category ? pb.category : '-')}</td>
                       <td className="num-cell">{formatCurrency(pb.amount)}</td>
                       <td>{formatDate(pb.date)}</td>
                       <td>{pb.person}</td>
@@ -573,7 +618,7 @@ export function ExpensesTablePage() {
             if (pendingDeleteType === 'payback') {
               const pb = paybacks.find(p => p.id === pendingDeleteId)
               if (!pb) return undefined
-              const label = pb.direction === 'by_me' ? pb.name : (pb.expense_id ? expenses.find(e => e.id === pb.expense_id)?.name : pb.fixed_expense_id ? fixedExpenses.find(e => e.id === pb.fixed_expense_id)?.name : null)
+              const label = pb.direction === 'by_me' ? pb.name : (pb.expense_id ? expenses.find(e => e.id === pb.expense_id)?.name : pb.fixed_expense_id ? fixedExpenses.find(e => e.id === pb.fixed_expense_id)?.name : pb.payback_id ? paybacks.find(p => p.id === pb.payback_id)?.name : null)
               return `${label || 'החזר'} - ${formatCurrency(pb.amount)} (${formatDate(pb.date)})`
             }
             return undefined
@@ -590,6 +635,11 @@ export function ExpensesTablePage() {
               const dates = related.map(ie => ie.date).sort()
               return [`${related.length} הוצאות (${formatDate(dates[dates.length - 1])} - ${formatDate(dates[0])})`]
             }
+            if (pendingDeleteType === 'payback') {
+              const linked = paybacks.filter(p => p.payback_id === pendingDeleteId)
+              if (linked.length === 0) return undefined
+              return linked.map(p => `החזר - ${formatCurrency(p.amount)} מ${p.person} (${formatDate(p.date)})`)
+            }
             return undefined
           })()}
           onConfirm={() => {
@@ -598,7 +648,7 @@ export function ExpensesTablePage() {
               removeByExpenseId(pendingDeleteId)
             }
             else if (pendingDeleteType === 'fixed') { deleteFixedExpense(pendingDeleteId); removeByFixedExpenseId(pendingDeleteId) }
-            else if (pendingDeleteType === 'payback') deletePayback(pendingDeleteId)
+            else if (pendingDeleteType === 'payback') { deletePayback(pendingDeleteId); removeByPaybackId(pendingDeleteId) }
             setPendingDeleteId(null)
             setPendingDeleteType(null)
           }}
@@ -684,6 +734,7 @@ export function ExpensesTablePage() {
           paybackExpenseOptions={paybackExpenseOptions}
           toMeByExpense={toMeByExpense}
           toMeByFixed={toMeByFixed}
+          toMeByPayback={toMeByPayback}
           onSubmit={addPayback}
           onClose={() => setModal(null)}
         />

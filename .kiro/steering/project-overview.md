@@ -188,15 +188,16 @@ The expenses section supports two types of expenses, managed via a **FAB type pi
 
 #### Paybacks (`paybacks` table)
 - Two directions: `by_me` (I paid someone back) and `to_me` (someone paid me back).
-- Fields: `direction`, `name` (by_me only), `category` (by_me only), `amount`, `date`, `person`, `expense_id` (to_me only — references a regular expense), `fixed_expense_id` (to_me only — references a fixed expense).
+- Fields: `direction`, `name` (by_me only), `category` (by_me only), `amount`, `date`, `person`, `expense_id` (to_me only — references a regular expense), `fixed_expense_id` (to_me only — references a fixed expense), `payback_id` (to_me only — references a by_me payback).
 - Context: `PaybacksContext` (`src/contexts/PaybacksContext.tsx`)
 - Dropdown person: `payback_person` (shared between both directions)
 - The add form has a **direction toggle** ("שילמתי לאחר" / "שילמו לי") that conditionally shows different fields.
-- **to_me expense dropdown**: Shows regular expenses that are **not fully paid back** (displaying the remaining unpaid amount), plus fixed expenses as single non-inflated entries. Options use a `expense:{id}` / `fixed:{id}` value prefix to distinguish the two types.
-- **by_me** paybacks appear as virtual expense rows in "כל ההוצאות" with a badge "החזר ל[person]".
+- **to_me expense dropdown**: Shows regular expenses that are **not fully paid back** (displaying the remaining unpaid amount), fixed expenses as single non-inflated entries, and **by_me paybacks that are not fully paid back** (displaying remaining amount with person info). Options use a `expense:{id}` / `fixed:{id}` / `payback:{id}` value prefix to distinguish the three types.
+- **by_me** paybacks appear as virtual expense rows in "כל ההוצאות" with a badge "החזר ל[person]". Their displayed amount is **reduced** by any "to_me" paybacks linked to them via `payback_id`.
 - **to_me** paybacks linked to a **regular expense** reduce the displayed amount of that expense in the all-expenses table.
 - **to_me** paybacks linked to a **fixed expense** reduce the amount of the **last inflated expense on or before the payback date** in the all-expenses table.
-- The charts page also accounts for paybacks: by_me adds to totals, to_me reduces original expense amounts (including fixed expense inflated rows).
+- **to_me** paybacks linked to a **by_me payback** reduce the displayed amount of that by_me payback in the all-expenses table.
+- The charts page also accounts for paybacks: by_me adds to totals (net of to_me reductions), to_me reduces original expense amounts (including fixed expense inflated rows and by_me paybacks).
 
 #### Sub-Tabs
 - The expenses table page has four sub-tabs: **"כל ההוצאות"** (all expenses — real + inflated + by_me paybacks, with to_me reductions), **"הוצאות רגילות"** (only the original regular expenses, no paybacks or inflation), **"הוצאות קבועות"** (fixed expense definitions), and **"העברות"** (payback records).
@@ -347,6 +348,7 @@ Expense types allow users to group expense categories into named types for use i
 - When a parent entity is deleted, all child entities that reference it must also be deleted — both in the database (via `ON DELETE CASCADE` foreign keys) and in the client-side context caches.
 - **Expense → Paybacks**: Deleting a regular expense cascades to delete all "to_me" paybacks linked to it. The DB FK `paybacks.expense_id` uses `ON DELETE CASCADE`. The page calls `removeByExpenseId` on the PaybacksContext to clean the local cache.
 - **Fixed Expense → Paybacks**: Deleting a fixed expense cascades to delete all "to_me" paybacks linked to it. The DB FK `paybacks.fixed_expense_id` uses `ON DELETE CASCADE`. The page calls `removeByFixedExpenseId` on the PaybacksContext to clean the local cache.
+- **By_me Payback → To_me Paybacks**: Deleting a "by_me" payback cascades to delete all "to_me" paybacks linked to it. The DB FK `paybacks.payback_id` uses `ON DELETE CASCADE`. The page calls `removeByPaybackId` on the PaybacksContext to clean the local cache.
 - **Investment Channel → Deposits + Value Updates**: Deleting a channel cascades to delete all its deposits and value updates. The DB FKs on `investment_deposits.channel_id` and `investment_value_updates.channel_id` use `ON DELETE CASCADE`. The page calls `removeByChannelId` on both `InvestmentDepositsContext` and `InvestmentValuesContext` to clean the local caches.
 - Each child context exposes a `removeBy[Parent]Id` helper that filters out orphaned records from the local state without making a Supabase call (the DB cascade already handled it).
 - When adding a new parent-child relationship, always add `ON DELETE CASCADE` to the FK and a corresponding `removeBy...` cache cleanup helper in the child context.
