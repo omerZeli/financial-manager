@@ -193,7 +193,7 @@ The expenses section supports two types of expenses, managed via a **FAB type pi
 - Dropdown person: `payback_person` (shared between both directions)
 - The add form has a **direction toggle** ("שילמתי לאחר" / "שילמו לי") that conditionally shows different fields.
 - **to_me expense dropdown**: Shows regular expenses that are **not fully paid back** (displaying the remaining unpaid amount), fixed expenses as single non-inflated entries, and **by_me paybacks that are not fully paid back** (displaying remaining amount with person info). Options use a `expense:{id}` / `fixed:{id}` / `payback:{id}` value prefix to distinguish the three types.
-- **by_me** paybacks appear as virtual expense rows in "כל ההוצאות" with a badge "החזר ל[person]". Their displayed amount is **reduced** by any "to_me" paybacks linked to them via `payback_id`.
+- **by_me** paybacks appear as virtual expense rows in "כל ההוצאות" with a badge "העברה ל[person]". Their displayed amount is **reduced** by any "to_me" paybacks linked to them via `payback_id`.
 - **to_me** paybacks linked to a **regular expense** reduce the displayed amount of that expense in the all-expenses table.
 - **to_me** paybacks linked to a **fixed expense** reduce the amount of the **last inflated expense on or before the payback date** in the all-expenses table.
 - **to_me** paybacks linked to a **by_me payback** reduce the displayed amount of that by_me payback in the all-expenses table.

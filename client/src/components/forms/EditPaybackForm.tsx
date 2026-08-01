@@ -57,7 +57,7 @@ export function EditPaybackForm({
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={e => e.stopPropagation()}>
         <button className="modal-close" onClick={onClose} title="סגור">&times;</button>
-        <h2>עריכת החזר</h2>
+        <h2>עריכת העברה</h2>
         <form onSubmit={handleSubmit}>
           {payback.direction === 'by_me' && (
             <>

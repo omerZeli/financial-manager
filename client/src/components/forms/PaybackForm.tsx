@@ -105,7 +105,7 @@ export function PaybackForm({
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={e => e.stopPropagation()}>
         <button className="modal-close" onClick={onClose} title="סגור">&times;</button>
-        <h2>הוסף החזר</h2>
+        <h2>הוסף העברה</h2>
         <form onSubmit={handleSubmit}>
           {/* Direction toggle */}
           <div className="direction-toggle">

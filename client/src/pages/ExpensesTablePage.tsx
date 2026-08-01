@@ -619,7 +619,7 @@ export function ExpensesTablePage() {
               const pb = paybacks.find(p => p.id === pendingDeleteId)
               if (!pb) return undefined
               const label = pb.direction === 'by_me' ? pb.name : (pb.expense_id ? expenses.find(e => e.id === pb.expense_id)?.name : pb.fixed_expense_id ? fixedExpenses.find(e => e.id === pb.fixed_expense_id)?.name : pb.payback_id ? paybacks.find(p => p.id === pb.payback_id)?.name : null)
-              return `${label || 'החזר'} - ${formatCurrency(pb.amount)} (${formatDate(pb.date)})`
+              return `${label || 'העברה'} - ${formatCurrency(pb.amount)} (${formatDate(pb.date)})`
             }
             return undefined
           })()}
@@ -627,7 +627,7 @@ export function ExpensesTablePage() {
             if (pendingDeleteType === 'expense') {
               const linked = paybacks.filter(p => p.expense_id === pendingDeleteId)
               if (linked.length === 0) return undefined
-              return linked.map(p => `החזר - ${formatCurrency(p.amount)} מ${p.person} (${formatDate(p.date)})`)
+              return linked.map(p => `העברה - ${formatCurrency(p.amount)} מ${p.person} (${formatDate(p.date)})`)
             }
             if (pendingDeleteType === 'fixed') {
               const related = inflatedExpenses.filter(ie => ie.id.startsWith(pendingDeleteId + '_'))
@@ -638,7 +638,7 @@ export function ExpensesTablePage() {
             if (pendingDeleteType === 'payback') {
               const linked = paybacks.filter(p => p.payback_id === pendingDeleteId)
               if (linked.length === 0) return undefined
-              return linked.map(p => `החזר - ${formatCurrency(p.amount)} מ${p.person} (${formatDate(p.date)})`)
+              return linked.map(p => `העברה - ${formatCurrency(p.amount)} מ${p.person} (${formatDate(p.date)})`)
             }
             return undefined
           })()}
@@ -676,7 +676,7 @@ export function ExpensesTablePage() {
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="1 4 1 10 7 10" /><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
               </svg>
-              החזר
+              העברה
             </button>
             <button className="fab-menu-item" onClick={() => setModal('expense_type')}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
