@@ -8,7 +8,7 @@ The implementation language is **TypeScript** (the design specifies concrete TS;
 
 ## Tasks
 
-- [ ] 1. Set up npm workspaces monorepo and empty shared package
+- [x] 1. Set up npm workspaces monorepo and empty shared package
   - Create a root `package.json` declaring `"workspaces": ["client", "shared", "mcp-server"]` and `"private": true`; move the existing client into `client/` is already done (client is the existing workspace member).
   - Create `shared/package.json` with name `@financial-manager/shared`, `"type": "module"`, `main`/`types`/`exports` pointing at the build output and `src/index.ts`, and a `build` + `test` script.
   - Add `shared/tsconfig.json` (strict, no DOM lib, ES modules) and `shared/src/index.ts` as an empty barrel.
