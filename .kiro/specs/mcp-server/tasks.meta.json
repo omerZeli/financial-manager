@@ -12,6 +12,18 @@
         "chatSessionId": "sess_06270ecb-6740-4091-9692-5629db25ecfb",
         "timestamp": 1791552728803
       }
+    ],
+    "1.1 Write the trivial shared smoke test": [
+      {
+        "executionId": "5afc0523-b420-440b-b2ee-10ce8b867004",
+        "chatSessionId": "sess_b24558ba-416e-41f7-99e5-fc3ed202f95b",
+        "timestamp": 1791553616008
+      },
+      {
+        "executionId": "5afc0523-b420-440b-b2ee-10ce8b867004",
+        "chatSessionId": "sess_b24558ba-416e-41f7-99e5-fc3ed202f95b",
+        "timestamp": 1791553674327
+      }
     ]
   }
 }

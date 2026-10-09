@@ -16,7 +16,7 @@ The implementation language is **TypeScript** (the design specifies concrete TS;
   - Regression gate: `npm run build -w client` still succeeds and `npm test -w shared` runs the trivial test green.
   - _Requirements: 2.1, 2.2_
 
-  - [ ]* 1.1 Write the trivial shared smoke test
+  - [x] 1.1 Write the trivial shared smoke test
     - Add `shared/src/__tests__/smoke.test.ts` asserting a constant, confirming Vitest + TS config resolve.
     - _Requirements: 2.1_
 
