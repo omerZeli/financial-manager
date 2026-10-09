@@ -20,7 +20,7 @@ The implementation language is **TypeScript** (the design specifies concrete TS;
     - Add `shared/src/__tests__/smoke.test.ts` asserting a constant, confirming Vitest + TS config resolve.
     - _Requirements: 2.1_
 
-- [ ] 2. Move shared row types into shared/src/types.ts
+- [x] 2. Move shared row types into shared/src/types.ts
   - Create `shared/src/types.ts` with the exact interfaces from the design: `Salary`, `Expense`, `FixedExpense`, `Payback`, `InvestmentChannel`, `InvestmentDeposit`, `InvestmentValueUpdate`, `ExpenseType`, `DropdownOption` (names and fields unchanged).
   - Re-export all types from the `shared/src/index.ts` barrel.
   - Update each client context (`SalaryContext`, `ExpensesContext`, `FixedExpensesContext`, `PaybacksContext`, `InvestmentChannelsContext`, `InvestmentDepositsContext`, `InvestmentValuesContext`, `ExpenseTypesContext`) to import its row type from `@financial-manager/shared` instead of declaring it locally.

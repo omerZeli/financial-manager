@@ -1,21 +1,9 @@
 import { createContext, useContext, useState, useCallback, type ReactNode } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from './AuthContext'
+import type { Payback } from '@financial-manager/shared'
 
-export interface Payback {
-  id: string
-  user_id: string
-  direction: 'by_me' | 'to_me'
-  name: string | null
-  category: string | null
-  amount: number
-  date: string
-  person: string
-  expense_id: string | null
-  fixed_expense_id: string | null
-  payback_id: string | null
-  created_at: string
-}
+export type { Payback }
 
 interface PaybacksContextType {
   paybacks: Payback[]

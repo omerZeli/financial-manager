@@ -2,19 +2,9 @@ import { createContext, useContext, useState, useCallback, useMemo, type ReactNo
 import { supabase } from '../lib/supabase'
 import { todayStr as getTodayStr } from '../lib/dateUtils'
 import { useAuth } from './AuthContext'
-import type { Expense } from './ExpensesContext'
+import type { Expense, FixedExpense } from '@financial-manager/shared'
 
-export interface FixedExpense {
-  id: string
-  user_id: string
-  name: string
-  category: string
-  amount: number
-  start_date: string
-  end_date: string | null
-  salary_employer: string | null
-  created_at: string
-}
+export type { FixedExpense }
 
 interface FixedExpensesContextType {
   fixedExpenses: FixedExpense[]
