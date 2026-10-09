@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useCallback, useMemo, type ReactNode } from 'react'
 import { supabase } from '../lib/supabase'
-import { todayStr as getTodayStr } from '../lib/dateUtils'
+import { inflateFixedExpense } from '@financial-manager/shared'
 import { useAuth } from './AuthContext'
 import type { Expense, FixedExpense } from '@financial-manager/shared'
 
@@ -17,53 +17,6 @@ interface FixedExpensesContextType {
 }
 
 const FixedExpensesContext = createContext<FixedExpensesContextType | undefined>(undefined)
-
-/** Generate one virtual expense per month from start_date to min(end_date, today) */
-function inflateFixed(fe: FixedExpense): Expense[] {
-  const results: Expense[] = []
-  const start = new Date(fe.start_date + 'T00:00:00')
-  const todayStr = getTodayStr()
-  const limitStr = fe.end_date && fe.end_date < todayStr ? fe.end_date : todayStr
-  const limit = new Date(limitStr + 'T00:00:00')
-
-  const originalDay = start.getDate()
-  let year = start.getFullYear()
-  let month = start.getMonth() // 0-indexed
-
-  while (true) {
-    // Clamp day to the last day of the current month
-    const daysInMonth = new Date(year, month + 1, 0).getDate()
-    const day = Math.min(originalDay, daysInMonth)
-
-    const cursor = new Date(year, month, day)
-    if (cursor > limit) break
-
-    const yyyy = cursor.getFullYear()
-    const mm = String(cursor.getMonth() + 1).padStart(2, '0')
-    const dd = String(cursor.getDate()).padStart(2, '0')
-    const dateStr = `${yyyy}-${mm}-${dd}`
-
-    results.push({
-      id: `${fe.id}_${dateStr}`,
-      user_id: fe.user_id,
-      name: fe.name,
-      category: fe.category,
-      amount: fe.amount,
-      date: dateStr,
-      salary_id: null,
-      created_at: fe.created_at,
-    })
-
-    // advance to next month
-    month++
-    if (month > 11) {
-      month = 0
-      year++
-    }
-  }
-
-  return results
-}
 
 export function FixedExpensesProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth()
@@ -122,7 +75,7 @@ export function FixedExpensesProvider({ children }: { children: ReactNode }) {
   }
 
   const inflatedExpenses = useMemo(
-    () => fixedExpenses.flatMap(inflateFixed),
+    () => fixedExpenses.flatMap(fe => inflateFixedExpense(fe)),
     [fixedExpenses]
   )
 

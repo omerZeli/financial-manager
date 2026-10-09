@@ -132,6 +132,16 @@
         "executionId": "71b0eb76-3003-4743-b9cf-ad13de86fb5f",
         "chatSessionId": "sess_f9460dff-5cb0-44e3-b923-031f38f5d6a8",
         "timestamp": 1791553954894
+      },
+      {
+        "executionId": "0371511b-84b1-4e43-8930-3c9f0eff5fb1",
+        "chatSessionId": "sess_9f5846ab-7260-475d-a5fd-7d3a9bff4715",
+        "timestamp": 1791554442722
+      },
+      {
+        "executionId": "0371511b-84b1-4e43-8930-3c9f0eff5fb1",
+        "chatSessionId": "sess_9f5846ab-7260-475d-a5fd-7d3a9bff4715",
+        "timestamp": 1791554645944
       }
     ],
     "4.2 Refactor client to consume shared expense logic": [
@@ -139,6 +149,16 @@
         "executionId": "71b0eb76-3003-4743-b9cf-ad13de86fb5f",
         "chatSessionId": "sess_f9460dff-5cb0-44e3-b923-031f38f5d6a8",
         "timestamp": 1791553954946
+      },
+      {
+        "executionId": "0371511b-84b1-4e43-8930-3c9f0eff5fb1",
+        "chatSessionId": "sess_9f5846ab-7260-475d-a5fd-7d3a9bff4715",
+        "timestamp": 1791554651156
+      },
+      {
+        "executionId": "0371511b-84b1-4e43-8930-3c9f0eff5fb1",
+        "chatSessionId": "sess_9f5846ab-7260-475d-a5fd-7d3a9bff4715",
+        "timestamp": 1791554864300
       }
     ],
     "5.1 Extract salary aggregations into shared/src/salary.ts": [
@@ -265,6 +285,49 @@
         "executionId": "71b0eb76-3003-4743-b9cf-ad13de86fb5f",
         "chatSessionId": "sess_f9460dff-5cb0-44e3-b923-031f38f5d6a8",
         "timestamp": 1791554255732
+      }
+    ],
+    "4.3 Write property test for inflation bounds": [
+      {
+        "executionId": "0371511b-84b1-4e43-8930-3c9f0eff5fb1",
+        "chatSessionId": "sess_9f5846ab-7260-475d-a5fd-7d3a9bff4715",
+        "timestamp": 1791554652092
+      },
+      {
+        "executionId": "0371511b-84b1-4e43-8930-3c9f0eff5fb1",
+        "chatSessionId": "sess_9f5846ab-7260-475d-a5fd-7d3a9bff4715",
+        "timestamp": 1791554865309
+      }
+    ],
+    "4.4 Write property test for payback conservation": [
+      {
+        "executionId": "0371511b-84b1-4e43-8930-3c9f0eff5fb1",
+        "chatSessionId": "sess_9f5846ab-7260-475d-a5fd-7d3a9bff4715",
+        "timestamp": 1791554653646
+      },
+      {
+        "executionId": "0371511b-84b1-4e43-8930-3c9f0eff5fb1",
+        "chatSessionId": "sess_9f5846ab-7260-475d-a5fd-7d3a9bff4715",
+        "timestamp": 1791554866190
+      }
+    ],
+    "4.5 Write unit tests for all-expenses edge cases": [
+      {
+        "executionId": "0371511b-84b1-4e43-8930-3c9f0eff5fb1",
+        "chatSessionId": "sess_9f5846ab-7260-475d-a5fd-7d3a9bff4715",
+        "timestamp": 1791554654291
+      },
+      {
+        "executionId": "0371511b-84b1-4e43-8930-3c9f0eff5fb1",
+        "chatSessionId": "sess_9f5846ab-7260-475d-a5fd-7d3a9bff4715",
+        "timestamp": 1791554867358
+      }
+    ],
+    "4. Extract expense inflation and all-expenses/payback logic into shared": [
+      {
+        "executionId": "0371511b-84b1-4e43-8930-3c9f0eff5fb1",
+        "chatSessionId": "sess_9f5846ab-7260-475d-a5fd-7d3a9bff4715",
+        "timestamp": 1791554867747
       }
     ]
   }

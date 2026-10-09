@@ -54,27 +54,27 @@ The implementation language is **TypeScript** (the design specifies concrete TS;
     - Deposit adds to balance + invested capital (5.2); withdrawal subtracts from both (5.3); value-update accumulates delta then overrides balance (5.4); `returnPercent` guards `investedCapital <= 0` → 0 (5.7); last-updated = most recent event date (5.8); empty-events channel → zeroed summary with null date (5.9); `formatLocalDate`/`todayStr` are timezone-safe and `getEffectiveDate` resolves linked vs own date (3.1).
     - _Requirements: 3.1, 5.2, 5.3, 5.4, 5.7, 5.8, 5.9_
 
-- [ ] 4. Extract expense inflation and all-expenses/payback logic into shared
-  - [~] 4.1 Extract inflateFixedExpense and computeAllExpenses into shared/src/expenses.ts
+- [x] 4. Extract expense inflation and all-expenses/payback logic into shared
+  - [x] 4.1 Extract inflateFixedExpense and computeAllExpenses into shared/src/expenses.ts
     - Port `inflateFixedExpense` (month generation, day clamping, synthetic `{fixedExpenseId}_{YYYY-MM-DD}` ids, end-date limit) and `computeAllExpenses` (merge + three-direction payback reduction + effective-date annotation + zero-amount filtering + date-DESC sort) verbatim; add `computeExpenseSummary`; re-export from the barrel.
     - _Requirements: 3.3, 6.1, 6.2, 6.3, 6.4, 6.5, 7.1, 7.2, 7.3, 7.4, 7.5, 7.6_
 
-  - [~] 4.2 Refactor client to consume shared expense logic
+  - [x] 4.2 Refactor client to consume shared expense logic
     - Make `FixedExpensesContext` compute `inflatedExpenses` via `inflateFixedExpense` from `@financial-manager/shared`; refactor `ExpensesTablePage` and `ExpensesChartsPage` to call `computeAllExpenses` instead of the duplicated inline chain.
     - Verify `npm run build -w client` passes and the all-expenses table + charts render identical numbers.
     - _Requirements: 3.3, 3.6_
 
-  - [ ]* 4.3 Write property test for inflation bounds
+  - [x] 4.3 Write property test for inflation bounds
     - **Property 4: Inflation bounds**
     - **Validates: Requirements 6.1, 6.4, 6.5**
     - Assert every inflated row's date is in `[start_date, min(end_date, today)]`, exactly one row per calendar month, day clamped to month length (6.2), and start-after-limit yields zero rows (6.4).
 
-  - [ ]* 4.4 Write property test for payback conservation
+  - [x] 4.4 Write property test for payback conservation
     - **Property 5: Payback conservation**
     - **Validates: Requirements 7.1, 7.2, 7.4**
     - Assert `to_me` linked to a regular expense reduces displayed amount by the payback sum clamped to 0 (7.1); `to_me` linked to a fixed expense reduces the last inflated row on/before the payback date cumulatively (7.2); `to_me` linked to a `by_me` payback reduces that `by_me` row by the sum clamped to 0 (7.4).
 
-  - [ ]* 4.5 Write unit tests for all-expenses edge cases
+  - [x] 4.5 Write unit tests for all-expenses edge cases
     - `to_me`→fixed with no inflated row on/before the date leaves amounts unchanged and excludes the payback (7.3); `by_me` virtual rows excluded when adjusted amount is 0 (7.5); merged real + inflated + `by_me` rows sorted date DESC with created_at DESC tiebreak (7.6).
     - _Requirements: 7.3, 7.5, 7.6_
 
@@ -88,12 +88,12 @@ The implementation language is **TypeScript** (the design specifies concrete TS;
     - Verify `npm run build -w client` passes and both charts pages render identical numbers.
     - _Requirements: 3.4, 3.6_
 
-  - [ ]* 5.3 Write property/fixture test for extraction parity across all domains
+  - [ ] 5.3 Write property/fixture test for extraction parity across all domains
     - **Property 1: Extraction parity**
     - **Validates: Requirements 3.5, 3.7, 3.8**
     - Record pre-refactor client outputs as fixtures for at least one investments, one expenses, and one salary case; assert shared output is deep-equal to each snapshot and that a mismatch fails the suite reporting the fixture + differing field.
 
-  - [ ]* 5.4 Write unit tests for salary aggregation
+  - [ ] 5.4 Write unit tests for salary aggregation
     - Multiple employers in one month summed into one aggregation (8.1); months sorted ASC with no duplicates (8.2); totals/deductions/averages computed correctly (8.3); zero-month guard avoids division and returns zeros (8.4).
     - _Requirements: 8.1, 8.2, 8.3, 8.4_
 
