@@ -166,6 +166,16 @@
         "executionId": "71b0eb76-3003-4743-b9cf-ad13de86fb5f",
         "chatSessionId": "sess_f9460dff-5cb0-44e3-b923-031f38f5d6a8",
         "timestamp": 1791553955011
+      },
+      {
+        "executionId": "412a75d4-1d98-444a-9683-833f6da47bab",
+        "chatSessionId": "sess_9f5846ab-7260-475d-a5fd-7d3a9bff4715",
+        "timestamp": 1791555642640
+      },
+      {
+        "executionId": "412a75d4-1d98-444a-9683-833f6da47bab",
+        "chatSessionId": "sess_9f5846ab-7260-475d-a5fd-7d3a9bff4715",
+        "timestamp": 1791555763008
       }
     ],
     "5.2 Refactor client charts pages to consume shared aggregations": [
@@ -173,6 +183,16 @@
         "executionId": "71b0eb76-3003-4743-b9cf-ad13de86fb5f",
         "chatSessionId": "sess_f9460dff-5cb0-44e3-b923-031f38f5d6a8",
         "timestamp": 1791553955063
+      },
+      {
+        "executionId": "412a75d4-1d98-444a-9683-833f6da47bab",
+        "chatSessionId": "sess_9f5846ab-7260-475d-a5fd-7d3a9bff4715",
+        "timestamp": 1791555770267
+      },
+      {
+        "executionId": "412a75d4-1d98-444a-9683-833f6da47bab",
+        "chatSessionId": "sess_9f5846ab-7260-475d-a5fd-7d3a9bff4715",
+        "timestamp": 1791556002239
       }
     ],
     "6. Checkpoint - shared extraction complete": [
@@ -180,6 +200,16 @@
         "executionId": "71b0eb76-3003-4743-b9cf-ad13de86fb5f",
         "chatSessionId": "sess_f9460dff-5cb0-44e3-b923-031f38f5d6a8",
         "timestamp": 1791553955123
+      },
+      {
+        "executionId": "0ea9b2cd-333e-40cb-8686-26d1e681ee58",
+        "chatSessionId": "sess_9f5846ab-7260-475d-a5fd-7d3a9bff4715",
+        "timestamp": 1791556590473
+      },
+      {
+        "executionId": "0ea9b2cd-333e-40cb-8686-26d1e681ee58",
+        "chatSessionId": "sess_9f5846ab-7260-475d-a5fd-7d3a9bff4715",
+        "timestamp": 1791556608025
       }
     ],
     "7.1 Create the mcp-server package skeleton": [
@@ -328,6 +358,37 @@
         "executionId": "0371511b-84b1-4e43-8930-3c9f0eff5fb1",
         "chatSessionId": "sess_9f5846ab-7260-475d-a5fd-7d3a9bff4715",
         "timestamp": 1791554867747
+      }
+    ],
+    "5.3 Write property/fixture test for extraction parity across all domains": [
+      {
+        "executionId": "412a75d4-1d98-444a-9683-833f6da47bab",
+        "chatSessionId": "sess_9f5846ab-7260-475d-a5fd-7d3a9bff4715",
+        "timestamp": 1791555771723
+      },
+      {
+        "executionId": "412a75d4-1d98-444a-9683-833f6da47bab",
+        "chatSessionId": "sess_9f5846ab-7260-475d-a5fd-7d3a9bff4715",
+        "timestamp": 1791556003246
+      }
+    ],
+    "5.4 Write unit tests for salary aggregation": [
+      {
+        "executionId": "412a75d4-1d98-444a-9683-833f6da47bab",
+        "chatSessionId": "sess_9f5846ab-7260-475d-a5fd-7d3a9bff4715",
+        "timestamp": 1791555772356
+      },
+      {
+        "executionId": "412a75d4-1d98-444a-9683-833f6da47bab",
+        "chatSessionId": "sess_9f5846ab-7260-475d-a5fd-7d3a9bff4715",
+        "timestamp": 1791556004332
+      }
+    ],
+    "5. Extract salary and investment-charts aggregations into shared": [
+      {
+        "executionId": "412a75d4-1d98-444a-9683-833f6da47bab",
+        "chatSessionId": "sess_9f5846ab-7260-475d-a5fd-7d3a9bff4715",
+        "timestamp": 1791556005074
       }
     ]
   }

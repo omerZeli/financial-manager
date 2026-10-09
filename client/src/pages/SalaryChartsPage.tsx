@@ -10,6 +10,7 @@ import { ChartFilterPopover } from '../components/common/ChartFilterPopover'
 import { usePersistedState } from '../hooks/usePersistedState'
 import { useFilters } from '../contexts/FiltersContext'
 import { formatLocalDate } from '../lib/dateUtils'
+import { aggregateSalariesByMonth, computeSalaryTotals } from '@financial-manager/shared'
 import './Section.css'
 
 function formatCurrency(n: number) {
@@ -89,28 +90,17 @@ export function SalaryChartsPage() {
   }, [salaries, selectedEmployers, employers.length, timeRange, customFrom, customTo])
 
   // Aggregate salaries by month (sum bruto/neto for same month across employers)
-  const byMonth = useMemo(() => {
-    const map = new Map<string, { month: string; bruto: number; neto: number }>()
-    for (const s of filtered) {
-      const existing = map.get(s.month)
-      if (existing) {
-        existing.bruto += s.bruto
-        existing.neto += s.neto
-      } else {
-        map.set(s.month, { month: s.month, bruto: s.bruto, neto: s.neto })
-      }
-    }
-    return Array.from(map.values()).sort((a, b) => a.month.localeCompare(b.month))
-  }, [filtered])
+  const byMonth = useMemo(() => aggregateSalariesByMonth(filtered), [filtered])
 
-  const monthCount = byMonth.length
+  // Raw totals + plain averages from the shared helper (zero-month guarded)
+  const totals = useMemo(() => computeSalaryTotals(filtered), [filtered])
+
+  const monthCount = totals.monthCount
   const aggLabel = aggMode === 'avg' ? 'ממוצע' : 'סה"כ'
   const agg = (total: number) => monthCount ? (aggMode === 'avg' ? total / monthCount : total) : 0
 
-  const totalBruto = filtered.reduce((s, r) => s + r.bruto, 0)
-  const totalNeto = filtered.reduce((s, r) => s + r.neto, 0)
-  const aggBruto = agg(totalBruto)
-  const aggNeto = agg(totalNeto)
+  const aggBruto = aggMode === 'avg' ? totals.avgBruto : totals.totalBruto
+  const aggNeto = aggMode === 'avg' ? totals.avgNeto : totals.totalNeto
   const aggDiff = aggBruto - aggNeto
 
   // Breakdown of reductions

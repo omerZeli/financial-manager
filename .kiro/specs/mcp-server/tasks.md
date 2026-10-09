@@ -78,26 +78,26 @@ The implementation language is **TypeScript** (the design specifies concrete TS;
     - `to_me`→fixed with no inflated row on/before the date leaves amounts unchanged and excludes the payback (7.3); `by_me` virtual rows excluded when adjusted amount is 0 (7.5); merged real + inflated + `by_me` rows sorted date DESC with created_at DESC tiebreak (7.6).
     - _Requirements: 7.3, 7.5, 7.6_
 
-- [ ] 5. Extract salary and investment-charts aggregations into shared
-  - [~] 5.1 Extract salary aggregations into shared/src/salary.ts
+- [x] 5. Extract salary and investment-charts aggregations into shared
+  - [x] 5.1 Extract salary aggregations into shared/src/salary.ts
     - Port `aggregateSalariesByMonth` (sum multiple employers per YYYY-MM, sorted ASC, no duplicate months) and `computeSalaryTotals` (totals, deductions, month count, averages, zero-month guard) verbatim; re-export from the barrel.
     - _Requirements: 3.4, 8.1, 8.2, 8.3, 8.4_
 
-  - [~] 5.2 Refactor client charts pages to consume shared aggregations
+  - [x] 5.2 Refactor client charts pages to consume shared aggregations
     - Refactor `SalaryChartsPage` to use `aggregateSalariesByMonth` + `computeSalaryTotals`, and `InvestmentsChartsPage` to use `computeInvestmentSummaries` + `computeInvestmentTotals` + `computeReturnOverTime` from `@financial-manager/shared`.
     - Verify `npm run build -w client` passes and both charts pages render identical numbers.
     - _Requirements: 3.4, 3.6_
 
-  - [ ] 5.3 Write property/fixture test for extraction parity across all domains
+  - [x] 5.3 Write property/fixture test for extraction parity across all domains
     - **Property 1: Extraction parity**
     - **Validates: Requirements 3.5, 3.7, 3.8**
     - Record pre-refactor client outputs as fixtures for at least one investments, one expenses, and one salary case; assert shared output is deep-equal to each snapshot and that a mismatch fails the suite reporting the fixture + differing field.
 
-  - [ ] 5.4 Write unit tests for salary aggregation
+  - [x] 5.4 Write unit tests for salary aggregation
     - Multiple employers in one month summed into one aggregation (8.1); months sorted ASC with no duplicates (8.2); totals/deductions/averages computed correctly (8.3); zero-month guard avoids division and returns zeros (8.4).
     - _Requirements: 8.1, 8.2, 8.3, 8.4_
 
-- [~] 6. Checkpoint - shared extraction complete
+- [x] 6. Checkpoint - shared extraction complete
   - Ensure all tests pass, ask the user if questions arise. Confirm `npm test -w shared` is green and `npm run build -w client` still succeeds before building the server.
 
 - [ ] 7. Scaffold mcp-server config and auth session
