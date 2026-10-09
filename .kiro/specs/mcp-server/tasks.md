@@ -27,39 +27,39 @@ The implementation language is **TypeScript** (the design specifies concrete TS;
   - Verify `npm run build -w client` still passes with zero TypeScript / module-resolution errors.
   - _Requirements: 2.2, 2.3, 2.4, 2.5_
 
-- [ ] 3. Extract date and investment logic into shared
-  - [ ] 3.1 Extract dateUtils into shared/src/dateUtils.ts
+- [x] 3. Extract date and investment logic into shared
+  - [x] 3.1 Extract dateUtils into shared/src/dateUtils.ts
     - Port `formatLocalDate`, `todayStr`, and `getEffectiveDate` verbatim from the client `dateUtils`; re-export from the barrel; make the client `dateUtils` re-export from `@financial-manager/shared`.
     - _Requirements: 3.1_
 
-  - [ ] 3.2 Extract the investment engine into shared/src/investments.ts
+  - [x] 3.2 Extract the investment engine into shared/src/investments.ts
     - Port `computeChannelSummary`, `ChannelSummary`, and `CASH_PATH_LABEL` verbatim; add `computeInvestmentSummaries`, `computeInvestmentTotals`, and `computeReturnOverTime`; re-export from the barrel; make the client `computeChannelSummary.ts` re-export from `@financial-manager/shared`.
     - _Requirements: 3.2, 4.3, 5.1, 5.2, 5.3, 5.4, 5.7, 5.8, 8.5_
 
-  - [ ]* 3.3 Write property test for cash-channel zero return
+  - [x] 3.3 Write property test for cash-channel zero return
     - **Property 2: Cash channel zero return**
     - **Validates: Requirements 4.1, 4.2**
     - For any cash channel with ≥1 value update, assert `returnAbsolute === 0`, `returnPercent === 0`, `currentValue === latestByDate(vals).value`, `totalDeposits === currentValue`, and `lastUpdated === latest date`.
 
-  - [ ]* 3.4 Write unit tests for cash-channel edge cases
+  - [x] 3.4 Write unit tests for cash-channel edge cases
     - Cash channel with no value updates returns a zeroed summary with `lastUpdated === null` (4.4); deposit/withdrawal rows are ignored for cash channels (4.3); last-updated equals latest value-update date (4.5).
     - _Requirements: 4.3, 4.4, 4.5_
 
-  - [ ]* 3.5 Write property test for same-date event ordering
+  - [x] 3.5 Write property test for same-date event ordering
     - **Property 3: Same-date ordering**
     - **Validates: Requirements 5.5, 5.6**
     - Assert a same-date deposit then value-update equal to the post-deposit balance yields `returnAbsolute === 0`, and that same-type same-date events preserve input relative order.
 
-  - [ ]* 3.6 Write unit tests for the event-sourcing engine math and dateUtils
+  - [x] 3.6 Write unit tests for the event-sourcing engine math and dateUtils
     - Deposit adds to balance + invested capital (5.2); withdrawal subtracts from both (5.3); value-update accumulates delta then overrides balance (5.4); `returnPercent` guards `investedCapital <= 0` → 0 (5.7); last-updated = most recent event date (5.8); empty-events channel → zeroed summary with null date (5.9); `formatLocalDate`/`todayStr` are timezone-safe and `getEffectiveDate` resolves linked vs own date (3.1).
     - _Requirements: 3.1, 5.2, 5.3, 5.4, 5.7, 5.8, 5.9_
 
 - [ ] 4. Extract expense inflation and all-expenses/payback logic into shared
-  - [ ] 4.1 Extract inflateFixedExpense and computeAllExpenses into shared/src/expenses.ts
+  - [~] 4.1 Extract inflateFixedExpense and computeAllExpenses into shared/src/expenses.ts
     - Port `inflateFixedExpense` (month generation, day clamping, synthetic `{fixedExpenseId}_{YYYY-MM-DD}` ids, end-date limit) and `computeAllExpenses` (merge + three-direction payback reduction + effective-date annotation + zero-amount filtering + date-DESC sort) verbatim; add `computeExpenseSummary`; re-export from the barrel.
     - _Requirements: 3.3, 6.1, 6.2, 6.3, 6.4, 6.5, 7.1, 7.2, 7.3, 7.4, 7.5, 7.6_
 
-  - [ ] 4.2 Refactor client to consume shared expense logic
+  - [~] 4.2 Refactor client to consume shared expense logic
     - Make `FixedExpensesContext` compute `inflatedExpenses` via `inflateFixedExpense` from `@financial-manager/shared`; refactor `ExpensesTablePage` and `ExpensesChartsPage` to call `computeAllExpenses` instead of the duplicated inline chain.
     - Verify `npm run build -w client` passes and the all-expenses table + charts render identical numbers.
     - _Requirements: 3.3, 3.6_
@@ -79,11 +79,11 @@ The implementation language is **TypeScript** (the design specifies concrete TS;
     - _Requirements: 7.3, 7.5, 7.6_
 
 - [ ] 5. Extract salary and investment-charts aggregations into shared
-  - [ ] 5.1 Extract salary aggregations into shared/src/salary.ts
+  - [~] 5.1 Extract salary aggregations into shared/src/salary.ts
     - Port `aggregateSalariesByMonth` (sum multiple employers per YYYY-MM, sorted ASC, no duplicate months) and `computeSalaryTotals` (totals, deductions, month count, averages, zero-month guard) verbatim; re-export from the barrel.
     - _Requirements: 3.4, 8.1, 8.2, 8.3, 8.4_
 
-  - [ ] 5.2 Refactor client charts pages to consume shared aggregations
+  - [~] 5.2 Refactor client charts pages to consume shared aggregations
     - Refactor `SalaryChartsPage` to use `aggregateSalariesByMonth` + `computeSalaryTotals`, and `InvestmentsChartsPage` to use `computeInvestmentSummaries` + `computeInvestmentTotals` + `computeReturnOverTime` from `@financial-manager/shared`.
     - Verify `npm run build -w client` passes and both charts pages render identical numbers.
     - _Requirements: 3.4, 3.6_
@@ -97,19 +97,19 @@ The implementation language is **TypeScript** (the design specifies concrete TS;
     - Multiple employers in one month summed into one aggregation (8.1); months sorted ASC with no duplicates (8.2); totals/deductions/averages computed correctly (8.3); zero-month guard avoids division and returns zeros (8.4).
     - _Requirements: 8.1, 8.2, 8.3, 8.4_
 
-- [ ] 6. Checkpoint - shared extraction complete
+- [~] 6. Checkpoint - shared extraction complete
   - Ensure all tests pass, ask the user if questions arise. Confirm `npm test -w shared` is green and `npm run build -w client` still succeeds before building the server.
 
 - [ ] 7. Scaffold mcp-server config and auth session
-  - [ ] 7.1 Create the mcp-server package skeleton
+  - [~] 7.1 Create the mcp-server package skeleton
     - Add `mcp-server/package.json` (`"type": "module"`, depends on `@modelcontextprotocol/sdk`, `@supabase/supabase-js`, `zod`, `dotenv`, workspace `@financial-manager/shared`; dev `vitest`), `mcp-server/tsconfig.json`, a `build` script, and `mcp-server/.gitignore` ignoring `.env`.
     - _Requirements: 2.1, 2.4, 10.9_
 
-  - [ ] 7.2 Implement config.ts with alias resolution and fail-fast validation
+  - [~] 7.2 Implement config.ts with alias resolution and fail-fast validation
     - Implement `loadConfig(env?)` resolving `SUPABASE_URL`, `SUPABASE_ANON_KEY`, email from `SUPABASE_USER_EMAIL` → `FINANCIAL_MANAGER_EMAIL`, password from `SUPABASE_USER_PASSWORD` → `FINANCIAL_MANAGER_PASSWORD`; load a git-ignored `.env` via dotenv without overriding existing env; treat unset/empty/whitespace as absent; throw naming accepted variable name(s); no hardcoded defaults.
     - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5, 10.6, 10.7, 15.1_
 
-  - [ ] 7.3 Implement auth/session.ts
+  - [~] 7.3 Implement auth/session.ts
     - Implement `createSession(config)`: create a Supabase client with the anon key only, `signInWithPassword` once, hold session in memory (no disk writes), rely on auto token refresh, expose `getClient()`; throw a credential-free error on missing credentials or auth failure; never reference the service-role key.
     - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5, 9.6, 9.7, 9.8, 9.9, 15.2_
 
@@ -123,15 +123,15 @@ The implementation language is **TypeScript** (the design specifies concrete TS;
     - _Requirements: 10.4, 10.7_
 
 - [ ] 8. Build data-access, service, and modular tool registry with first vertical slice
-  - [ ] 8.1 Implement the data-access layer pattern with the salaries reader
+  - [~] 8.1 Implement the data-access layer pattern with the salaries reader
     - Create `data/salaries.ts` with `fetchSalaries(client, filters)` applying `month` range, employer, order, and limit clauses; include the RLS isolation invariant comment (no `user_id` filter, no service-role client); return `shared/` `Salary[]`.
     - _Requirements: 11.1, 11.2, 11.3, 12.4, 12.11_
 
-  - [ ] 8.2 Define the tool descriptor types, registry, and server wiring
+  - [~] 8.2 Define the tool descriptor types, registry, and server wiring
     - Define `ToolContext` (`client`, `server`, both non-null) and `ToolDescriptor` (`name`, `description`, `inputSchema` zod, `annotations`, `handler`); create `tools/registry.ts` as the descriptor array; implement `index.ts` boot: `loadConfig` → `createSession` → construct `McpServer` → iterate the registry once registering each tool with `readOnlyHint: true` → connect `StdioServerTransport`; log readiness to stderr only; exit non-zero on config/auth/transport failure.
     - _Requirements: 1.1, 1.3, 1.5, 13.1, 13.2, 13.3, 13.4, 13.5, 14.1, 14.2, 14.3_
 
-  - [ ] 8.3 Implement the salary service and the first two tools end-to-end
+  - [~] 8.3 Implement the salary service and the first two tools end-to-end
     - Add `services/salary.ts` composing `fetchSalaries` with `aggregateSalariesByMonth` + `computeSalaryTotals`; implement `list_salaries` and `get_salary_summary` tool modules (zod filter schemas, date-range `from>to` rejection, limit 1–1000 default 100, empty-result success), register them, and shape results as JSON text content.
     - _Requirements: 1.2, 1.4, 11.4, 12.1, 12.2, 12.3, 12.4, 12.12, 15.3, 15.4, 15.5, 15.6_
 
@@ -144,15 +144,15 @@ The implementation language is **TypeScript** (the design specifies concrete TS;
     - **Validates: Requirements 14.1, 14.2, 14.3**
     - Boot the server and invoke a tool against mocked session/data; assert stdout contains only MCP protocol frames while all logs/errors go to stderr.
 
-- [ ] 9. Checkpoint - first tool slice working
+- [~] 9. Checkpoint - first tool slice working
   - Ensure all tests pass, ask the user if questions arise. Confirm `npm run build -w mcp-server` succeeds and the registry wiring is exercised.
 
 - [ ] 10. Implement remaining data readers and services
-  - [ ] 10.1 Implement the remaining entity data readers
+  - [~] 10.1 Implement the remaining entity data readers
     - Add `fetchExpenses`, `fetchFixedExpenses`, `fetchPaybacks`, `fetchChannels`, `fetchDeposits`, `fetchValueUpdates`, `fetchDropdownOptions` following the salaries pattern, each applying its design-specified filters as Supabase query clauses and repeating the RLS isolation invariant comment.
     - _Requirements: 11.1, 11.2, 11.3, 12.5, 12.6, 12.7, 12.8, 12.9, 12.11_
 
-  - [ ] 10.2 Implement the expense and investment services
+  - [~] 10.2 Implement the expense and investment services
     - Add `services/expenses.ts` (`computeAllExpenses` wiring deposits/inflation/paybacks/salaries; `computeExpenseSummary`) and `services/investments.ts` (`computeInvestmentSummaries`, `computeReturnOverTime` with `dateFrom`/`dateTo` returning all points in range), each composing the data readers with `@financial-manager/shared` computations.
     - _Requirements: 1.2, 11.4, 12.10_
 
@@ -161,11 +161,11 @@ The implementation language is **TypeScript** (the design specifies concrete TS;
     - _Requirements: 12.10, 15.5_
 
 - [ ] 11. Implement the remaining 11 read tools as registry modules
-  - [ ] 11.1 Implement the expense-domain tools
+  - [~] 11.1 Implement the expense-domain tools
     - `list_expenses`, `list_fixed_expenses`, `list_paybacks`, `list_all_expenses`, `get_expense_summary` — each its own module with zod filter schema (date-range `from>to` rejection, limit 1–1000 default 100 where applicable, direction/person/category/activeOn filters per design), `readOnlyHint: true`, service/data call, JSON text shaping; add all to the registry.
     - _Requirements: 1.2, 1.3, 12.1, 12.2, 12.3, 12.5, 12.6, 12.7, 12.11, 12.12, 15.3, 15.5_
 
-  - [ ] 11.2 Implement the investment-domain and dropdown tools
+  - [~] 11.2 Implement the investment-domain and dropdown tools
     - `list_investment_channels`, `list_investment_deposits`, `list_investment_value_updates`, `get_investment_summaries`, `get_investment_return_over_time`, `list_dropdown_options` — each its own module with zod filter schema (channel/depositor/withdrawal/pension/category/date-range filters per design, limit 1–1000 default 100 where applicable), `readOnlyHint: true`, service/data call, JSON text shaping; add all to the registry.
     - _Requirements: 1.2, 1.3, 12.1, 12.2, 12.3, 12.8, 12.9, 12.10, 12.11, 12.12, 15.3, 15.5_
 
@@ -174,15 +174,15 @@ The implementation language is **TypeScript** (the design specifies concrete TS;
     - _Requirements: 1.3, 12.3, 12.12, 13.2, 15.3, 15.5_
 
 - [ ] 12. Documentation, example config, and final verification
-  - [ ] 12.1 Write mcp-server docs and tracked example env
+  - [~] 12.1 Write mcp-server docs and tracked example env
     - Create `mcp-server/README.md` documenting every required config variable (with aliases), install command(s), and start command(s); create tracked `mcp-server/.env.example` listing every consumed variable with non-sensitive placeholders only; ensure the README variable set matches the `.env.example` set.
     - _Requirements: 16.1, 16.2, 16.3_
 
-  - [ ] 12.2 Update the root README and run final verification
+  - [~] 12.2 Update the root README and run final verification
     - Update the root `README.md` to reflect the monorepo structure, the new `shared/` and `mcp-server/` packages, the read-only MCP tool catalog, and the unchanged migration count (no new migration); run final verification: `npm test -w shared` green, `npm run build -w client` succeeds, `npm run build -w mcp-server` succeeds.
     - _Requirements: 16.4, 3.6, 3.7_
 
-- [ ] 13. Final checkpoint - ensure all tests pass
+- [~] 13. Final checkpoint - ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
 ## Notes
