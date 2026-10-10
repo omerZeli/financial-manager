@@ -1,5 +1,5 @@
-import type { InvestmentChannel, InvestmentDeposit, InvestmentValueUpdate } from './types'
-import { formatLocalDate, todayStr } from './dateUtils'
+import type { InvestmentChannel, InvestmentDeposit, InvestmentValueUpdate } from './types.js'
+import { formatLocalDate, todayStr } from './dateUtils.js'
 
 /** Hardcoded cash path label — used to identify cash/checking-account channels */
 export const CASH_PATH_LABEL = 'מזומן / עו"ש'

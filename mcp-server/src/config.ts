@@ -49,7 +49,9 @@ function loadDotenvIfPresent(): void {
   // `mcp-server/dist`. Either way the `.env` sits one directory up.
   const envPath = resolve(here, '..', '.env');
   // dotenv silently ignores a missing file (result.error is set but no throw).
-  loadDotenv({ path: envPath, override: false });
+  // quiet: true suppresses dotenv v17's startup banner, which it writes to
+  // STDOUT - that would corrupt the MCP JSON-RPC stream (stdout purity, 14.x).
+  loadDotenv({ path: envPath, override: false, quiet: true });
 }
 
 /**

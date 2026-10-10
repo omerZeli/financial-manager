@@ -1,4 +1,4 @@
-import type { Salary } from './types'
+import type { Salary } from './types.js'
 
 /** A single month's aggregated salary (bruto/neto summed across employers). */
 export interface MonthlySalary {

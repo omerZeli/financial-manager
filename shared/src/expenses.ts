@@ -1,5 +1,5 @@
-import type { Expense, FixedExpense, Payback, Salary } from './types'
-import { formatLocalDate, todayStr, getEffectiveDate } from './dateUtils'
+import type { Expense, FixedExpense, Payback, Salary } from './types.js'
+import { formatLocalDate, todayStr, getEffectiveDate } from './dateUtils.js'
 
 /**
  * Expand a fixed expense into one virtual {@link Expense} per month from its
