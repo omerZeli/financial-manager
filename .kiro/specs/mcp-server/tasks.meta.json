@@ -336,6 +336,16 @@
         "executionId": "71b0eb76-3003-4743-b9cf-ad13de86fb5f",
         "chatSessionId": "sess_f9460dff-5cb0-44e3-b923-031f38f5d6a8",
         "timestamp": 1791553955642
+      },
+      {
+        "executionId": "d2fece7e-6671-4389-a797-ac71ffb01c2d",
+        "chatSessionId": "sess_fd4f2fc6-e261-45eb-b48a-7ac42f0c77d4",
+        "timestamp": 1791624811493
+      },
+      {
+        "executionId": "d2fece7e-6671-4389-a797-ac71ffb01c2d",
+        "chatSessionId": "sess_fd4f2fc6-e261-45eb-b48a-7ac42f0c77d4",
+        "timestamp": 1791624937806
       }
     ],
     "10.2 Implement the expense and investment services": [
@@ -343,6 +353,16 @@
         "executionId": "71b0eb76-3003-4743-b9cf-ad13de86fb5f",
         "chatSessionId": "sess_f9460dff-5cb0-44e3-b923-031f38f5d6a8",
         "timestamp": 1791553955694
+      },
+      {
+        "executionId": "d2fece7e-6671-4389-a797-ac71ffb01c2d",
+        "chatSessionId": "sess_fd4f2fc6-e261-45eb-b48a-7ac42f0c77d4",
+        "timestamp": 1791624941109
+      },
+      {
+        "executionId": "d2fece7e-6671-4389-a797-ac71ffb01c2d",
+        "chatSessionId": "sess_fd4f2fc6-e261-45eb-b48a-7ac42f0c77d4",
+        "timestamp": 1791625050576
       }
     ],
     "11.1 Implement the expense-domain tools": [
@@ -350,6 +370,16 @@
         "executionId": "71b0eb76-3003-4743-b9cf-ad13de86fb5f",
         "chatSessionId": "sess_f9460dff-5cb0-44e3-b923-031f38f5d6a8",
         "timestamp": 1791553955742
+      },
+      {
+        "executionId": "d2fece7e-6671-4389-a797-ac71ffb01c2d",
+        "chatSessionId": "sess_fd4f2fc6-e261-45eb-b48a-7ac42f0c77d4",
+        "timestamp": 1791625055634
+      },
+      {
+        "executionId": "d2fece7e-6671-4389-a797-ac71ffb01c2d",
+        "chatSessionId": "sess_fd4f2fc6-e261-45eb-b48a-7ac42f0c77d4",
+        "timestamp": 1791625234060
       }
     ],
     "11.2 Implement the investment-domain and dropdown tools": [
@@ -357,6 +387,16 @@
         "executionId": "71b0eb76-3003-4743-b9cf-ad13de86fb5f",
         "chatSessionId": "sess_f9460dff-5cb0-44e3-b923-031f38f5d6a8",
         "timestamp": 1791553955792
+      },
+      {
+        "executionId": "d2fece7e-6671-4389-a797-ac71ffb01c2d",
+        "chatSessionId": "sess_fd4f2fc6-e261-45eb-b48a-7ac42f0c77d4",
+        "timestamp": 1791625056832
+      },
+      {
+        "executionId": "d2fece7e-6671-4389-a797-ac71ffb01c2d",
+        "chatSessionId": "sess_fd4f2fc6-e261-45eb-b48a-7ac42f0c77d4",
+        "timestamp": 1791625235866
       }
     ],
     "12.1 Write mcp-server docs and tracked example env": [
@@ -364,6 +404,16 @@
         "executionId": "71b0eb76-3003-4743-b9cf-ad13de86fb5f",
         "chatSessionId": "sess_f9460dff-5cb0-44e3-b923-031f38f5d6a8",
         "timestamp": 1791553955842
+      },
+      {
+        "executionId": "d2fece7e-6671-4389-a797-ac71ffb01c2d",
+        "chatSessionId": "sess_fd4f2fc6-e261-45eb-b48a-7ac42f0c77d4",
+        "timestamp": 1791625241126
+      },
+      {
+        "executionId": "d2fece7e-6671-4389-a797-ac71ffb01c2d",
+        "chatSessionId": "sess_fd4f2fc6-e261-45eb-b48a-7ac42f0c77d4",
+        "timestamp": 1791625442352
       }
     ],
     "12.2 Update the root README and run final verification": [
@@ -371,6 +421,16 @@
         "executionId": "71b0eb76-3003-4743-b9cf-ad13de86fb5f",
         "chatSessionId": "sess_f9460dff-5cb0-44e3-b923-031f38f5d6a8",
         "timestamp": 1791553955893
+      },
+      {
+        "executionId": "d2fece7e-6671-4389-a797-ac71ffb01c2d",
+        "chatSessionId": "sess_fd4f2fc6-e261-45eb-b48a-7ac42f0c77d4",
+        "timestamp": 1791625447008
+      },
+      {
+        "executionId": "d2fece7e-6671-4389-a797-ac71ffb01c2d",
+        "chatSessionId": "sess_fd4f2fc6-e261-45eb-b48a-7ac42f0c77d4",
+        "timestamp": 1791625569378
       }
     ],
     "13. Final checkpoint - ensure all tests pass": [
@@ -378,6 +438,11 @@
         "executionId": "71b0eb76-3003-4743-b9cf-ad13de86fb5f",
         "chatSessionId": "sess_f9460dff-5cb0-44e3-b923-031f38f5d6a8",
         "timestamp": 1791553955942
+      },
+      {
+        "executionId": "d2fece7e-6671-4389-a797-ac71ffb01c2d",
+        "chatSessionId": "sess_fd4f2fc6-e261-45eb-b48a-7ac42f0c77d4",
+        "timestamp": 1791625573299
       }
     ],
     "3. Extract date and investment logic into shared": [
@@ -531,6 +596,56 @@
         "executionId": "7280a697-b060-4456-af8e-4a9d15e82ef8",
         "chatSessionId": "sess_801336e5-3ecd-4f97-9c4d-5549f10d92b1",
         "timestamp": 1791624059328
+      }
+    ],
+    "10.3 Write unit tests for the expense and investment services": [
+      {
+        "executionId": "d2fece7e-6671-4389-a797-ac71ffb01c2d",
+        "chatSessionId": "sess_fd4f2fc6-e261-45eb-b48a-7ac42f0c77d4",
+        "timestamp": 1791624804489
+      },
+      {
+        "executionId": "d2fece7e-6671-4389-a797-ac71ffb01c2d",
+        "chatSessionId": "sess_fd4f2fc6-e261-45eb-b48a-7ac42f0c77d4",
+        "timestamp": 1791625054799
+      },
+      {
+        "executionId": "d2fece7e-6671-4389-a797-ac71ffb01c2d",
+        "chatSessionId": "sess_fd4f2fc6-e261-45eb-b48a-7ac42f0c77d4",
+        "timestamp": 1791625234755
+      }
+    ],
+    "11.3 Write schema and shaping tests for all remaining tools": [
+      {
+        "executionId": "d2fece7e-6671-4389-a797-ac71ffb01c2d",
+        "chatSessionId": "sess_fd4f2fc6-e261-45eb-b48a-7ac42f0c77d4",
+        "timestamp": 1791624804593
+      },
+      {
+        "executionId": "d2fece7e-6671-4389-a797-ac71ffb01c2d",
+        "chatSessionId": "sess_fd4f2fc6-e261-45eb-b48a-7ac42f0c77d4",
+        "timestamp": 1791625240186
+      }
+    ],
+    "10. Implement remaining data readers and services": [
+      {
+        "executionId": "d2fece7e-6671-4389-a797-ac71ffb01c2d",
+        "chatSessionId": "sess_fd4f2fc6-e261-45eb-b48a-7ac42f0c77d4",
+        "timestamp": 1791625235310
+      }
+    ],
+    "12. Documentation, example config, and final verification": [
+      {
+        "executionId": "d2fece7e-6671-4389-a797-ac71ffb01c2d",
+        "chatSessionId": "sess_fd4f2fc6-e261-45eb-b48a-7ac42f0c77d4",
+        "timestamp": 1791625569519
+      }
+    ],
+    "11. Implement the remaining 11 read tools as registry modules": [
+      {
+        "executionId": "d2fece7e-6671-4389-a797-ac71ffb01c2d",
+        "chatSessionId": "sess_fd4f2fc6-e261-45eb-b48a-7ac42f0c77d4",
+        "timestamp": 1791625582520
       }
     ]
   }

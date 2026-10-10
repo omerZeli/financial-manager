@@ -24,9 +24,35 @@
 import type { ToolDescriptor } from './types.js';
 import { listSalariesTool } from './listSalaries.js';
 import { getSalarySummaryTool } from './getSalarySummary.js';
+// Task 11.2: investment-domain and dropdown tools.
+import { listInvestmentChannelsTool } from './listInvestmentChannels.js';
+import { listInvestmentDepositsTool } from './listInvestmentDeposits.js';
+import { listInvestmentValueUpdatesTool } from './listInvestmentValueUpdates.js';
+import { getInvestmentSummariesTool } from './getInvestmentSummaries.js';
+import { getInvestmentReturnOverTimeTool } from './getInvestmentReturnOverTime.js';
+import { listDropdownOptionsTool } from './listDropdownOptions.js';
+// Task 11.1 - expense-domain tools.
+import { listExpensesTool } from './listExpenses.js';
+import { listFixedExpensesTool } from './listFixedExpenses.js';
+import { listPaybacksTool } from './listPaybacks.js';
+import { listAllExpensesTool } from './listAllExpenses.js';
+import { getExpenseSummaryTool } from './getExpenseSummary.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const toolRegistry: ToolDescriptor<any>[] = [
   listSalariesTool,
   getSalarySummaryTool,
+  // Task 11.1 - expense-domain tools.
+  listExpensesTool,
+  listFixedExpensesTool,
+  listPaybacksTool,
+  listAllExpensesTool,
+  getExpenseSummaryTool,
+  // Task 11.2: investment-domain and dropdown tools.
+  listInvestmentChannelsTool,
+  listInvestmentDepositsTool,
+  listInvestmentValueUpdatesTool,
+  getInvestmentSummariesTool,
+  getInvestmentReturnOverTimeTool,
+  listDropdownOptionsTool,
 ];

@@ -14,19 +14,38 @@ import type { ToolDescriptor } from '../tools/types';
 //     `annotations.readOnlyHint === true`; malformed entries (duplicate names,
 //     missing fields, non-read-only) are REJECTED by `validateRegistry`.
 //
-// `toolRegistry` currently holds exactly two salary tools. The remaining read
-// tools are added in task 11.
-const EXPECTED_ENTRY_COUNT = 2;
+// `toolRegistry` holds the full v1 read-only catalog: the 13 tools listed in
+// requirement 12.1. Task 11 added the 11 non-salary tools to the two salary
+// tools from task 8.
+const EXPECTED_ENTRY_COUNT = 13;
+
+// The complete v1 catalog (requirement 12.1), in no particular order.
+const EXPECTED_TOOL_NAMES = [
+  'list_salaries',
+  'get_salary_summary',
+  'list_expenses',
+  'list_fixed_expenses',
+  'list_paybacks',
+  'list_all_expenses',
+  'get_expense_summary',
+  'list_investment_channels',
+  'list_investment_deposits',
+  'list_investment_value_updates',
+  'get_investment_summaries',
+  'get_investment_return_over_time',
+  'list_dropdown_options',
+];
 
 describe('toolRegistry invariants (13.2, 13.3)', () => {
-  it(`holds exactly ${EXPECTED_ENTRY_COUNT} descriptors`, () => {
+  it(`holds exactly ${EXPECTED_ENTRY_COUNT} descriptors (full v1 catalog) (13.2)`, () => {
     expect(toolRegistry).toHaveLength(EXPECTED_ENTRY_COUNT);
   });
 
-  it('includes the two salary tools by name', () => {
+  it('includes every v1 catalog tool by name (12.1)', () => {
     const names = toolRegistry.map((d) => d.name);
-    expect(names).toContain('list_salaries');
-    expect(names).toContain('get_salary_summary');
+    for (const expected of EXPECTED_TOOL_NAMES) {
+      expect(names).toContain(expected);
+    }
   });
 
   it('every tool name is unique -> registered count equals entry count (13.2)', () => {

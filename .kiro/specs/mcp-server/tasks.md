@@ -147,42 +147,42 @@ The implementation language is **TypeScript** (the design specifies concrete TS;
 - [x] 9. Checkpoint - first tool slice working
   - Ensure all tests pass, ask the user if questions arise. Confirm `npm run build -w mcp-server` succeeds and the registry wiring is exercised.
 
-- [ ] 10. Implement remaining data readers and services
-  - [~] 10.1 Implement the remaining entity data readers
+- [x] 10. Implement remaining data readers and services
+  - [x] 10.1 Implement the remaining entity data readers
     - Add `fetchExpenses`, `fetchFixedExpenses`, `fetchPaybacks`, `fetchChannels`, `fetchDeposits`, `fetchValueUpdates`, `fetchDropdownOptions` following the salaries pattern, each applying its design-specified filters as Supabase query clauses and repeating the RLS isolation invariant comment.
     - _Requirements: 11.1, 11.2, 11.3, 12.5, 12.6, 12.7, 12.8, 12.9, 12.11_
 
-  - [~] 10.2 Implement the expense and investment services
+  - [x] 10.2 Implement the expense and investment services
     - Add `services/expenses.ts` (`computeAllExpenses` wiring deposits/inflation/paybacks/salaries; `computeExpenseSummary`) and `services/investments.ts` (`computeInvestmentSummaries`, `computeReturnOverTime` with `dateFrom`/`dateTo` returning all points in range), each composing the data readers with `@financial-manager/shared` computations.
     - _Requirements: 1.2, 11.4, 12.10_
 
-  - [ ]* 10.3 Write unit tests for the expense and investment services
+  - [x] 10.3 Write unit tests for the expense and investment services
     - Service composition and filter pass-through against mocked data-access; `get_investment_return_over_time` returns all computed points within the requested range (12.10); zero-row cases return successful empty structures (15.5).
     - _Requirements: 12.10, 15.5_
 
-- [ ] 11. Implement the remaining 11 read tools as registry modules
-  - [~] 11.1 Implement the expense-domain tools
+- [x] 11. Implement the remaining 11 read tools as registry modules
+  - [x] 11.1 Implement the expense-domain tools
     - `list_expenses`, `list_fixed_expenses`, `list_paybacks`, `list_all_expenses`, `get_expense_summary` — each its own module with zod filter schema (date-range `from>to` rejection, limit 1–1000 default 100 where applicable, direction/person/category/activeOn filters per design), `readOnlyHint: true`, service/data call, JSON text shaping; add all to the registry.
     - _Requirements: 1.2, 1.3, 12.1, 12.2, 12.3, 12.5, 12.6, 12.7, 12.11, 12.12, 15.3, 15.5_
 
-  - [~] 11.2 Implement the investment-domain and dropdown tools
+  - [x] 11.2 Implement the investment-domain and dropdown tools
     - `list_investment_channels`, `list_investment_deposits`, `list_investment_value_updates`, `get_investment_summaries`, `get_investment_return_over_time`, `list_dropdown_options` — each its own module with zod filter schema (channel/depositor/withdrawal/pension/category/date-range filters per design, limit 1–1000 default 100 where applicable), `readOnlyHint: true`, service/data call, JSON text shaping; add all to the registry.
     - _Requirements: 1.2, 1.3, 12.1, 12.2, 12.3, 12.8, 12.9, 12.10, 12.11, 12.12, 15.3, 15.5_
 
-  - [ ]* 11.3 Write schema and shaping tests for all remaining tools
+  - [x] 11.3 Write schema and shaping tests for all remaining tools
     - For each tool: valid-args parse, invalid-args rejection naming the failing field (12.3, 15.3), `from>to` rejection where date ranges apply (12.12), and zero-row success structure (15.5); confirm every registered tool has `readOnlyHint: true` and the registry count equals the 13-entry catalog (1.3, 13.2).
     - _Requirements: 1.3, 12.3, 12.12, 13.2, 15.3, 15.5_
 
-- [ ] 12. Documentation, example config, and final verification
-  - [~] 12.1 Write mcp-server docs and tracked example env
+- [x] 12. Documentation, example config, and final verification
+  - [x] 12.1 Write mcp-server docs and tracked example env
     - Create `mcp-server/README.md` documenting every required config variable (with aliases), install command(s), and start command(s); create tracked `mcp-server/.env.example` listing every consumed variable with non-sensitive placeholders only; ensure the README variable set matches the `.env.example` set.
     - _Requirements: 16.1, 16.2, 16.3_
 
-  - [~] 12.2 Update the root README and run final verification
+  - [x] 12.2 Update the root README and run final verification
     - Update the root `README.md` to reflect the monorepo structure, the new `shared/` and `mcp-server/` packages, the read-only MCP tool catalog, and the unchanged migration count (no new migration); run final verification: `npm test -w shared` green, `npm run build -w client` succeeds, `npm run build -w mcp-server` succeeds.
     - _Requirements: 16.4, 3.6, 3.7_
 
-- [~] 13. Final checkpoint - ensure all tests pass
+- [x] 13. Final checkpoint - ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
 ## Notes
