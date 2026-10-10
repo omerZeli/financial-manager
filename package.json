@@ -6,5 +6,8 @@
     "client",
     "shared",
     "mcp-server"
-  ]
+  ],
+  "allowScripts": {
+    "esbuild@0.28.2": true
+  }
 }
