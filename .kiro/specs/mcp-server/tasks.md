@@ -122,29 +122,29 @@ The implementation language is **TypeScript** (the design specifies concrete TS;
     - `.env` present loads values without overriding already-set env (10.4); `.env` absent does not fail (10.4); no hardcoded URL/anon-key/credential defaults are returned (10.7).
     - _Requirements: 10.4, 10.7_
 
-- [ ] 8. Build data-access, service, and modular tool registry with first vertical slice
-  - [~] 8.1 Implement the data-access layer pattern with the salaries reader
+- [x] 8. Build data-access, service, and modular tool registry with first vertical slice
+  - [x] 8.1 Implement the data-access layer pattern with the salaries reader
     - Create `data/salaries.ts` with `fetchSalaries(client, filters)` applying `month` range, employer, order, and limit clauses; include the RLS isolation invariant comment (no `user_id` filter, no service-role client); return `shared/` `Salary[]`.
     - _Requirements: 11.1, 11.2, 11.3, 12.4, 12.11_
 
-  - [~] 8.2 Define the tool descriptor types, registry, and server wiring
+  - [x] 8.2 Define the tool descriptor types, registry, and server wiring
     - Define `ToolContext` (`client`, `server`, both non-null) and `ToolDescriptor` (`name`, `description`, `inputSchema` zod, `annotations`, `handler`); create `tools/registry.ts` as the descriptor array; implement `index.ts` boot: `loadConfig` → `createSession` → construct `McpServer` → iterate the registry once registering each tool with `readOnlyHint: true` → connect `StdioServerTransport`; log readiness to stderr only; exit non-zero on config/auth/transport failure.
     - _Requirements: 1.1, 1.3, 1.5, 13.1, 13.2, 13.3, 13.4, 13.5, 14.1, 14.2, 14.3_
 
-  - [~] 8.3 Implement the salary service and the first two tools end-to-end
+  - [x] 8.3 Implement the salary service and the first two tools end-to-end
     - Add `services/salary.ts` composing `fetchSalaries` with `aggregateSalariesByMonth` + `computeSalaryTotals`; implement `list_salaries` and `get_salary_summary` tool modules (zod filter schemas, date-range `from>to` rejection, limit 1–1000 default 100, empty-result success), register them, and shape results as JSON text content.
     - _Requirements: 1.2, 1.4, 11.4, 12.1, 12.2, 12.3, 12.4, 12.12, 15.3, 15.4, 15.5, 15.6_
 
-  - [ ]* 8.4 Write unit tests for the salary service, schemas, and registry
+  - [x] 8.4 Write unit tests for the salary service, schemas, and registry
     - Service shaping against mocked data-access; zod schema accepts valid and rejects invalid args naming the failing field (12.3, 15.3); `from>to` date range rejected (12.12); registry iterated once with registered count equal to entry count and duplicate/missing-field entries rejected (13.2, 13.3); zero rows → successful empty structure (15.5).
     - _Requirements: 12.3, 12.12, 13.2, 13.3, 15.3, 15.5_
 
-  - [ ]* 8.5 Write property test for stdout purity
+  - [x] 8.5 Write property test for stdout purity
     - **Property 8: stdout purity**
     - **Validates: Requirements 14.1, 14.2, 14.3**
     - Boot the server and invoke a tool against mocked session/data; assert stdout contains only MCP protocol frames while all logs/errors go to stderr.
 
-- [~] 9. Checkpoint - first tool slice working
+- [x] 9. Checkpoint - first tool slice working
   - Ensure all tests pass, ask the user if questions arise. Confirm `npm run build -w mcp-server` succeeds and the registry wiring is exercised.
 
 - [ ] 10. Implement remaining data readers and services

@@ -268,6 +268,16 @@
         "executionId": "71b0eb76-3003-4743-b9cf-ad13de86fb5f",
         "chatSessionId": "sess_f9460dff-5cb0-44e3-b923-031f38f5d6a8",
         "timestamp": 1791553955360
+      },
+      {
+        "executionId": "7280a697-b060-4456-af8e-4a9d15e82ef8",
+        "chatSessionId": "sess_801336e5-3ecd-4f97-9c4d-5549f10d92b1",
+        "timestamp": 1791623436978
+      },
+      {
+        "executionId": "7280a697-b060-4456-af8e-4a9d15e82ef8",
+        "chatSessionId": "sess_801336e5-3ecd-4f97-9c4d-5549f10d92b1",
+        "timestamp": 1791623599418
       }
     ],
     "8.2 Define the tool descriptor types, registry, and server wiring": [
@@ -275,6 +285,16 @@
         "executionId": "71b0eb76-3003-4743-b9cf-ad13de86fb5f",
         "chatSessionId": "sess_f9460dff-5cb0-44e3-b923-031f38f5d6a8",
         "timestamp": 1791553955482
+      },
+      {
+        "executionId": "7280a697-b060-4456-af8e-4a9d15e82ef8",
+        "chatSessionId": "sess_801336e5-3ecd-4f97-9c4d-5549f10d92b1",
+        "timestamp": 1791623438037
+      },
+      {
+        "executionId": "7280a697-b060-4456-af8e-4a9d15e82ef8",
+        "chatSessionId": "sess_801336e5-3ecd-4f97-9c4d-5549f10d92b1",
+        "timestamp": 1791623600431
       }
     ],
     "8.3 Implement the salary service and the first two tools end-to-end": [
@@ -282,6 +302,16 @@
         "executionId": "71b0eb76-3003-4743-b9cf-ad13de86fb5f",
         "chatSessionId": "sess_f9460dff-5cb0-44e3-b923-031f38f5d6a8",
         "timestamp": 1791553955542
+      },
+      {
+        "executionId": "7280a697-b060-4456-af8e-4a9d15e82ef8",
+        "chatSessionId": "sess_801336e5-3ecd-4f97-9c4d-5549f10d92b1",
+        "timestamp": 1791623604937
+      },
+      {
+        "executionId": "7280a697-b060-4456-af8e-4a9d15e82ef8",
+        "chatSessionId": "sess_801336e5-3ecd-4f97-9c4d-5549f10d92b1",
+        "timestamp": 1791623774632
       }
     ],
     "9. Checkpoint - first tool slice working": [
@@ -289,6 +319,16 @@
         "executionId": "71b0eb76-3003-4743-b9cf-ad13de86fb5f",
         "chatSessionId": "sess_f9460dff-5cb0-44e3-b923-031f38f5d6a8",
         "timestamp": 1791553955593
+      },
+      {
+        "executionId": "7280a697-b060-4456-af8e-4a9d15e82ef8",
+        "chatSessionId": "sess_801336e5-3ecd-4f97-9c4d-5549f10d92b1",
+        "timestamp": 1791624064265
+      },
+      {
+        "executionId": "7280a697-b060-4456-af8e-4a9d15e82ef8",
+        "chatSessionId": "sess_801336e5-3ecd-4f97-9c4d-5549f10d92b1",
+        "timestamp": 1791624082023
       }
     ],
     "10.1 Implement the remaining entity data readers": [
@@ -450,6 +490,47 @@
         "executionId": "159c2c88-6762-443a-b04b-2038f3143be1",
         "chatSessionId": "sess_801336e5-3ecd-4f97-9c4d-5549f10d92b1",
         "timestamp": 1791622391976
+      }
+    ],
+    "8.4 Write unit tests for the salary service, schemas, and registry": [
+      {
+        "executionId": "7280a697-b060-4456-af8e-4a9d15e82ef8",
+        "chatSessionId": "sess_801336e5-3ecd-4f97-9c4d-5549f10d92b1",
+        "timestamp": 1791623431623
+      },
+      {
+        "executionId": "7280a697-b060-4456-af8e-4a9d15e82ef8",
+        "chatSessionId": "sess_801336e5-3ecd-4f97-9c4d-5549f10d92b1",
+        "timestamp": 1791623778976
+      },
+      {
+        "executionId": "7280a697-b060-4456-af8e-4a9d15e82ef8",
+        "chatSessionId": "sess_801336e5-3ecd-4f97-9c4d-5549f10d92b1",
+        "timestamp": 1791624059264
+      }
+    ],
+    "8.5 Write property test for stdout purity": [
+      {
+        "executionId": "7280a697-b060-4456-af8e-4a9d15e82ef8",
+        "chatSessionId": "sess_801336e5-3ecd-4f97-9c4d-5549f10d92b1",
+        "timestamp": 1791623432038
+      },
+      {
+        "executionId": "7280a697-b060-4456-af8e-4a9d15e82ef8",
+        "chatSessionId": "sess_801336e5-3ecd-4f97-9c4d-5549f10d92b1",
+        "timestamp": 1791623780109
+      },
+      {
+        "executionId": "7280a697-b060-4456-af8e-4a9d15e82ef8",
+        "chatSessionId": "sess_801336e5-3ecd-4f97-9c4d-5549f10d92b1",
+        "timestamp": 1791624058544
+      }
+    ],
+    "8. Build data-access, service, and modular tool registry with first vertical slice": [
+      {
+        "executionId": "7280a697-b060-4456-af8e-4a9d15e82ef8",
+        "chatSessionId": "sess_801336e5-3ecd-4f97-9c4d-5549f10d92b1",
+        "timestamp": 1791624059328
       }
     ]
   }
