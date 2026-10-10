@@ -217,6 +217,16 @@
         "executionId": "71b0eb76-3003-4743-b9cf-ad13de86fb5f",
         "chatSessionId": "sess_f9460dff-5cb0-44e3-b923-031f38f5d6a8",
         "timestamp": 1791553955180
+      },
+      {
+        "executionId": "159c2c88-6762-443a-b04b-2038f3143be1",
+        "chatSessionId": "sess_801336e5-3ecd-4f97-9c4d-5549f10d92b1",
+        "timestamp": 1791622030501
+      },
+      {
+        "executionId": "159c2c88-6762-443a-b04b-2038f3143be1",
+        "chatSessionId": "sess_801336e5-3ecd-4f97-9c4d-5549f10d92b1",
+        "timestamp": 1791622145901
       }
     ],
     "7.2 Implement config.ts with alias resolution and fail-fast validation": [
@@ -224,6 +234,16 @@
         "executionId": "71b0eb76-3003-4743-b9cf-ad13de86fb5f",
         "chatSessionId": "sess_f9460dff-5cb0-44e3-b923-031f38f5d6a8",
         "timestamp": 1791553955241
+      },
+      {
+        "executionId": "159c2c88-6762-443a-b04b-2038f3143be1",
+        "chatSessionId": "sess_801336e5-3ecd-4f97-9c4d-5549f10d92b1",
+        "timestamp": 1791622149952
+      },
+      {
+        "executionId": "159c2c88-6762-443a-b04b-2038f3143be1",
+        "chatSessionId": "sess_801336e5-3ecd-4f97-9c4d-5549f10d92b1",
+        "timestamp": 1791622248546
       }
     ],
     "7.3 Implement auth/session.ts": [
@@ -231,6 +251,16 @@
         "executionId": "71b0eb76-3003-4743-b9cf-ad13de86fb5f",
         "chatSessionId": "sess_f9460dff-5cb0-44e3-b923-031f38f5d6a8",
         "timestamp": 1791553955295
+      },
+      {
+        "executionId": "159c2c88-6762-443a-b04b-2038f3143be1",
+        "chatSessionId": "sess_801336e5-3ecd-4f97-9c4d-5549f10d92b1",
+        "timestamp": 1791622150561
+      },
+      {
+        "executionId": "159c2c88-6762-443a-b04b-2038f3143be1",
+        "chatSessionId": "sess_801336e5-3ecd-4f97-9c4d-5549f10d92b1",
+        "timestamp": 1791622249527
       }
     ],
     "8.1 Implement the data-access layer pattern with the salaries reader": [
@@ -389,6 +419,37 @@
         "executionId": "412a75d4-1d98-444a-9683-833f6da47bab",
         "chatSessionId": "sess_9f5846ab-7260-475d-a5fd-7d3a9bff4715",
         "timestamp": 1791556005074
+      }
+    ],
+    "7.4 Write property test for config aliases and fail-fast": [
+      {
+        "executionId": "159c2c88-6762-443a-b04b-2038f3143be1",
+        "chatSessionId": "sess_801336e5-3ecd-4f97-9c4d-5549f10d92b1",
+        "timestamp": 1791622258433
+      },
+      {
+        "executionId": "159c2c88-6762-443a-b04b-2038f3143be1",
+        "chatSessionId": "sess_801336e5-3ecd-4f97-9c4d-5549f10d92b1",
+        "timestamp": 1791622390868
+      }
+    ],
+    "7.5 Write unit tests for config dotenv behavior": [
+      {
+        "executionId": "159c2c88-6762-443a-b04b-2038f3143be1",
+        "chatSessionId": "sess_801336e5-3ecd-4f97-9c4d-5549f10d92b1",
+        "timestamp": 1791622259594
+      },
+      {
+        "executionId": "159c2c88-6762-443a-b04b-2038f3143be1",
+        "chatSessionId": "sess_801336e5-3ecd-4f97-9c4d-5549f10d92b1",
+        "timestamp": 1791622391707
+      }
+    ],
+    "7. Scaffold mcp-server config and auth session": [
+      {
+        "executionId": "159c2c88-6762-443a-b04b-2038f3143be1",
+        "chatSessionId": "sess_801336e5-3ecd-4f97-9c4d-5549f10d92b1",
+        "timestamp": 1791622391976
       }
     ]
   }

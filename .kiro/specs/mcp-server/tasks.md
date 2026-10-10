@@ -100,25 +100,25 @@ The implementation language is **TypeScript** (the design specifies concrete TS;
 - [x] 6. Checkpoint - shared extraction complete
   - Ensure all tests pass, ask the user if questions arise. Confirm `npm test -w shared` is green and `npm run build -w client` still succeeds before building the server.
 
-- [ ] 7. Scaffold mcp-server config and auth session
-  - [~] 7.1 Create the mcp-server package skeleton
+- [x] 7. Scaffold mcp-server config and auth session
+  - [x] 7.1 Create the mcp-server package skeleton
     - Add `mcp-server/package.json` (`"type": "module"`, depends on `@modelcontextprotocol/sdk`, `@supabase/supabase-js`, `zod`, `dotenv`, workspace `@financial-manager/shared`; dev `vitest`), `mcp-server/tsconfig.json`, a `build` script, and `mcp-server/.gitignore` ignoring `.env`.
     - _Requirements: 2.1, 2.4, 10.9_
 
-  - [~] 7.2 Implement config.ts with alias resolution and fail-fast validation
+  - [x] 7.2 Implement config.ts with alias resolution and fail-fast validation
     - Implement `loadConfig(env?)` resolving `SUPABASE_URL`, `SUPABASE_ANON_KEY`, email from `SUPABASE_USER_EMAIL` → `FINANCIAL_MANAGER_EMAIL`, password from `SUPABASE_USER_PASSWORD` → `FINANCIAL_MANAGER_PASSWORD`; load a git-ignored `.env` via dotenv without overriding existing env; treat unset/empty/whitespace as absent; throw naming accepted variable name(s); no hardcoded defaults.
     - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5, 10.6, 10.7, 15.1_
 
-  - [~] 7.3 Implement auth/session.ts
+  - [x] 7.3 Implement auth/session.ts
     - Implement `createSession(config)`: create a Supabase client with the anon key only, `signInWithPassword` once, hold session in memory (no disk writes), rely on auto token refresh, expose `getClient()`; throw a credential-free error on missing credentials or auth failure; never reference the service-role key.
     - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5, 9.6, 9.7, 9.8, 9.9, 15.2_
 
-  - [ ]* 7.4 Write property test for config aliases and fail-fast
+  - [x] 7.4 Write property test for config aliases and fail-fast
     - **Property 7: Config aliases + fail-fast**
     - **Validates: Requirements 10.2, 10.3, 10.6**
     - With mocked env (no real credentials): both-set prefers the primary name for email and password (10.2, 10.3); each missing required value throws naming all accepted names (10.6); whitespace-only treated as absent (10.5).
 
-  - [ ]* 7.5 Write unit tests for config dotenv behavior
+  - [x] 7.5 Write unit tests for config dotenv behavior
     - `.env` present loads values without overriding already-set env (10.4); `.env` absent does not fail (10.4); no hardcoded URL/anon-key/credential defaults are returned (10.7).
     - _Requirements: 10.4, 10.7_
 
