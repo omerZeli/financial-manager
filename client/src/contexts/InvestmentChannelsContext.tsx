@@ -1,16 +1,9 @@
 import { createContext, useContext, useState, useCallback, type ReactNode } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from './AuthContext'
+import type { InvestmentChannel } from '@financial-manager/shared'
 
-export interface InvestmentChannel {
-  id: string
-  user_id: string
-  name: string
-  company: string
-  investment_path: string
-  is_pension: boolean
-  created_at: string
-}
+export type { InvestmentChannel }
 
 interface InvestmentChannelsContextType {
   channels: InvestmentChannel[]

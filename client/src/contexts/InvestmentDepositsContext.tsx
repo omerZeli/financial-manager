@@ -1,18 +1,9 @@
 import { createContext, useContext, useState, useCallback, type ReactNode } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from './AuthContext'
+import type { InvestmentDeposit } from '@financial-manager/shared'
 
-export interface InvestmentDeposit {
-  id: string
-  user_id: string
-  channel_id: string
-  amount: number
-  date: string
-  depositor: string
-  salary_id: string | null
-  is_withdrawal: boolean
-  created_at: string
-}
+export type { InvestmentDeposit }
 
 interface InvestmentDepositsContextType {
   deposits: InvestmentDeposit[]

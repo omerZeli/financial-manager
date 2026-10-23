@@ -1,14 +1,9 @@
 import { createContext, useContext, useState, useCallback, type ReactNode } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from './AuthContext'
+import type { ExpenseType } from '@financial-manager/shared'
 
-export interface ExpenseType {
-  id: string
-  user_id: string
-  type_name: string
-  categories: string[]
-  created_at: string
-}
+export type { ExpenseType }
 
 interface ExpenseTypesContextType {
   expenseTypes: ExpenseType[]

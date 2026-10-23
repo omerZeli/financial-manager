@@ -11,6 +11,7 @@ import { ChartFilterPopover } from '../components/common/ChartFilterPopover'
 import { usePersistedState } from '../hooks/usePersistedState'
 import { useFilters } from '../contexts/FiltersContext'
 import { formatLocalDate, getEffectiveDate } from '../lib/dateUtils'
+import { computeAllExpenses } from '@financial-manager/shared'
 import './Section.css'
 
 function formatCurrency(n: number) {
@@ -60,93 +61,12 @@ export function ExpensesChartsPage() {
   useEffect(() => { fetchExpenseTypes() }, [fetchExpenseTypes])
   useEffect(() => { fetchSalaries() }, [fetchSalaries])
 
-  // Build to_me payback totals per expense_id
-  const toMeByExpense = useMemo(() => {
-    const map: Record<string, number> = {}
-    for (const pb of paybacks) {
-      if (pb.direction === 'to_me' && pb.expense_id) {
-        map[pb.expense_id] = (map[pb.expense_id] || 0) + pb.amount
-      }
-    }
-    return map
-  }, [paybacks])
-
-  // Build to_me paybacks linked to fixed expenses (with date info for inflated matching)
-  const toMeByFixed = useMemo(() => {
-    const map: Record<string, { total: number; items: { amount: number; date: string }[] }> = {}
-    for (const pb of paybacks) {
-      if (pb.direction === 'to_me' && pb.fixed_expense_id) {
-        if (!map[pb.fixed_expense_id]) map[pb.fixed_expense_id] = { total: 0, items: [] }
-        map[pb.fixed_expense_id].total += pb.amount
-        map[pb.fixed_expense_id].items.push({ amount: pb.amount, date: pb.date })
-      }
-    }
-    return map
-  }, [paybacks])
-
-  const toMeByPayback = useMemo(() => {
-    const map: Record<string, number> = {}
-    for (const pb of paybacks) {
-      if (pb.direction === 'to_me' && pb.payback_id) {
-        map[pb.payback_id] = (map[pb.payback_id] || 0) + pb.amount
-      }
-    }
-    return map
-  }, [paybacks])
-
-  // by_me paybacks as virtual expense entries (reduced by to_me paybacks linked to them)
-  const byMeExpenses = useMemo(() => {
-    return paybacks
-      .filter(pb => pb.direction === 'by_me')
-      .map(pb => {
-        const returned = toMeByPayback[pb.id] || 0
-        return {
-          id: `payback_${pb.id}`,
-          user_id: pb.user_id,
-          name: pb.name || '',
-          category: pb.category || '',
-          amount: pb.amount - returned,
-          date: pb.date,
-          created_at: pb.created_at,
-          _salaryDeducted: false,
-          _fixed: false,
-          _effectiveSalaryId: null as string | null,
-          _salaryDeductedFixed: false,
-        }
-      })
-      .filter(e => e.amount !== 0)
-  }, [paybacks, toMeByPayback])
-
-  // Set of fixed expense IDs that are salary-deducted
-  const salaryDeductedFixedIds = useMemo(() => {
-    return new Set(fixedExpenses.filter(fe => fe.salary_employer).map(fe => fe.id))
-  }, [fixedExpenses])
-
-  const allExpensesRaw = useMemo(() => {
-    const adjusted = expenses.map(exp => {
-      const returned = toMeByExpense[exp.id] || 0
-      return { ...exp, amount: exp.amount - returned, _salaryDeducted: !!exp.salary_id, _fixed: false, _effectiveSalaryId: exp.salary_id, _salaryDeductedFixed: false }
-    })
-    const inflated = inflatedExpenses.map(ie => {
-      const fixedId = ie.id.substring(0, ie.id.lastIndexOf('_'))
-      const isSalaryDeducted = salaryDeductedFixedIds.has(fixedId)
-      return { ...ie, amount: ie.amount, _salaryDeducted: isSalaryDeducted, _fixed: true, _effectiveSalaryId: null as string | null, _salaryDeductedFixed: isSalaryDeducted }
-    })
-
-    // Apply to_me paybacks linked to fixed expenses (reduce last inflated entry on or before payback date)
-    for (const [fixedId, data] of Object.entries(toMeByFixed)) {
-      for (const pb of data.items) {
-        const candidates = inflated
-          .filter(ie => ie.id.startsWith(fixedId + '_') && ie.date <= pb.date)
-          .sort((a, b) => b.date.localeCompare(a.date))
-        if (candidates.length > 0) {
-          candidates[0].amount -= pb.amount
-        }
-      }
-    }
-
-    return [...adjusted, ...inflated.filter(e => e.amount !== 0), ...byMeExpenses.map(e => ({ ...e, _salaryDeductedFixed: false }))]
-  }, [expenses, inflatedExpenses, byMeExpenses, toMeByExpense, toMeByFixed, salaryDeductedFixedIds])
+  // Merge real + inflated + by_me paybacks with to_me reductions and
+  // effective-date/fixed/salary-deduction annotations (shared with the table page).
+  const allExpensesRaw = useMemo(
+    () => computeAllExpenses({ expenses, inflatedExpenses, paybacks, fixedExpenses, salaries }),
+    [expenses, inflatedExpenses, paybacks, fixedExpenses, salaries]
+  )
 
   // All categories covered by any expense type
   const allTypedCategories = useMemo(() => {

@@ -1,16 +1,9 @@
 import { createContext, useContext, useState, useCallback, type ReactNode } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from './AuthContext'
+import type { Salary } from '@financial-manager/shared'
 
-export interface Salary {
-  id: string
-  user_id: string
-  month: string
-  employer: string
-  bruto: number
-  neto: number
-  created_at: string
-}
+export type { Salary }
 
 interface SalaryContextType {
   salaries: Salary[]

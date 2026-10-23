@@ -17,6 +17,7 @@ import { ExpenseTypeForm } from '../components/forms/ExpenseTypeForm'
 import { EditExpenseForm } from '../components/forms/EditExpenseForm'
 import { EditFixedExpenseForm } from '../components/forms/EditFixedExpenseForm'
 import { EditPaybackForm } from '../components/forms/EditPaybackForm'
+import { computeAllExpenses } from '@financial-manager/shared'
 import './Section.css'
 
 function formatDate(dateStr: string) {
@@ -139,26 +140,6 @@ export function ExpensesTablePage() {
     return map
   }, [paybacks])
 
-  // "by_me" paybacks as virtual expense rows (reduced by to_me paybacks linked to them)
-  const byMeAsExpenses = useMemo(() => {
-    return paybacks
-      .filter(pb => pb.direction === 'by_me')
-      .map(pb => {
-        const returned = toMeByPayback[pb.id] || 0
-        return {
-          id: `payback_${pb.id}`,
-          user_id: pb.user_id,
-          name: pb.name || '',
-          category: pb.category || '',
-          amount: pb.amount - returned,
-          date: pb.date,
-          created_at: pb.created_at,
-          _paybackPerson: pb.person,
-        }
-      })
-      .filter(e => e.amount !== 0)
-  }, [paybacks, toMeByPayback])
-
   // Options for the "to_me" payback expense dropdown: regular (not fully paid) + fixed expenses + by_me paybacks
   const paybackExpenseOptions = useMemo(() => {
     const regularOpts = expenses
@@ -209,43 +190,10 @@ export function ExpensesTablePage() {
   }, [expenses, fixedExpenses, paybacks, toMeByExpense, toMeByFixed, toMeByPayback])
 
   // Merge real + inflated + by_me paybacks, adjust amounts for to_me paybacks
-  const allExpenses = useMemo(() => {
-    const adjusted = expenses.map(exp => {
-      const returned = toMeByExpense[exp.id] || 0
-      return { ...exp, amount: exp.amount - returned, _originalAmount: exp.amount, _returnedAmount: returned }
-    })
-
-    const inflatedAdjusted = inflatedExpenses.map(e => ({
-      ...e,
-      _originalAmount: undefined as number | undefined,
-      _returnedAmount: undefined as number | undefined,
-      _paybackPerson: undefined as string | undefined,
-    }))
-
-    for (const [fixedId, data] of Object.entries(toMeByFixed)) {
-      for (const pb of data.items) {
-        const candidates = inflatedAdjusted
-          .filter(ie => ie.id.startsWith(fixedId + '_') && ie.date <= pb.date)
-          .sort((a, b) => b.date.localeCompare(a.date))
-        if (candidates.length > 0) {
-          const target = candidates[0]
-          if (!target._originalAmount) {
-            target._originalAmount = target.amount
-            target._returnedAmount = 0
-          }
-          target._returnedAmount = (target._returnedAmount || 0) + pb.amount
-          target.amount -= pb.amount
-        }
-      }
-    }
-
-    const merged = [
-      ...adjusted.filter(e => e.amount !== 0).map(e => ({ ...e, _paybackPerson: undefined as string | undefined })),
-      ...inflatedAdjusted.filter(e => e.amount !== 0),
-      ...byMeAsExpenses.map(e => ({ ...e, _originalAmount: undefined as number | undefined, _returnedAmount: undefined as number | undefined })),
-    ]
-    return merged.sort((a, b) => b.date.localeCompare(a.date))
-  }, [expenses, inflatedExpenses, byMeAsExpenses, toMeByExpense, toMeByFixed])
+  const allExpenses = useMemo(
+    () => computeAllExpenses({ expenses, inflatedExpenses, paybacks, fixedExpenses, salaries }),
+    [expenses, inflatedExpenses, paybacks, fixedExpenses, salaries]
+  )
 
   // Column definitions for each sub-tab
   const allExpCols: ColumnDef[] = useMemo(() => [

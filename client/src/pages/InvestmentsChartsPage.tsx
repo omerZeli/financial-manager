@@ -11,6 +11,7 @@ import { usePersistedState } from '../hooks/usePersistedState'
 import { useFilters } from '../contexts/FiltersContext'
 import { computeChannelSummary, CASH_PATH_LABEL } from '../lib/computeChannelSummary'
 import { formatLocalDate, todayStr as getTodayStr } from '../lib/dateUtils'
+import { computeInvestmentSummaries, computeInvestmentTotals } from '@financial-manager/shared'
 import './Section.css'
 
 function formatCurrency(n: number) {
@@ -149,26 +150,28 @@ export function InvestmentsChartsPage() {
   const isFiltered = timeRange !== 'all'
 
   const summaries = useMemo(() => {
-    return filteredChannels.map(ch => {
-      const isCash = ch.investment_path === CASH_PATH_LABEL
-      const summary = computeChannelSummary(ch.id, filteredDeposits, filteredValues, isCash)
-      return { ...ch, ...summary, isCash }
+    return computeInvestmentSummaries({
+      channels: filteredChannels,
+      deposits: filteredDeposits,
+      valueUpdates: filteredValues,
     })
   }, [filteredChannels, filteredDeposits, filteredValues])
 
   // Cash channels have fake deposits (value = deposits), so exclude them from
   // the deposits card and return calculations. They still count toward current value.
-  const nonCashSummaries = useMemo(() => summaries.filter(s => !s.isCash), [summaries])
   const nonCashChannels = useMemo(() => filteredChannels.filter(ch => ch.investment_path !== CASH_PATH_LABEL), [filteredChannels])
   const cashChannelIds = useMemo(() => new Set(filteredChannels.filter(ch => ch.investment_path === CASH_PATH_LABEL).map(ch => ch.id)), [filteredChannels])
 
-  // Gross deposits in range (excluding cash channels and withdrawals) for the deposits card
-  const totalDeposited = useMemo(() => {
-    return filteredDeposits
-      .filter(d => !cashChannelIds.has(d.channel_id) && !d.is_withdrawal)
-      .reduce((s, d) => s + d.amount, 0)
-  }, [filteredDeposits, cashChannelIds])
-  const totalCurrentValue = summaries.reduce((s, c) => s + c.currentValue, 0)
+  // Portfolio totals from the shared helper. Mirrors the page's original math:
+  // totalDeposited = gross non-withdrawal deposits for non-cash channels (in range),
+  // totalCurrentValue = currentValue across all channels (incl. cash).
+  // (The un-filtered return branch below also reuses this helper's totals.)
+  const investmentTotals = useMemo(
+    () => computeInvestmentTotals(summaries, filteredDeposits),
+    [summaries, filteredDeposits],
+  )
+  const totalDeposited = investmentTotals.totalDeposited
+  const totalCurrentValue = investmentTotals.totalCurrentValue
 
   // Monthly net deposits by the user ("אני"): deposits minus withdrawals, grouped by month
   const myDepositsByMonth = useMemo(() => {
@@ -247,11 +250,9 @@ export function InvestmentsChartsPage() {
   // Formula: return = (endValue - startValue) - netCashFlowInRange
   const { totalReturn, totalReturnPercent } = useMemo(() => {
     if (!isFiltered) {
-      // No time filter — use net invested capital from non-cash summaries
-      const nonCashValue = nonCashSummaries.reduce((s, c) => s + c.currentValue, 0)
-      const netInvested = nonCashSummaries.reduce((s, c) => s + c.totalDeposits, 0)
-      const ret = nonCashValue - netInvested
-      return { totalReturn: ret, totalReturnPercent: netInvested > 0 ? ret / netInvested : 0 }
+      // No time filter — the shared helper's return matches this branch exactly
+      // (non-cash currentValue - netInvested over netInvested).
+      return { totalReturn: investmentTotals.totalReturn, totalReturnPercent: investmentTotals.totalReturnPercent }
     }
 
     const minDate = getMinDate(timeRange, customFrom)
@@ -286,7 +287,7 @@ export function InvestmentsChartsPage() {
     // Base for percentage: opening value + deposits in range (the capital at risk)
     const base = openingValue + nonCashFilteredDeposits.filter(d => !d.is_withdrawal).reduce((s, d) => s + d.amount, 0)
     return { totalReturn: ret, totalReturnPercent: base > 0 ? ret / base : 0 }
-  }, [isFiltered, timeRange, customFrom, customTo, nonCashSummaries, nonCashChannels, cashChannelIds, filteredDeposits, deposits, valueUpdates])
+  }, [isFiltered, investmentTotals, timeRange, customFrom, customTo, nonCashChannels, cashChannelIds, filteredDeposits, deposits, valueUpdates])
 
   // Investment duration — when filtered, use the filter range length; otherwise earliest deposit to today
   const investmentDuration = useMemo(() => {

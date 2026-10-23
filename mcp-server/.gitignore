@@ -1,0 +1,5 @@
+# Local environment configuration (never commit secrets)
+.env
+
+# Build output
+dist
